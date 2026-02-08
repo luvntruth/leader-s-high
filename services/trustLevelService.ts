@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 
 const TRUST_LEVEL_SYSTEM_PROMPT = `당신은 "Trust Level(대화 품질) 스코어링 엔진"입니다.
@@ -27,9 +28,10 @@ const TRUST_LEVEL_SYSTEM_PROMPT = `당신은 "Trust Level(대화 품질) 스코�
 
 [OUTPUT]
 반드시 JSON만 출력(설명/마크다운 금지).
+**중요: 숫자 양수 값에 절대 '+' 기호를 붙이지 마시오 (예: +2가 아니라 2로 표기).**
 {
   "trust": <int 0..100>,
-  "delta": <int -15..+8>,
+  "delta": <int -15..8>,
   "dimensions": {
     "psychological_safety": <int 0..100>,
     "understanding_alignment": <int 0..100>,
@@ -41,7 +43,7 @@ const TRUST_LEVEL_SYSTEM_PROMPT = `당신은 "Trust Level(대화 품질) 스코�
     {
       "family": "<FAMILY>",
       "code": "<EVENT_CODE>",
-      "impact": <int -15..+8>,
+      "impact": <int -15..8>,
       "reason_short": "<UI 1줄 한국어(60자 이내)>",
       "evidence": { "turn_ids":[<int>], "snippet":"<90자 이내 인용/요약>" }
     }
@@ -184,17 +186,41 @@ export interface TrustLevelOutput {
   next_hint: string;
 }
 
+// Singleton GoogleGenAI instance - reused across calls
+let aiInstance: GoogleGenAI | null = null;
+
+function getAIInstance(): GoogleGenAI | null {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) return null;
+  if (!aiInstance) aiInstance = new GoogleGenAI({ apiKey });
+  return aiInstance;
+}
+
+function isValidTrustOutput(obj: unknown): obj is TrustLevelOutput {
+  if (!obj || typeof obj !== 'object') return false;
+  const o = obj as Record<string, unknown>;
+  return (
+    typeof o.trust === 'number' &&
+    typeof o.delta === 'number' &&
+    typeof o.next_hint === 'string' &&
+    o.dimensions != null && typeof o.dimensions === 'object' &&
+    Array.isArray(o.events) &&
+    Array.isArray(o.recent_events_out) &&
+    o.stage != null && typeof o.stage === 'object'
+  );
+}
+
 export const TrustLevelService = {
   async scoreTrustLevel(input: TrustLevelInput): Promise<TrustLevelOutput | null> {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
+    if (input.transcript.length === 0) return null;
+
+    const ai = getAIInstance();
+    if (!ai) {
       console.warn("API Key is missing for TrustLevelService");
       return null;
     }
 
     try {
-      const ai = new GoogleGenAI({ apiKey });
-      
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: JSON.stringify(input),
@@ -208,7 +234,20 @@ export const TrustLevelService = {
       const text = response.text;
       if (!text) return null;
 
-      const output = JSON.parse(text) as TrustLevelOutput;
+      // Clean up markdown code blocks if present
+      let cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+      // Fix plus signs only in JSON numeric values (not inside string values)
+      // Match ": +N" patterns that are clearly numeric fields
+      cleaned = cleaned.replace(/":\s*\+(\d+)/g, '": $1');
+
+      const output = JSON.parse(cleaned);
+
+      if (!isValidTrustOutput(output)) {
+        console.error("TrustLevelService: Invalid response structure");
+        return null;
+      }
+
       return output;
     } catch (error) {
       console.error("TrustLevelService Error:", error);
