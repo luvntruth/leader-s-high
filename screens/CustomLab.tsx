@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 // @ts-ignore
 import { useNavigate } from 'react-router-dom';
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
+import { createGeminiClient } from '../src/lib/geminiClient';
 
 const CustomLab: React.FC = () => {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ const CustomLab: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = createGeminiClient();
     chatRef.current = ai.chats.create({
       model: 'gemini-3-flash-preview',
       config: {

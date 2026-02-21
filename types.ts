@@ -6,6 +6,8 @@ export enum Generation {
   BOOMER = 'Boomer'
 }
 
+export type ScenarioIntensity = 'low' | 'medium' | 'high';
+
 export interface Scenario {
   id: string;
   title: string;
@@ -13,6 +15,7 @@ export interface Scenario {
   description: string;
   memberName: string;
   generation: Generation;
+  intensity: ScenarioIntensity; // 갈등 수위: low=일상적, medium=보통, high=극단적
   traits: {
     context: number; // 0-100 (Low Context/Direct to High Context/Indirect)
     driver: number;  // 0-100 (Logic/Task to Relation/Emotion)

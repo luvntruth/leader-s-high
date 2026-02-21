@@ -6,6 +6,7 @@ import { GeminiLiveService, LiveHandlers } from '../services/geminiLiveService';
 import { TranscriptionItem } from '../types';
 import { TrustLevelService, TrustLevelOutput } from '../services/trustLevelService';
 import { getMissionBriefing } from '../services/missionBriefings';
+import { EmotionStateMachine } from '../services/emotionStateMachine';
 
 const ANALYSIS_COMPLETE_THRESHOLD = 12; // transcription items required
 const TRUST_SCORING_INTERVAL = 4; // transcription items between scoring
@@ -50,6 +51,7 @@ const VoiceSimulation: React.FC = () => {
   const mountedRef = useRef(true);
   const liveServiceRef = useRef<GeminiLiveService | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const emotionMachine = useRef(new EmotionStateMachine(30));
 
   // Cleanup on unmount
   useEffect(() => {
@@ -94,6 +96,10 @@ const VoiceSimulation: React.FC = () => {
       }
     }).then(score => {
       if (score && mountedRef.current) {
+        const emotionUpdate = emotionMachine.current.update(score.trust);
+        if (emotionUpdate.stateChanged) {
+          console.log(`[Voice Emotion] ${emotionUpdate.previousState} → ${emotionUpdate.newState}`);
+        }
         setTrustState({
           trust: score.trust,
           dimensions: score.dimensions,
@@ -127,14 +133,21 @@ const VoiceSimulation: React.FC = () => {
 
     if (!liveServiceRef.current) liveServiceRef.current = new GeminiLiveService();
 
-    const systemInstruction = `
-      당신은 한국 리더십 시뮬레이션의 팀원 '${config.name}'입니다.
-      상황: ${scenario?.title}
-      페르소나: ${scenario?.description}
-      [음성 인터랙션 가이드]
-      - 한국어 구어체를 사용하며, 대화는 1~2문장으로 짧게 하세요.
-      - 리더의 전략적 접근(Task 수행)이 느껴지면 조금씩 긍정적으로 반응하세요.
-    `;
+    const initialEmotionContext = emotionMachine.current.buildEmotionContext(30);
+    const systemInstruction = `당신은 한국 리더십 시뮬레이션의 팀원 '${config.name}'입니다.
+[상황] ${scenario?.title}
+[배경] ${scenario?.description}
+[세대] ${config.generation}
+[소통 스타일] 맥락 의존도: ${config.contextStyle ?? 50}/100, 감정 중심도: ${config.driverStyle ?? 50}/100
+
+${initialEmotionContext}
+
+[음성 인터랙션 가이드]
+1. 현재 감정 상태에 맞게 자연스럽게 반응하세요.
+2. 한국어 구어체를 사용하며, 대화는 1~2문장으로 짧게 하세요.
+3. 팀장이 공감하고 경청하면 점차 마음을 열어가세요. 하지만 급격한 태도 변화는 하지 마세요.
+4. 팀장이 일방적으로 지시하거나 무시하면 더 방어적으로 변하세요.
+5. 한국 직장 문화의 뉘앙스(한숨, 침묵, 돌려 말하기 등)를 반영하세요.`;
 
     const handlers: LiveHandlers = {
       onStatusChange: (s) => setStatus(s),

@@ -1,5 +1,6 @@
 
 import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
+import { createGeminiClient } from '../src/lib/geminiClient';
 
 export interface LiveHandlers {
   onTranscription?: (role: 'user' | 'model', text: string) => void;
@@ -78,12 +79,7 @@ export class GeminiLiveService {
     try {
       handlers.onStatusChange?.('connecting');
       
-      const key = process.env.API_KEY;
-      if (!key) {
-        throw new Error("API Key가 설정되지 않았습니다. .env 파일을 확인해주세요.");
-      }
-
-      const ai = new GoogleGenAI({ apiKey: key });
+      const ai = createGeminiClient();
       
       const AudioCtx = (window.AudioContext || (window as any).webkitAudioContext);
       this.inputAudioContext = new AudioCtx({ sampleRate: 16000 });

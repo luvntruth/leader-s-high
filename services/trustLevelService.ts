@@ -1,5 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
+import { createGeminiClient } from '../src/lib/geminiClient';
 
 const TRUST_LEVEL_SYSTEM_PROMPT = `당신은 "Trust Level(대화 품질) 스코어링 엔진"입니다.
 이 점수는 감정적 신뢰 그 자체가 아니라, 대화에서 관찰되는 '신뢰를 형성/훼손하는 행동 단서(trust cues)'와 상대 반응을 기반으로 한 0~100의 '대화 품질 점수'입니다.
@@ -189,10 +190,8 @@ export interface TrustLevelOutput {
 // Singleton GoogleGenAI instance - reused across calls
 let aiInstance: GoogleGenAI | null = null;
 
-function getAIInstance(): GoogleGenAI | null {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) return null;
-  if (!aiInstance) aiInstance = new GoogleGenAI({ apiKey });
+function getAIInstance(): GoogleGenAI {
+  if (!aiInstance) aiInstance = createGeminiClient();
   return aiInstance;
 }
 
@@ -215,10 +214,6 @@ export const TrustLevelService = {
     if (input.transcript.length === 0) return null;
 
     const ai = getAIInstance();
-    if (!ai) {
-      console.warn("API Key is missing for TrustLevelService");
-      return null;
-    }
 
     try {
       const response = await ai.models.generateContent({

@@ -1,0 +1,23 @@
+# Cloudflare Worker 설정
+# 문서: https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name            = "leaders-high-proxy"
+main            = "index.ts"
+compatibility_date = "2025-02-01"
+
+# WebSocket 지원 활성화 (Gemini Live API용)
+[websockets]
+enabled = true
+
+# 환경 변수 (민감하지 않은 값만 여기에 기재)
+# 실제 API 키는 아래 명령어로 시크릿에 등록:
+#   npx wrangler secret put GEMINI_API_KEY
+[vars]
+# 프론트엔드 배포 URL로 변경하세요 (CORS 허용 오리진)
+# 개발 테스트용: "*"  |  프로덕션: "https://your-app.vercel.app"
+ALLOWED_ORIGIN = "*"
+
+# ─── 프로덕션 환경 설정 ─────────────────────────────────────────
+[env.production.vars]
+ALLOWED_ORIGIN = "https://your-leadershigh-domain.com"
+# GEMINI_API_KEY는 절대 여기에 기재하지 말고 시크릿으로 등록할 것

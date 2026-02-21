@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 // @ts-ignore
 import { useNavigate, useLocation } from 'react-router-dom';
 import { GoogleGenAI, Type } from "@google/genai";
+import { createGeminiClient } from '../src/lib/geminiClient';
 
 interface EvaluationData {
   summary: string;
@@ -15,6 +16,13 @@ interface EvaluationData {
     practicalApply: string; 
   };
   actionItems: string[];
+  coachingSkills: {
+    empathyExpression: number;
+    questionSkill: number;
+    emotionControl: number;
+    activeListening: number;
+    actionGuidance: number;
+  };
   metrics: {
     sbiScore: number;
     empathyIndex: number;
@@ -32,7 +40,7 @@ interface EvaluationData {
 const Feedback: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { transcript, scenario } = location.state || {};
+  const { transcript, scenario, sosTipHistory } = location.state || {};
   
   const [isAnalysing, setIsAnalysing] = useState(true);
   const [evaluation, setEvaluation] = useState<EvaluationData | null>(null);
@@ -61,20 +69,15 @@ const Feedback: React.FC = () => {
     setError(null);
 
     try {
-      if (!process.env.API_KEY) {
-        throw new Error("API Key is missing");
-      }
-
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      // 프롬프트를 더 강력하게 수정하여 영어 노출을 원천 차단
+      const ai = createGeminiClient();
       const prompt = `
         당신은 대한민국 최고의 리더십 코치입니다. 리더를 위한 시뮬레이션 결과 리포트를 생성하세요.
-        
+
         대화 기록: ${JSON.stringify(transcript)}
         시나리오: ${scenario?.title} - ${scenario?.description}
-        
+
         [절대 준수 사항 - 어길 시 시스템 오류로 간주함]
-        1. 모든 필드(제목, 설명, 요약 등)는 100% 한국어로만 작성하세요. 
+        1. 모든 필드(제목, 설명, 요약 등)는 100% 한국어로만 작성하세요.
         2. 영어를 단 한 단어도 사용하지 마세요. (예: 'Directness' -> '직설적 소통', 'Fairness' -> '공정성' 등으로 번역)
         3. 'Wait', 'Refining', 'Reasoning', 'Okay' 같은 당신의 내부 사고 과정이나 사설을 절대 출력 결과에 포함하지 마세요. 오직 리더를 위한 최종 조언만 담으세요.
         4. '잘한 점(strengths)'과 '개선점(improvements)'은 각각 명확한 제목(title)과 2문장 내의 정제된 한국어 설명(desc)으로 작성하세요.
@@ -82,6 +85,14 @@ const Feedback: React.FC = () => {
         6. 이론 설명(scienceBase)은 학술적 용어를 배제하고 2문장 이내로 매우 간결하게 한국어로 작성하세요.
         7. 현업 적용 가이드(practicalApply)는 리더가 내일 당장 사무실에서 실천할 수 있는 1개의 구체적 행동 지침을 한국어로 작성하세요.
         8. 모든 결과는 지정된 JSON 스키마를 엄격히 따르며, JSON 데이터 외의 텍스트는 출력하지 마세요.
+
+        [구체성 강화 규칙 - 매우 중요]
+        9. 강점과 개선점 분석 시, 반드시 사용자의 실제 발화를 직접 인용("..." 형태)하여 근거를 제시하세요.
+           - 좋은 예: "팀장님이 '그 부분이 힘들었겠네요'라고 말한 부분에서 공감 능력이 돋보였습니다."
+           - 나쁜 예: "공감 능력이 좋습니다." (근거 없이 일반적)
+        10. 모범 스크립트(modelAnswers)의 situation 필드에는 사용자가 실제로 했던 발화를 인용하고, bestResponse에서 그 상황에서의 더 나은 대안을 제시하세요.
+        11. summary는 이 리더만의 고유한 대화 패턴을 짚어주세요. "전반적으로 잘했다" 같은 일반적 평가는 금지합니다.
+        12. coachingSkills 점수는 대화 기록에서 관찰된 구체적 행동 빈도와 질을 기준으로 0~100 사이로 채점하세요.
       `;
 
       const response = await fetchWithRetry(() => ai.models.generateContent({
@@ -138,6 +149,17 @@ const Feedback: React.FC = () => {
                 required: ['theoryName', 'scienceBase', 'practicalApply']
               },
               actionItems: { type: Type.ARRAY, items: { type: Type.STRING } },
+              coachingSkills: {
+                type: Type.OBJECT,
+                properties: {
+                  empathyExpression: { type: Type.INTEGER },
+                  questionSkill: { type: Type.INTEGER },
+                  emotionControl: { type: Type.INTEGER },
+                  activeListening: { type: Type.INTEGER },
+                  actionGuidance: { type: Type.INTEGER }
+                },
+                required: ['empathyExpression', 'questionSkill', 'emotionControl', 'activeListening', 'actionGuidance']
+              },
               metrics: {
                 type: Type.OBJECT,
                 properties: {
@@ -157,7 +179,7 @@ const Feedback: React.FC = () => {
                 }
               }
             },
-            required: ['summary', 'strengths', 'improvements', 'modelAnswers', 'theoryInsight', 'actionItems', 'metrics', 'radarChart']
+            required: ['summary', 'strengths', 'improvements', 'modelAnswers', 'theoryInsight', 'actionItems', 'coachingSkills', 'metrics', 'radarChart']
           }
         }
       }));
@@ -178,7 +200,10 @@ const Feedback: React.FC = () => {
         memberName: scenario?.memberName || '팀원',
         transcript: transcript,
         evaluation: evalResult,
-        scenario: scenario
+        scenario: scenario,
+        sosTipHistory: sosTipHistory || [],
+        memo: '',
+        tags: [] as string[]
       };
       const existing = JSON.parse(localStorage.getItem('leadershigh_history') || '[]');
       localStorage.setItem('leadershigh_history', JSON.stringify([historyItem, ...existing]));
@@ -295,23 +320,81 @@ const Feedback: React.FC = () => {
            </section>
         </div>
 
-        {/* 골든 스크립트 */}
+        {/* 코칭 역량 점수 */}
+        {evaluation.coachingSkills && (
+          <section className="bg-navy-card p-8 rounded-[3rem] border border-white/10">
+            <h3 className="text-white font-black text-[11px] uppercase tracking-widest mb-8 flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm text-primary">psychology</span> 코칭 역량 상세 분석
+            </h3>
+            <div className="space-y-5">
+              {[
+                { key: 'empathyExpression', label: '공감 표현', icon: 'favorite', color: 'bg-pink-500' },
+                { key: 'questionSkill', label: '질문 기술', icon: 'help', color: 'bg-blue-500' },
+                { key: 'emotionControl', label: '감정 조절', icon: 'balance', color: 'bg-purple-500' },
+                { key: 'activeListening', label: '경청력', icon: 'hearing', color: 'bg-green-500' },
+                { key: 'actionGuidance', label: '행동 유도', icon: 'trending_up', color: 'bg-amber-500' },
+              ].map((skill) => {
+                const value = (evaluation.coachingSkills as any)[skill.key] || 0;
+                return (
+                  <div key={skill.key} className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 w-24 shrink-0">
+                      <span className="material-symbols-outlined text-slate-400 text-sm">{skill.icon}</span>
+                      <span className="text-xs font-bold text-slate-300">{skill.label}</span>
+                    </div>
+                    <div className="flex-1 h-3 bg-white/5 rounded-full overflow-hidden">
+                      <div className={`h-full ${skill.color} rounded-full transition-all duration-1000`} style={{ width: `${value}%` }}></div>
+                    </div>
+                    <span className="text-sm font-black text-white w-12 text-right">{value}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* 골든 스크립트 — 사용자 vs 모범 비교 */}
         <section className="space-y-6">
             <h3 className="text-xl font-black tracking-tight px-2 flex items-center gap-3">
-              <span className="material-symbols-outlined text-accent-amber">crown</span> 골든 스크립트 (모범 답안)
+              <span className="material-symbols-outlined text-accent-amber">crown</span> 스크립트 비교 분석
             </h3>
             <div className="space-y-6">
                 {evaluation.modelAnswers.map((item, idx) => (
                     <div key={idx} className="bg-[#1C1F26] border border-accent-amber/20 p-8 rounded-[2.5rem] relative overflow-hidden group">
+                        {/* 상황 설명 */}
                         <div className="mb-6">
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">상황 리플레이</p>
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                              <span className="material-symbols-outlined text-[10px] align-middle mr-1">replay</span>
+                              상황 리플레이
+                            </p>
                             <p className="text-sm text-slate-300 italic font-medium">"{item.situation}"</p>
                         </div>
-                        <div className="bg-accent-amber/5 border border-accent-amber/20 p-6 rounded-2xl mb-6 shadow-lg">
-                            <p className="text-[10px] font-black text-accent-amber uppercase tracking-widest mb-2">추천 답변</p>
-                            <p className="text-base text-white font-black leading-relaxed">"{item.bestResponse}"</p>
+
+                        {/* 비교 레이아웃 */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                          {/* 사용자 실제 발화 */}
+                          <div className="bg-red-500/5 border border-red-500/20 p-5 rounded-2xl">
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="material-symbols-outlined text-red-400 text-sm">person</span>
+                              <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">나의 발화</p>
+                            </div>
+                            <p className="text-sm text-slate-300 leading-relaxed">"{item.situation}"</p>
+                          </div>
+
+                          {/* 모범 답변 */}
+                          <div className="bg-accent-amber/5 border border-accent-amber/20 p-5 rounded-2xl">
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="material-symbols-outlined text-accent-amber text-sm">auto_awesome</span>
+                              <p className="text-[10px] font-black text-accent-amber uppercase tracking-widest">추천 답변</p>
+                            </div>
+                            <p className="text-sm text-white font-bold leading-relaxed">"{item.bestResponse}"</p>
+                          </div>
                         </div>
-                        <p className="text-xs text-slate-400 leading-relaxed font-medium">{item.why}</p>
+
+                        {/* 개선 포인트 */}
+                        <div className="bg-white/5 p-4 rounded-xl flex gap-3 items-start">
+                          <span className="material-symbols-outlined text-primary text-sm mt-0.5 shrink-0">lightbulb</span>
+                          <p className="text-xs text-slate-400 leading-relaxed font-medium">{item.why}</p>
+                        </div>
                     </div>
                 ))}
             </div>

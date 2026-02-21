@@ -7,10 +7,12 @@ import { SCENARIOS, CATEGORIES } from '../constants';
 import { DataService } from '../services/dataService';
 import { GoogleGenAI } from "@google/genai";
 import { Scenario } from '../types';
+import { createGeminiClient } from '../src/lib/geminiClient';
 
 const Missions: React.FC = () => {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('전체');
+  const [selectedIntensity, setSelectedIntensity] = useState<'전체' | 'low' | 'medium' | 'high'>('전체');
   const [isAnalysing, setIsAnalysing] = useState(false);
   const [recommendation, setRecommendation] = useState<{scenario: Scenario, reason: string} | null>(null);
 
@@ -62,7 +64,7 @@ const Missions: React.FC = () => {
         const candidateScenarios = SCENARIOS.filter(s => s.category === weakAreaInfo.category);
         const targetScenario = candidateScenarios[Math.floor(Math.random() * candidateScenarios.length)] || SCENARIOS[0];
         
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const ai = createGeminiClient();
         const prompt = `
           리더십 코칭 시스템입니다. 
           현재 리더의 취약 역량은 '${weakAreaInfo.area}'이며, 추천 미션은 '${targetScenario.title}'입니다.
@@ -106,9 +108,15 @@ const Missions: React.FC = () => {
   }, []);
 
   const filteredScenarios = useMemo(() => {
-    if (selectedCategory === '전체') return SCENARIOS;
-    return SCENARIOS.filter(s => s.category === selectedCategory);
-  }, [selectedCategory]);
+    let result = SCENARIOS;
+    if (selectedCategory !== '전체') {
+      result = result.filter(s => s.category === selectedCategory);
+    }
+    if (selectedIntensity !== '전체') {
+      result = result.filter(s => s.intensity === selectedIntensity);
+    }
+    return result;
+  }, [selectedCategory, selectedIntensity]);
 
   return (
     <div className="h-screen flex flex-col relative overflow-hidden bg-[#0A0F1D] text-white font-manrope">
@@ -133,12 +141,33 @@ const Missions: React.FC = () => {
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               className={`px-5 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border uppercase tracking-widest ${
-                selectedCategory === cat 
-                  ? 'bg-primary text-navy-deep border-primary shadow-[0_0_15px_rgba(0,242,255,0.4)]' 
+                selectedCategory === cat
+                  ? 'bg-primary text-navy-deep border-primary shadow-[0_0_15px_rgba(0,242,255,0.4)]'
                   : 'bg-white/5 text-slate-500 border-white/5 hover:border-white/20'
               }`}
             >
               {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Intensity Filter */}
+        <div className="flex gap-2 items-center">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest shrink-0">난이도</span>
+          {([['전체', '전체'], ['low', '일상적'], ['medium', '보통'], ['high', '극단적']] as const).map(([value, label]) => (
+            <button
+              key={value}
+              onClick={() => setSelectedIntensity(value as any)}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all border ${
+                selectedIntensity === value
+                  ? value === 'high' ? 'bg-red-500/20 text-red-400 border-red-500/40'
+                    : value === 'medium' ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                    : value === 'low' ? 'bg-green-500/20 text-green-400 border-green-500/40'
+                    : 'bg-primary/20 text-primary border-primary/40'
+                  : 'bg-white/5 text-slate-500 border-white/5 hover:border-white/20'
+              }`}
+            >
+              {label}
             </button>
           ))}
         </div>
@@ -253,6 +282,13 @@ const Missions: React.FC = () => {
                       <span className="text-[10px] font-bold text-slate-300">{scenario.memberName}</span>
                    </div>
                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{scenario.generation}</span>
+                   <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                     scenario.intensity === 'high' ? 'bg-red-500/15 text-red-400 border border-red-500/30' :
+                     scenario.intensity === 'medium' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' :
+                     'bg-green-500/15 text-green-400 border border-green-500/30'
+                   }`}>
+                     {scenario.intensity === 'high' ? '극단적' : scenario.intensity === 'medium' ? '보통' : '일상적'}
+                   </span>
                 </div>
               </div>
             </div>

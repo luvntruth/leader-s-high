@@ -5,6 +5,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { GoogleGenAI, Chat, GenerateContentResponse, Type } from "@google/genai";
 import { TrustLevelService, TrustLevelOutput } from '../services/trustLevelService';
 import { getMissionBriefing, getOpeningLine } from '../services/missionBriefings';
+import { EmotionStateMachine } from '../services/emotionStateMachine';
+import { createGeminiClient } from '../src/lib/geminiClient';
 
 interface Message {
   role: 'user' | 'model';
@@ -22,6 +24,39 @@ interface SOSTip {
 const ANALYSIS_COMPLETE_THRESHOLD = 7; // user turns required
 const TRUST_SCORING_INTERVAL = 3; // user turns between scoring
 
+// 감정 상태를 Trust Level에 따라 결정하는 함수
+function getEmotionState(trust: number): { state: string; description: string } {
+  if (trust <= 20) return { state: '강한 반발', description: '매우 방어적이고 적대적입니다. 대화를 회피하거나 공격적으로 반응합니다. 팀장의 말을 신뢰하지 않습니다.' };
+  if (trust <= 40) return { state: '경계/방어', description: '경계심을 갖고 있으며 쉽게 마음을 열지 않습니다. 짧고 방어적인 답변을 하며 속마음을 드러내지 않습니다.' };
+  if (trust <= 55) return { state: '유보적 관망', description: '아직 판단을 유보하고 있습니다. 팀장의 진심을 시험하듯 반응하며, 조심스럽게 자기 생각을 꺼내기 시작합니다.' };
+  if (trust <= 70) return { state: '점진적 수용', description: '팀장의 말에 일부 공감하기 시작합니다. 여전히 조심스럽지만 자신의 상황이나 어려움을 조금씩 이야기합니다.' };
+  if (trust <= 85) return { state: '열린 대화', description: '솔직하게 속마음을 이야기하며, 팀장과 함께 해결책을 찾으려 합니다. 건설적인 대화가 가능합니다.' };
+  return { state: '설득/합의', description: '팀장을 신뢰하며 적극적으로 협력합니다. 스스로 개선 방안을 제안하고 변화에 동의합니다.' };
+}
+
+// Trust Level과 감정 상태를 반영한 동적 시스템 프롬프트
+function buildSystemPrompt(config: any, scenario: any, trustState: any): string {
+  const emotion = getEmotionState(trustState.trust);
+
+  return `당신은 팀원 '${config.name}'입니다.
+[상황] ${scenario?.title}
+[배경] ${scenario?.description}
+[세대] ${config.generation}
+[소통 스타일] 맥락 의존도: ${config.contextStyle ?? 50}/100, 감정 중심도: ${config.driverStyle ?? 50}/100
+
+[현재 감정 상태: ${emotion.state}] (신뢰도: ${trustState.trust}/100)
+${emotion.description}
+
+[반응 규칙]
+1. 현재 감정 상태에 맞게 자연스럽게 반응하세요.
+2. 팀장이 공감하고 경청하면 점차 마음을 열어가세요. 하지만 급격한 태도 변화는 하지 마세요.
+3. 팀장이 일방적으로 지시하거나 무시하면 더 방어적으로 변하세요.
+4. 한국 직장 문화의 뉘앙스를 반영하세요 (예: 직접 반박보다는 한숨, 침묵, 돌려 말하기 등).
+5. 1~3문장으로 짧고 현실적으로 대답하세요. 지나치게 극단적이거나 드라마틱하지 않게 해주세요.
+6. 가끔 침묵하거나 "…네, 뭐…" 같은 모호한 반응도 자연스럽습니다.`;
+}
+
+
 const Simulation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,6 +69,7 @@ const Simulation: React.FC = () => {
   const [showSOS, setShowSOS] = useState(false);
   const [isGeneratingSOS, setIsGeneratingSOS] = useState(false);
   const [sosTip, setSosTip] = useState<SOSTip | null>(null);
+  const [sosTipHistory, setSosTipHistory] = useState<{ tip: SOSTip; turnIndex: number; timestamp: string }[]>([]);
   const [showBriefing, setShowBriefing] = useState(true);
   const [initError, setInitError] = useState(false);
 
@@ -71,6 +107,7 @@ const Simulation: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const initialized = useRef(false);
+  const emotionMachine = useRef(new EmotionStateMachine(30));
 
   // Cleanup on unmount
   useEffect(() => {
@@ -142,6 +179,12 @@ const Simulation: React.FC = () => {
       }
     }).then(score => {
       if (score && mountedRef.current) {
+        // 감정 상태 머신 업데이트
+        const emotionUpdate = emotionMachine.current.update(score.trust);
+        if (emotionUpdate.stateChanged) {
+          console.log(`[Emotion] ${emotionUpdate.previousState} → ${emotionUpdate.newState}`);
+        }
+
         setTrustState({
           trust: score.trust,
           dimensions: score.dimensions,
@@ -167,7 +210,10 @@ const Simulation: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetchWithRetry(() => chatRef.current!.sendMessage({ message: text }));
+      // EmotionStateMachine의 상세 컨텍스트를 메시지에 주입
+      const emotionContext = emotionMachine.current.buildEmotionContext(trustStateRef.current.trust);
+      const contextPrefix = `[시스템 참고 - 사용자에게 보여주지 말 것]\n${emotionContext}\n[사용자 발화]\n`;
+      const response = await fetchWithRetry(() => chatRef.current!.sendMessage({ message: contextPrefix + text }));
       const responseText = response.text || '';
 
       setMessages(prev => [
@@ -191,10 +237,8 @@ const Simulation: React.FC = () => {
     try {
       setInitError(false);
 
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const systemInstruction = `
-        당신은 팀원 '${config.name}'입니다. 상황: ${scenario?.title}. 페르소나: ${scenario?.description}. 1~2문장으로 짧게 대답하세요.
-      `;
+      const ai = createGeminiClient();
+      const systemInstruction = buildSystemPrompt(config, scenario, trustStateRef.current);
 
       const openingUserText = `안녕하세요, ${config.name}님. 잠깐 이야기 좀 나눌까요?`;
       const openingModelText = getOpeningLine(scenario?.id, config.name);
@@ -238,7 +282,7 @@ const Simulation: React.FC = () => {
     setSosTip(null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = createGeminiClient();
 
       const prompt = `
         당신은 리더십 코치입니다. 현재 대화 상황을 분석하여 리더(User)에게 필요한 조언을 제공하세요.
@@ -280,6 +324,12 @@ const Simulation: React.FC = () => {
 
       if (parsed.insight && parsed.suggestion && Array.isArray(parsed.magicPhrases)) {
           setSosTip(parsed);
+          // SOS 힌트 이력에 저장
+          setSosTipHistory(prev => [...prev, {
+            tip: parsed,
+            turnIndex: messages.filter(m => m.role === 'user').length,
+            timestamp: new Date().toISOString()
+          }]);
       } else {
           throw new Error("Invalid response format");
       }
@@ -357,7 +407,7 @@ const Simulation: React.FC = () => {
         </div>
 
         <button
-          onClick={() => navigate('/feedback', { state: { transcript: messages, scenario: config.scenario } })}
+          onClick={() => navigate('/feedback', { state: { transcript: messages, scenario: config.scenario, sosTipHistory } })}
           className={`text-[10px] font-black px-4 py-2.5 rounded-xl border transition-all active:scale-95 flex items-center gap-1 ${
               isAnalysisComplete
               ? 'bg-green-500 text-navy-deep border-green-500 animate-pulse shadow-[0_0_15px_#4ade80]'

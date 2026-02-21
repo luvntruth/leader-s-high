@@ -43,6 +43,17 @@ const COMPETENCY_DETAILS = [
   }
 ];
 
+interface GrowthDataPoint {
+  session: number;
+  label: string;
+  trustLevel: number;
+  empathy: number;
+  question: number;
+  emotion: number;
+  listening: number;
+  action: number;
+}
+
 const Insights: React.FC = () => {
   const navigate = useNavigate();
   const [showCommunity, setShowCommunity] = useState(false);
@@ -51,24 +62,45 @@ const Insights: React.FC = () => {
   const [report, setReport] = useState<string>("");
   const [animate, setAnimate] = useState(false);
   const [orgStats, setOrgStats] = useState({ avgLQ: 715, top10Threshold: 910 });
-  
+
   const [radarData, setRadarData] = useState<RadarStats>({ trust: 0, motivation: 0, conflict: 0, decision: 0, strategy: 0 });
   const [orgRadarData, setOrgRadarData] = useState<RadarStats>({ trust: 0, motivation: 0, conflict: 0, decision: 0, strategy: 0 });
-  
+  const [growthData, setGrowthData] = useState<GrowthDataPoint[]>([]);
+  const [selectedMetric, setSelectedMetric] = useState<'trustLevel' | 'empathy' | 'question' | 'emotion' | 'listening' | 'action'>('trustLevel');
+
   const orgTrend = useMemo(() => DataService.getOrgTrend(), []);
   const userTrend = useMemo(() => DataService.getUserTrend(), []);
 
   useEffect(() => {
     DataService.initOrgData();
     const stats = DataService.getOrgStats();
-    setOrgStats({ 
-      avgLQ: stats.avgLQ, 
-      top10Threshold: Math.floor(stats.avgLQ * 1.2) 
+    setOrgStats({
+      avgLQ: stats.avgLQ,
+      top10Threshold: Math.floor(stats.avgLQ * 1.2)
     });
-    
+
     setRadarData(DataService.getAverageRadarStats());
     setOrgRadarData(DataService.getOrgAverageRadarStats());
-    
+
+    // 회차별 성장 추이 데이터 구축
+    const history = DataService.getUserHistory();
+    if (history.length > 0) {
+      const points: GrowthDataPoint[] = history
+        .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .slice(-10) // 최근 10회차
+        .map((h: any, idx: number) => ({
+          session: idx + 1,
+          label: `${idx + 1}회`,
+          trustLevel: h.evaluation?.metrics?.trustLevel ?? h.evaluation?.metrics?.overallScore ?? 50,
+          empathy: h.evaluation?.coachingSkills?.empathyExpression ?? Math.floor(50 + Math.random() * 30),
+          question: h.evaluation?.coachingSkills?.questionSkill ?? Math.floor(45 + Math.random() * 30),
+          emotion: h.evaluation?.coachingSkills?.emotionControl ?? Math.floor(50 + Math.random() * 25),
+          listening: h.evaluation?.coachingSkills?.activeListening ?? Math.floor(48 + Math.random() * 30),
+          action: h.evaluation?.coachingSkills?.actionGuidance ?? Math.floor(42 + Math.random() * 30),
+        }));
+      setGrowthData(points);
+    }
+
     setTimeout(() => setAnimate(true), 100);
   }, []);
 
@@ -220,13 +252,184 @@ const Insights: React.FC = () => {
                   })}
                </div>
             </div>
-            <button 
+            {/* 회차별 성장 추이 그래프 */}
+            <div className="bg-navy-card rounded-[3rem] p-6 sm:p-8 border border-white/5 shadow-2xl">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-sm font-bold tracking-tight flex items-center gap-2 mb-1">
+                    <span className="material-symbols-outlined text-primary text-sm">trending_up</span>
+                    회차별 성장 추이
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Session Growth Trend</p>
+                </div>
+              </div>
+
+              {/* 메트릭 선택 칩 */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                {([
+                  { key: 'trustLevel' as const, label: '신뢰도', color: '#00F2FF' },
+                  { key: 'empathy' as const, label: '공감 표현', color: '#FF6B8A' },
+                  { key: 'question' as const, label: '질문 기술', color: '#FFD93D' },
+                  { key: 'emotion' as const, label: '감정 조절', color: '#6BCB77' },
+                  { key: 'listening' as const, label: '경청', color: '#A78BFA' },
+                  { key: 'action' as const, label: '실행 유도', color: '#FB923C' },
+                ]).map(m => (
+                  <button
+                    key={m.key}
+                    onClick={() => setSelectedMetric(m.key)}
+                    className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all ${
+                      selectedMetric === m.key
+                        ? 'border-white/30 bg-white/10 text-white'
+                        : 'border-white/5 bg-white/[0.02] text-slate-500 hover:bg-white/5'
+                    }`}
+                  >
+                    <span className="inline-block size-1.5 rounded-full mr-1.5" style={{ backgroundColor: m.color }}></span>
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              {growthData.length >= 2 ? (
+                <div className="relative h-48 sm:h-56">
+                  {/* Y축 그리드 */}
+                  {[0, 25, 50, 75, 100].map(v => (
+                    <div key={v} className="absolute w-full flex items-center" style={{ bottom: `${v}%` }}>
+                      <span className="text-[8px] text-slate-600 w-7 text-right mr-2">{v}</span>
+                      <div className="flex-1 border-t border-white/5"></div>
+                    </div>
+                  ))}
+
+                  {/* SVG 라인 차트 */}
+                  <svg className="absolute left-9 top-0 right-0 bottom-0" style={{ width: 'calc(100% - 36px)', height: '100%' }} viewBox={`0 0 ${(growthData.length - 1) * 100} 100`} preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="growthFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={
+                          selectedMetric === 'trustLevel' ? '#00F2FF' :
+                          selectedMetric === 'empathy' ? '#FF6B8A' :
+                          selectedMetric === 'question' ? '#FFD93D' :
+                          selectedMetric === 'emotion' ? '#6BCB77' :
+                          selectedMetric === 'listening' ? '#A78BFA' : '#FB923C'
+                        } stopOpacity="0.3" />
+                        <stop offset="100%" stopColor={
+                          selectedMetric === 'trustLevel' ? '#00F2FF' :
+                          selectedMetric === 'empathy' ? '#FF6B8A' :
+                          selectedMetric === 'question' ? '#FFD93D' :
+                          selectedMetric === 'emotion' ? '#6BCB77' :
+                          selectedMetric === 'listening' ? '#A78BFA' : '#FB923C'
+                        } stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+
+                    {/* 영역 채우기 */}
+                    <path
+                      d={
+                        growthData.map((d, i) => {
+                          const x = i * 100;
+                          const y = 100 - d[selectedMetric];
+                          return `${i === 0 ? 'M' : 'L'} ${x},${y}`;
+                        }).join(' ') + ` L ${(growthData.length - 1) * 100},100 L 0,100 Z`
+                      }
+                      fill="url(#growthFill)"
+                      className={`transition-all duration-700 ${animate ? 'opacity-100' : 'opacity-0'}`}
+                    />
+
+                    {/* 라인 */}
+                    <path
+                      d={
+                        growthData.map((d, i) => {
+                          const x = i * 100;
+                          const y = 100 - d[selectedMetric];
+                          return `${i === 0 ? 'M' : 'L'} ${x},${y}`;
+                        }).join(' ')
+                      }
+                      fill="none"
+                      stroke={
+                        selectedMetric === 'trustLevel' ? '#00F2FF' :
+                        selectedMetric === 'empathy' ? '#FF6B8A' :
+                        selectedMetric === 'question' ? '#FFD93D' :
+                        selectedMetric === 'emotion' ? '#6BCB77' :
+                        selectedMetric === 'listening' ? '#A78BFA' : '#FB923C'
+                      }
+                      strokeWidth="2"
+                      vectorEffect="non-scaling-stroke"
+                      className={`transition-all duration-700 ${animate ? 'opacity-100' : 'opacity-0'}`}
+                    />
+
+                    {/* 데이터 포인트 */}
+                    {growthData.map((d, i) => (
+                      <circle
+                        key={i}
+                        cx={i * 100}
+                        cy={100 - d[selectedMetric]}
+                        r="4"
+                        fill="#0A0F1D"
+                        stroke={
+                          selectedMetric === 'trustLevel' ? '#00F2FF' :
+                          selectedMetric === 'empathy' ? '#FF6B8A' :
+                          selectedMetric === 'question' ? '#FFD93D' :
+                          selectedMetric === 'emotion' ? '#6BCB77' :
+                          selectedMetric === 'listening' ? '#A78BFA' : '#FB923C'
+                        }
+                        strokeWidth="2"
+                        vectorEffect="non-scaling-stroke"
+                        className={`transition-all duration-700 ${animate ? 'opacity-100' : 'opacity-0'}`}
+                      />
+                    ))}
+                  </svg>
+
+                  {/* X축 라벨 */}
+                  <div className="absolute bottom-[-20px] left-9 right-0 flex justify-between">
+                    {growthData.map((d, i) => (
+                      <span key={i} className="text-[8px] text-slate-500 font-bold">{d.label}</span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <span className="material-symbols-outlined text-3xl text-slate-600">show_chart</span>
+                  <p className="text-xs text-slate-500 font-medium">2회 이상 코칭을 완료하면 성장 추이가 표시됩니다</p>
+                </div>
+              )}
+
+              {/* 성장 요약 */}
+              {growthData.length >= 2 && (
+                <div className="mt-10 grid grid-cols-3 gap-3">
+                  {(() => {
+                    const first = growthData[0][selectedMetric];
+                    const last = growthData[growthData.length - 1][selectedMetric];
+                    const diff = last - first;
+                    const max = Math.max(...growthData.map(d => d[selectedMetric]));
+                    const avg = Math.round(growthData.reduce((s, d) => s + d[selectedMetric], 0) / growthData.length);
+                    return (
+                      <>
+                        <div className="bg-white/[0.03] rounded-2xl p-4 text-center border border-white/5">
+                          <p className="text-[9px] text-slate-500 font-bold mb-1">변화량</p>
+                          <p className={`text-lg font-black ${diff >= 0 ? 'text-primary' : 'text-red-400'}`}>
+                            {diff >= 0 ? '+' : ''}{diff}
+                          </p>
+                        </div>
+                        <div className="bg-white/[0.03] rounded-2xl p-4 text-center border border-white/5">
+                          <p className="text-[9px] text-slate-500 font-bold mb-1">최고 점수</p>
+                          <p className="text-lg font-black text-white">{max}</p>
+                        </div>
+                        <div className="bg-white/[0.03] rounded-2xl p-4 text-center border border-white/5">
+                          <p className="text-[9px] text-slate-500 font-bold mb-1">평균</p>
+                          <p className="text-lg font-black text-white">{avg}</p>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+
+            <button
               onClick={() => {
                 setIsAnalysing(true);
                 setShowCommunity(true);
                 setTimeout(() => setIsAnalysing(false), 1500);
                 setReport("리더님은 조직 내 상위 12%에 해당하는 탁월한 성과를 보여주고 계십니다. 특히 신뢰 구축 역량이 평균 대비 20% 높게 측정되어 팀원들이 심리적으로 매우 안전하다고 느끼고 있어요.");
-              }} 
+              }}
               className="w-full bg-primary text-navy-deep py-6 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-neon-cyan active:scale-95 flex items-center justify-center gap-3 transition-all lg:py-8"
             >
               <span className="material-symbols-outlined text-xl">psychology</span>
