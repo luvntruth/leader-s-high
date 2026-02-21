@@ -2,15 +2,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 // @ts-ignore
 import { useNavigate, useLocation } from 'react-router-dom';
-import { GoogleGenAI, Chat, GenerateContentResponse, Type } from "@google/genai";
+import { GoogleGenAI, Chat, Type } from "@google/genai";
 import { TrustLevelService, TrustLevelOutput } from '../services/trustLevelService';
 import { getMissionBriefing, getOpeningLine } from '../services/missionBriefings';
 import { EmotionStateMachine } from '../services/emotionStateMachine';
 import { createGeminiClient } from '../src/lib/geminiClient';
-import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor, getEmotionEmoji } from '../services/characterAvatars';
-import * as characterAvatars from '../services/characterAvatars';
-import * as missionBriefings from '../services/missionBriefings';
-import { HPBar, TacticalCircularTimer, TacticalActionCard, XPBadge, StatInline, TacticalTrendChart } from '../components/GameUIComponents';
+import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor, getEmotionEmoji, DEFAULT_CHARACTERS } from '../services/characterAvatars';
+import { HPBar, TacticalCircularTimer, StatInline, TacticalTrendChart } from '../components/GameUIComponents';
 
 interface Message {
   role: 'user' | 'model';
@@ -40,27 +38,33 @@ function getEmotionState(trust: number): { state: string; description: string } 
 
 // Trust Level과 감정 상태를 반영한 동적 시스템 프롬프트
 function buildSystemPrompt(config: any, scenario: any, trustState: any): string {
-  const { trust } = trustState;
-  const emotion = getEmotionState(trust);
+  const emotion = getEmotionState(trustState.trust);
 
-  return `당신의 이름은 ${config.name}입니다. 성격: ${config.personality}. MBTI: ${config.mbti}.
-현재 신뢰도(Trust Level): ${trust}/100
-현재 감정 상태: ${emotion.state} (${emotion.description})
-시나리오 목적: ${scenario.objective}
+  return `당신은 팀원 '${config.name}'입니다.
+[상황] ${scenario?.title}
+[배경] ${scenario?.description}
+[세대] ${config.generation}
+[소통 스타일] 맥락 의존도: ${config.contextStyle ?? 50}/100, 감정 중심도: ${config.driverStyle ?? 50}/100
 
-[대화 지침]
-1. ${config.personality}의 말투를 유지하십시오.
-2. 신뢰도가 낮으면(40 미만) 방어적이거나 회의적인 태도를 보이고, 높으면(70 이상) 적극적으로 협조하십시오.
-3. 감정 상태에 맞는 단어 선택을 하십시오.`;
+[현재 감정 상태: ${emotion.state}] (신뢰도: ${trustState.trust}/100)
+${emotion.description}
+
+[반응 규칙]
+1. 현재 감정 상태에 맞게 자연스럽게 반응하세요.
+2. 팀장이 공감하고 경청하면 점차 마음을 열어가세요. 하지만 급격한 태도 변화는 하지 마세요.
+3. 팀장이 일방적으로 지시하거나 무시하면 더 방어적으로 변하세요.
+4. 한국 직장 문화의 뉘앙스를 반영하세요 (예: 직접 반박보다는 한숨, 침묵, 돌려 말하기 등).
+5. 1~3문장으로 짧고 현실적으로 대답하세요.
+6. 가끔 침묵하거나 "…네, 뭐…" 같은 모호한 반응도 자연스럽습니다.`;
 }
 
 const Simulation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  // @ts-ignore
-  const config = location.state?.config || (characterAvatars.DEFAULT_CHARACTERS ? characterAvatars.DEFAULT_CHARACTERS[0] : { name: '이민수', role: '팀원', seed: 'member1', gender: 'male' });
-  // @ts-ignore
-  const scenario = location.state?.scenario || { id: 'late-comer', title: '지각하는 팀원 피드백', objective: '지각 습관 교정 및 책임감 부여' };
+  // Setup.tsx에서 { name, generation, contextStyle, driverStyle, scenario } 형태로 전달됨
+  const state = location.state as any;
+  const config = state?.name ? state : { ...DEFAULT_CHARACTERS[0], generation: 'Gen Z', contextStyle: 50, driverStyle: 50 };
+  const scenario = state?.scenario || { id: 'late-comer', title: '지각하는 팀원 피드백', description: '출근 시간을 자주 어기는 팀원에게 피드백을 전달하세요.' };
 
   const [messages, setMessages] = useState<Message[]>(() => [
     { role: 'model', text: getOpeningLine(scenario?.id, config?.name), timestamp: new Date() }
@@ -71,7 +75,6 @@ const Simulation: React.FC = () => {
   const [isGeneratingSOS, setIsGeneratingSOS] = useState(false);
   const [sosTip, setSosTip] = useState<SOSTip | null>(null);
   const [sosTipHistory, setSosTipHistory] = useState<{ tip: SOSTip; turnIndex: number; timestamp: string }[]>([]);
-  const [showBriefing, setShowBriefing] = useState(true);
   const [initError, setInitError] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -106,7 +109,6 @@ const Simulation: React.FC = () => {
   const trustStateRef = useRef(trustState);
   trustStateRef.current = trustState;
 
-  const turnsSinceLastScore = useRef(0);
   const mountedRef = useRef(true);
 
   const chatRef = useRef<Chat | null>(null);
@@ -130,13 +132,6 @@ const Simulation: React.FC = () => {
   const emotionLabel = emotionData.state;
   const hpColor = trustState.trust > 70 ? '#4ade80' : trustState.trust > 30 ? '#00f2ff' : '#ef4444';
 
-  const isLastModelMessage = (idx: number) => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'model') return i === idx;
-    }
-    return false;
-  };
-
   // Derived State for Analysis Completion
   const isAnalysisComplete = useMemo(() => {
     const userMsgCount = messages.filter(m => m.role === 'user').length;
@@ -156,21 +151,6 @@ const Simulation: React.FC = () => {
   }, [trustState.trust]);
 
   const missionBriefing = useMemo(() => getMissionBriefing(scenario?.id), [scenario]);
-
-  // 씬 표시용: 가장 최근 메시지만 추출
-  const latestModelMsg = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'model') return messages[i];
-    }
-    return null;
-  }, [messages]);
-
-  const latestUserMsg = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'user') return messages[i];
-    }
-    return null;
-  }, [messages]);
 
   const fetchWithRetry = async (fn: () => Promise<any>, retries = 3) => {
     for (let i = 0; i < retries; i++) {
@@ -546,7 +526,7 @@ const Simulation: React.FC = () => {
           <TacticalCircularTimer value={messages.filter(m => m.role === 'user').length * (100 / ANALYSIS_COMPLETE_THRESHOLD)} label={`${messages.filter(m => m.role === 'user').length}/${ANALYSIS_COMPLETE_THRESHOLD}`} subLabel="Turns" />
           <div className="flex-1">
             <button
-              onClick={() => navigate('/feedback', { state: { transcript: messages, scenario: config.scenario, sosTipHistory } })}
+              onClick={() => navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory } })}
               disabled={!isAnalysisComplete}
               className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isAnalysisComplete
                 ? 'bg-primary text-black shadow-neon-cyan hover:scale-[1.02] active:scale-[0.98]'
