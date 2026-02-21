@@ -48,23 +48,29 @@ const RANK_DETAILS: Record<string, RankDetail> = {
   }
 };
 
+/* ── 리더십 스킬 트리 (Stitch 디자인 기반) ── */
+const SKILL_TREE = [
+  { name: '경청의 달인', icon: 'hearing', category: '소통', level: 2, maxLevel: 5, effect: '팀원의 숨은 의도 파악 확률 +20%', color: '#00F2FF' },
+  { name: '공감적 대화', icon: 'diversity_3', category: '소통', level: 1, maxLevel: 5, effect: '부정적 대화 차단 특수 선택지 해금', color: '#10B981' },
+  { name: '비언어적 소통', icon: 'emoji_people', category: '소통', level: 0, maxLevel: 5, effect: '표정/행동 인식 정확도 +15%', color: '#6366F1' },
+  { name: '카리스마 지시', icon: 'record_voice_over', category: '리더십', level: 3, maxLevel: 5, effect: '지시 수용률 +25% 상승', color: '#F59E0B' },
+  { name: '전략적 의사결정', icon: 'psychology', category: '리더십', level: 1, maxLevel: 5, effect: '갈등 해결 시 최적 루트 표시', color: '#EF4444' },
+  { name: '성장 멘토링', icon: 'school', category: '육성', level: 2, maxLevel: 5, effect: '팀원 성장속도 +30% 가속', color: '#8B5CF6' },
+  { name: '심리적 안전감', icon: 'shield_with_heart', category: '육성', level: 0, maxLevel: 5, effect: '팀 신뢰도 회복 속도 +15%', color: '#EC4899' },
+];
+
 /* ── 우주 별 좌표 ── */
 const STARS = [
-  { top: '3%',  left: '8%',  size: 2,   dur: '2.3s', delay: '0s'   },
-  { top: '7%',  left: '72%', size: 1.5, dur: '3.5s', delay: '0.6s' },
-  { top: '14%', left: '30%', size: 1,   dur: '2.8s', delay: '1.1s' },
-  { top: '20%', left: '90%', size: 2,   dur: '4.0s', delay: '0.3s' },
+  { top: '3%', left: '8%', size: 2, dur: '2.3s', delay: '0s' },
+  { top: '7%', left: '72%', size: 1.5, dur: '3.5s', delay: '0.6s' },
+  { top: '14%', left: '30%', size: 1, dur: '2.8s', delay: '1.1s' },
+  { top: '20%', left: '90%', size: 2, dur: '4.0s', delay: '0.3s' },
   { top: '28%', left: '55%', size: 1.5, dur: '2.6s', delay: '1.8s' },
-  { top: '36%', left: '5%',  size: 1,   dur: '3.2s', delay: '0.8s' },
-  { top: '44%', left: '82%', size: 2,   dur: '2.5s', delay: '1.4s' },
+  { top: '36%', left: '5%', size: 1, dur: '3.2s', delay: '0.8s' },
+  { top: '44%', left: '82%', size: 2, dur: '2.5s', delay: '1.4s' },
   { top: '52%', left: '18%', size: 1.5, dur: '3.8s', delay: '0.2s' },
-  { top: '60%', left: '68%', size: 1,   dur: '2.1s', delay: '0.9s' },
-  { top: '68%', left: '40%', size: 2,   dur: '3.3s', delay: '1.7s' },
-  { top: '76%', left: '12%', size: 1.5, dur: '2.7s', delay: '0.5s' },
-  { top: '84%', left: '78%', size: 1,   dur: '3.9s', delay: '1.2s' },
-  { top: '91%', left: '50%', size: 2,   dur: '2.4s', delay: '0.7s' },
-  { top: '50%', left: '95%', size: 1.5, dur: '3.1s', delay: '1.5s' },
-  { top: '25%', left: '45%', size: 1,   dur: '2.9s', delay: '0.1s' },
+  { top: '60%', left: '68%', size: 1, dur: '2.1s', delay: '0.9s' },
+  { top: '68%', left: '40%', size: 2, dur: '3.3s', delay: '1.7s' },
 ];
 
 function getRankStars(title: string): number {
@@ -100,6 +106,7 @@ const Profile: React.FC = () => {
   const [rank, setRank] = useState<UserRank | null>(null);
   const [showRankInfo, setShowRankInfo] = useState(false);
   const [selectedRankName, setSelectedRankName] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'status' | 'skills' | 'badges'>('status');
 
   useEffect(() => {
     const history = JSON.parse(localStorage.getItem('leadershigh_history') || '[]');
@@ -115,11 +122,10 @@ const Profile: React.FC = () => {
   const rankIcon = rank ? getRankIcon(rank.title) : 'military_tech';
 
   return (
-    <div className="min-h-screen bg-[#060B18] text-white font-manrope flex flex-col overflow-y-auto relative">
+    <div className="min-h-screen bg-[#060B18] text-white font-display flex flex-col overflow-y-auto relative">
 
-      {/* ── 우주 배경: 성운 + 별 ── */}
+      {/* ── 우주 배경 ── */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        {/* 성운 오로라 */}
         <div
           className="absolute inset-0"
           style={{
@@ -128,7 +134,6 @@ const Profile: React.FC = () => {
                          radial-gradient(ellipse at 20% 60%, rgba(0,20,60,0.3) 0%, transparent 40%)`
           }}
         />
-        {/* 반짝이는 별들 */}
         {STARS.map((s, i) => (
           <div
             key={i}
@@ -143,8 +148,8 @@ const Profile: React.FC = () => {
       </div>
 
       {/* ── 헤더 ── */}
-      <header className="p-4 flex items-center justify-between sticky top-0 backdrop-blur-md border-b border-white/5 z-10"
-        style={{ backgroundColor: 'rgba(6,11,24,0.85)' }}>
+      <header className="p-4 flex items-center justify-between sticky top-0 backdrop-blur-xl border-b border-white/5 z-10"
+        style={{ backgroundColor: 'rgba(6,11,24,0.9)' }}>
         <div className="flex items-center gap-3">
           <div
             className="size-10 rounded-xl flex items-center justify-center border"
@@ -152,258 +157,343 @@ const Profile: React.FC = () => {
           >
             <span className="material-symbols-outlined text-xl font-bold" style={{ color: theme.accent }}>{rankIcon}</span>
           </div>
-          <h1 className="text-lg font-bold tracking-tight">리더 프로필</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="p-2"><span className="material-symbols-outlined text-slate-400">notifications</span></button>
-          <div className="size-10 rounded-full border-2 overflow-hidden" style={{ borderColor: theme.accent }}>
-            <img src="https://ui-avatars.com/api/?name=Leader&background=00F2FF&color=0A0F1D" alt="Avatar" className="size-full object-cover" />
+          <div>
+            <h1 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: theme.accent, textShadow: `0 0 10px ${theme.glow}` }}>
+              Player Status
+            </h1>
+            <p className="text-sm font-bold">리더 프로필</p>
           </div>
         </div>
+        <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+          <span className="material-symbols-outlined text-slate-400">close</span>
+        </button>
       </header>
 
-      <main className="flex-1 p-5 pb-24 space-y-6 relative z-10">
+      {/* ── 탭 네비게이션 ── */}
+      <div className="sticky top-[65px] z-10 bg-[#060B18]/90 backdrop-blur-xl border-b border-white/5 px-4 py-2">
+        <div className="flex gap-1 bg-white/5 rounded-2xl p-1">
+          {[
+            { key: 'status' as const, label: '스테이터스', icon: 'person' },
+            { key: 'skills' as const, label: '스킬 트리', icon: 'auto_awesome' },
+            { key: 'badges' as const, label: '배지', icon: 'workspace_premium' },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.key
+                  ? 'bg-primary/15 text-primary border border-primary/20'
+                  : 'text-slate-600 hover:text-slate-400'
+                }`}
+            >
+              <span className="material-symbols-outlined text-sm">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-        {/* ── RPG 랭크 카드 ── */}
-        {rank && (
-          <div
-            className="rounded-[2rem] p-6 border relative overflow-hidden"
-            style={{
-              backgroundColor: 'rgba(15,23,41,0.9)',
-              borderColor: theme.border,
-              boxShadow: `0 0 30px ${theme.glow.replace('0.6', '0.2')}, inset 0 0 60px ${theme.bg}`
-            }}
-          >
-            {/* 배경 글로우 오브 */}
-            <div
-              className="absolute -top-12 -right-12 size-48 rounded-full blur-3xl pointer-events-none"
-              style={{ backgroundColor: theme.bg }}
-            />
-            <div
-              className="absolute -bottom-8 -left-8 size-32 rounded-full blur-2xl pointer-events-none"
-              style={{ backgroundColor: 'rgba(159,122,234,0.05)' }}
-            />
+      <main className="flex-1 p-5 pb-28 space-y-6 relative z-10">
 
-            {/* 상단: 아이콘 + 랭크 안내 버튼 */}
-            <div className="flex justify-between items-start mb-5 relative z-10">
+        {/* ════════ 스테이터스 탭 ════════ */}
+        {activeTab === 'status' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* ── RPG 랭크 카드 ── */}
+            {rank && (
               <div
-                className="size-14 rounded-2xl flex items-center justify-center border"
-                style={{ backgroundColor: theme.bg, borderColor: theme.border, boxShadow: `0 0 20px ${theme.glow}` }}
+                className="rounded-[2.5rem] p-7 border relative overflow-hidden"
+                style={{
+                  backgroundColor: 'rgba(15,23,41,0.9)',
+                  borderColor: theme.border,
+                  boxShadow: `0 0 30px ${theme.glow.replace('0.6', '0.15')}, inset 0 0 60px ${theme.bg}`
+                }}
               >
-                <span className="material-symbols-outlined text-3xl" style={{ color: theme.accent }}>{rankIcon}</span>
+                <div className="absolute -top-12 -right-12 size-48 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: theme.bg }} />
+
+                <div className="flex justify-between items-start mb-5 relative z-10">
+                  <div className="size-14 rounded-2xl flex items-center justify-center border"
+                    style={{ backgroundColor: theme.bg, borderColor: theme.border, boxShadow: `0 0 20px ${theme.glow}` }}>
+                    <span className="material-symbols-outlined text-3xl" style={{ color: theme.accent }}>{rankIcon}</span>
+                  </div>
+                  <button
+                    onClick={() => { setSelectedRankName(null); setShowRankInfo(true); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+                  >
+                    <span className="material-symbols-outlined text-sm text-slate-400">info</span>
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">랭크 안내</span>
+                  </button>
+                </div>
+
+                {/* 별점 */}
+                <div className="flex items-center gap-1 mb-2 relative z-10">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span key={i} className="text-lg leading-none"
+                      style={{ color: i < rankStars ? theme.accent : 'rgba(255,255,255,0.1)', textShadow: i < rankStars ? `0 0 8px ${theme.glow}` : 'none' }}>
+                      ★
+                    </span>
+                  ))}
+                  <span className="text-[10px] font-black uppercase tracking-widest ml-2" style={{ color: theme.accent }}>
+                    {rankStars}/5
+                  </span>
+                </div>
+
+                {/* 레벨 */}
+                <div className="flex items-end gap-3 mb-1 relative z-10">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: theme.accent }}>LEVEL</p>
+                    <p className="text-7xl font-black leading-none tracking-tighter" style={{ color: theme.accent, textShadow: `0 0 30px ${theme.glow}` }}>
+                      {rank.level}
+                    </p>
+                  </div>
+                  <div className="mb-3">
+                    <p className="text-white/30 text-xs font-bold">→ NEXT</p>
+                    <p className="text-white/50 text-xl font-black">{rank.level + 1}</p>
+                  </div>
+                </div>
+
+                <p className="text-2xl font-black mb-1 tracking-tight relative z-10">{rank.title}</p>
+                <p className="text-white/40 text-xs font-medium mb-5 relative z-10">{rank.subTitle}</p>
+
+                {/* XP 바 */}
+                <div className="relative z-10">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[9px] font-black text-white/40 uppercase tracking-wider">EXP</span>
+                    <span className="text-xs font-black" style={{ color: theme.accent }}>{rank.currentXp} / {rank.nextLevelXp} XP</span>
+                  </div>
+                  <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                    <div className="h-full rounded-full"
+                      style={{
+                        width: `${rank.progress}%`,
+                        background: `linear-gradient(90deg, ${theme.accent}99, ${theme.accent})`,
+                        boxShadow: `0 0 12px ${theme.glow}, 0 0 6px ${theme.glow}`
+                      }} />
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={() => { setSelectedRankName(null); setShowRankInfo(true); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
-              >
-                <span className="material-symbols-outlined text-sm text-slate-400">info</span>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">랭크 안내</span>
-              </button>
+            )}
+
+            {/* ── 퀵 스탯 ── */}
+            <div className="grid grid-cols-2 gap-3">
+              <div onClick={() => navigate('/streak')}
+                className="bg-gradient-to-br from-[#161D2F] to-[#0D1525] p-5 rounded-[2rem] border border-white/5 flex flex-col items-center text-center cursor-pointer active:scale-95 transition-all group hover:border-amber-500/30">
+                <div className="size-11 rounded-2xl bg-amber-500/15 flex items-center justify-center text-amber-400 mb-3 border border-amber-500/20 group-hover:shadow-neon-amber transition-all">
+                  <span className="material-symbols-outlined">local_fire_department</span>
+                </div>
+                <p className="font-bold text-sm">5일 스트릭</p>
+                <p className="text-[8px] text-slate-600 mt-0.5 uppercase tracking-widest font-black">Streak</p>
+              </div>
+              <div onClick={() => navigate('/insights')}
+                className="bg-gradient-to-br from-[#161D2F] to-[#0D1525] p-5 rounded-[2rem] border border-white/5 flex flex-col items-center text-center cursor-pointer active:scale-95 transition-all group hover:border-primary/30">
+                <div className="size-11 rounded-2xl bg-primary/15 flex items-center justify-center text-primary mb-3 border border-primary/20 group-hover:shadow-neon-cyan transition-all">
+                  <span className="material-symbols-outlined">query_stats</span>
+                </div>
+                <p className="font-bold text-sm">성과 분석</p>
+                <p className="text-[8px] text-slate-600 mt-0.5 uppercase tracking-widest font-black">Analytics</p>
+              </div>
             </div>
 
-            {/* 별점 */}
-            <div className="flex items-center gap-1 mb-2 relative z-10">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <span
-                  key={i}
-                  className="text-lg leading-none"
-                  style={{ color: i < rankStars ? theme.accent : 'rgba(255,255,255,0.1)', textShadow: i < rankStars ? `0 0 8px ${theme.glow}` : 'none' }}
-                >★</span>
-              ))}
-              <span className="text-[10px] font-black uppercase tracking-widest ml-2" style={{ color: theme.accent }}>
-                {rankStars}/5
-              </span>
-            </div>
-
-            {/* 레벨 대형 표시 */}
-            <div className="flex items-end gap-3 mb-1 relative z-10">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-0" style={{ color: theme.accent }}>LEVEL</p>
-                <p className="text-8xl font-black leading-none tracking-tighter" style={{ color: theme.accent, textShadow: `0 0 30px ${theme.glow}` }}>
-                  {rank.level}
-                </p>
+            {/* ── 최근 히스토리 ── */}
+            <section>
+              <div className="flex justify-between items-center mb-4 px-1">
+                <div className="flex items-center gap-3">
+                  <div className="size-8 rounded-xl bg-accent-neon/20 flex items-center justify-center text-accent-neon border border-accent-neon/20">
+                    <span className="material-symbols-outlined text-base">history</span>
+                  </div>
+                  <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white">최근 대화 로그</h3>
+                </div>
+                <button onClick={() => navigate('/history')} className="text-[9px] font-black uppercase tracking-widest" style={{ color: theme.accent }}>전체보기</button>
               </div>
-              <div className="mb-3">
-                <p className="text-white/40 text-xs font-bold">→ NEXT</p>
-                <p className="text-white/60 text-xl font-black">{rank.level + 1}</p>
+              <div className="space-y-2.5">
+                {recentHistory.length > 0 ? (
+                  recentHistory.map((item) => (
+                    <div key={item.id} onClick={() => navigate(`/history/${item.id}`)}
+                      className="bg-gradient-to-r from-[#161D2F] to-[#0D1525] p-4 rounded-2xl border border-white/5 flex items-center justify-between active:scale-[0.98] transition-all hover:border-white/10 cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <div className={`size-10 rounded-xl flex items-center justify-center border ${item.type === 'voice' ? 'bg-primary/15 text-primary border-primary/20' : 'bg-accent-neon/15 text-accent-neon border-accent-neon/20'}`}>
+                          <span className="material-symbols-outlined text-lg">{item.type === 'voice' ? 'mic' : 'swords'}</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold truncate max-w-[150px]">{item.scenarioTitle}</p>
+                          <p className="text-[9px] text-slate-600 font-bold uppercase">{item.memberName} • {new Date(item.date).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-slate-700 text-lg">arrow_forward_ios</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-12 text-center bg-white/3 rounded-[2.5rem] border border-dashed border-white/5">
+                    <span className="material-symbols-outlined text-3xl text-slate-700 mb-2 block">swords</span>
+                    <p className="text-sm text-slate-600 font-bold">전투 기록이 아직 없습니다</p>
+                    <p className="text-[9px] text-slate-700 font-bold mt-1 uppercase tracking-widest">Start Your First Quest</p>
+                  </div>
+                )}
               </div>
-            </div>
-
-            {/* 랭크 타이틀 */}
-            <p className="text-2xl font-extrabold mb-1 tracking-tight relative z-10">{rank.title}</p>
-            <p className="text-white/40 text-xs font-medium mb-5 relative z-10">{rank.subTitle}</p>
-
-            {/* XP 바 */}
-            <div className="relative z-10">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">EXP</span>
-                <span className="text-xs font-black" style={{ color: theme.accent }}>{rank.currentXp} / {rank.nextLevelXp} XP</span>
-              </div>
-              <div className="h-4 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                <div
-                  className="h-full rounded-full xp-bar-fill"
-                  style={{
-                    width: `${rank.progress}%`,
-                    background: `linear-gradient(90deg, ${theme.accent}99, ${theme.accent})`,
-                    boxShadow: `0 0 12px ${theme.glow}, 0 0 6px ${theme.glow}`
-                  }}
-                />
-              </div>
-              <div className="flex justify-between mt-1">
-                <span className="text-[9px] text-white/20">Lv {rank.level}</span>
-                <span className="text-[9px] text-white/20">Lv {rank.level + 1}</span>
-              </div>
-            </div>
+            </section>
           </div>
         )}
 
-        {/* ── 뱃지 갤러리 ── */}
-        <section>
-          <div className="flex justify-between items-center mb-4 px-1">
-            <h3 className="text-sm font-black flex items-center gap-2 uppercase tracking-widest">
-              <span className="material-symbols-outlined text-base" style={{ color: theme.accent }}>workspace_premium</span>
-              <span>배지 컬렉션</span>
-              <span className="text-xs font-black px-2 py-0.5 rounded-full" style={{ backgroundColor: theme.bg, color: theme.accent, border: `1px solid ${theme.border}` }}>
-                {unlockedCount}/{badges.length}
-              </span>
-            </h3>
-            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Badge Gallery</span>
-          </div>
+        {/* ════════ 스킬 트리 탭 (Stitch 디자인 기반) ════════ */}
+        {activeTab === 'skills' && (
+          <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* 헤더 */}
+            <div className="text-center py-4">
+              <p className="text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-2" style={{ textShadow: '0 0 10px rgba(0,242,255,0.4)' }}>
+                Leadership Skill Tree
+              </p>
+              <h2 className="text-2xl font-black italic tracking-tight">리더십 스킬 트리</h2>
+              <p className="text-xs text-slate-600 font-medium mt-1">퀘스트를 완료하며 리더십 스킬을 성장시키세요</p>
+            </div>
 
-          <div className="grid grid-cols-4 gap-3">
-            {badges.map((badge) => (
-              <button
-                key={badge.id}
-                onClick={() => setSelectedBadge(badge)}
-                className="flex flex-col items-center gap-1.5 transition-all active:scale-90"
-              >
-                <div className="relative">
-                  {/* 육각형 배지 컨테이너 */}
-                  <div
-                    className={`hexagon size-14 flex items-center justify-center transition-all ${badge.isUnlocked ? 'animate-glow-pulse' : ''}`}
-                    style={badge.isUnlocked ? {
-                      background: `linear-gradient(135deg, ${theme.bg}, rgba(255,255,255,0.05))`,
-                      filter: `drop-shadow(0 0 8px ${theme.glow})`
-                    } : {
-                      background: 'rgba(255,255,255,0.03)',
-                      filter: 'grayscale(1)',
-                      opacity: 0.25,
-                    }}
-                  >
-                    <span className={`material-symbols-outlined text-xl ${badge.isUnlocked ? badge.color : 'text-slate-600'}`}>
-                      {badge.icon}
+            {/* 카테고리별 스킬 노드 */}
+            {['소통', '리더십', '육성'].map((category) => (
+              <section key={category}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="size-7 rounded-lg bg-white/5 flex items-center justify-center text-slate-500 border border-white/5">
+                    <span className="material-symbols-outlined text-sm">
+                      {category === '소통' ? 'chat' : category === '리더십' ? 'star' : 'school'}
                     </span>
                   </div>
-                  {/* 잠금 아이콘 오버레이 */}
-                  {!badge.isUnlocked && (
-                    <div className="absolute inset-0 flex items-end justify-center pb-1">
-                      <span className="material-symbols-outlined text-[10px] text-slate-600">lock</span>
-                    </div>
-                  )}
-                  {/* 해금 뱃지 빛나는 점 */}
-                  {badge.isUnlocked && (
-                    <div
-                      className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full pulse-cyan"
-                      style={{ backgroundColor: theme.accent }}
-                    />
-                  )}
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{category} 계열</h3>
+                  <div className="h-px bg-white/5 flex-1" />
                 </div>
-                <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap leading-tight text-center">{badge.name}</span>
-              </button>
+
+                <div className="space-y-3">
+                  {SKILL_TREE.filter(s => s.category === category).map((skill, i) => {
+                    const isUnlocked = skill.level > 0;
+                    return (
+                      <div key={i}
+                        className={`bg-gradient-to-br from-[#161D2F] to-[#0D1525] p-5 rounded-[2rem] border transition-all ${isUnlocked ? 'border-white/10 hover:border-white/20' : 'border-white/5 opacity-60'
+                          }`}
+                        style={isUnlocked ? { boxShadow: `0 0 15px ${skill.color}10` } : {}}
+                      >
+                        <div className="flex items-start gap-4">
+                          {/* 스킬 아이콘 */}
+                          <div className="relative shrink-0">
+                            <div className="size-12 rounded-2xl flex items-center justify-center border"
+                              style={{
+                                backgroundColor: isUnlocked ? `${skill.color}15` : 'rgba(255,255,255,0.03)',
+                                borderColor: isUnlocked ? `${skill.color}30` : 'rgba(255,255,255,0.05)',
+                                boxShadow: isUnlocked ? `0 0 15px ${skill.color}20` : 'none'
+                              }}>
+                              <span className="material-symbols-outlined text-xl" style={{ color: isUnlocked ? skill.color : '#374151' }}>
+                                {skill.icon}
+                              </span>
+                            </div>
+                            {!isUnlocked && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-xs text-slate-700">lock</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 스킬 정보 */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <h4 className="text-sm font-bold text-white">{skill.name}</h4>
+                              <span className="text-[9px] font-black uppercase tracking-widest"
+                                style={{ color: isUnlocked ? skill.color : '#4B5563' }}>
+                                Lv.{skill.level}/{skill.maxLevel}
+                              </span>
+                            </div>
+
+                            {/* 레벨 게이지 */}
+                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-2.5">
+                              <div className="h-full rounded-full transition-all duration-1000"
+                                style={{
+                                  width: `${(skill.level / skill.maxLevel) * 100}%`,
+                                  background: isUnlocked ? `linear-gradient(90deg, ${skill.color}80, ${skill.color})` : 'transparent',
+                                  boxShadow: isUnlocked ? `0 0 8px ${skill.color}40` : 'none'
+                                }} />
+                            </div>
+
+                            {/* 효과 */}
+                            <p className="text-[10px] font-medium text-slate-500 flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-[10px]" style={{ color: isUnlocked ? skill.color : '#4B5563' }}>
+                                {isUnlocked ? 'check_circle' : 'lock'}
+                              </span>
+                              {skill.effect}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
             ))}
           </div>
-        </section>
+        )}
 
-        {/* ── 퀵 스탯 링크 ── */}
-        <div className="grid grid-cols-2 gap-3">
-          <div
-            onClick={() => navigate('/streak')}
-            className="bg-navy-card/80 p-5 rounded-[1.5rem] border border-white/5 flex flex-col items-center text-center cursor-pointer active:scale-95 transition-all group hover:border-accent-amber/30"
-          >
-            <div className="size-11 rounded-2xl bg-accent-amber/10 flex items-center justify-center text-accent-amber mb-3 group-hover:shadow-neon-amber transition-all">
-              <span className="material-symbols-outlined">local_fire_department</span>
-            </div>
-            <p className="font-bold text-sm">5일 스트릭</p>
-            <p className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-widest">Streak</p>
-          </div>
-          <div
-            onClick={() => navigate('/insights')}
-            className="bg-navy-card/80 p-5 rounded-[1.5rem] border border-white/5 flex flex-col items-center text-center cursor-pointer active:scale-95 transition-all group hover:border-primary/30"
-          >
-            <div className="size-11 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-3 group-hover:shadow-neon-cyan transition-all">
-              <span className="material-symbols-outlined">query_stats</span>
-            </div>
-            <p className="font-bold text-sm">성과 대시보드</p>
-            <p className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-widest">Analytics</p>
-          </div>
-        </div>
-
-        {/* ── 최근 히스토리 ── */}
-        <section>
-          <div className="flex justify-between items-center mb-4 px-1">
-            <h3 className="text-sm font-black flex items-center gap-2 uppercase tracking-widest">
-              <span className="material-symbols-outlined text-base text-accent-neon">history</span>
-              최근 대화 로그
-            </h3>
-            <button onClick={() => navigate('/history')} className="text-[10px] font-bold uppercase tracking-widest" style={{ color: theme.accent }}>전체보기</button>
-          </div>
-          <div className="space-y-2.5">
-            {recentHistory.length > 0 ? (
-              recentHistory.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => navigate(`/history/${item.id}`)}
-                  className="bg-navy-card/80 p-4 rounded-2xl border border-white/5 flex items-center justify-between active:scale-[0.98] transition-all hover:border-white/10 cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`size-10 rounded-xl flex items-center justify-center ${item.type === 'voice' ? 'bg-primary/20 text-primary' : 'bg-accent-neon/20 text-accent-neon'}`}>
-                      <span className="material-symbols-outlined text-lg">{item.type === 'voice' ? 'mic' : 'chat'}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold truncate max-w-[150px]">{item.scenarioTitle}</p>
-                      <p className="text-[10px] text-slate-500 font-medium uppercase">{item.memberName} • {new Date(item.date).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                  <span className="material-symbols-outlined text-slate-600 text-lg">arrow_forward_ios</span>
+        {/* ════════ 배지 탭 ════════ */}
+        {activeTab === 'badges' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-3">
+                <div className="size-8 rounded-xl flex items-center justify-center border"
+                  style={{ backgroundColor: theme.bg, borderColor: theme.border }}>
+                  <span className="material-symbols-outlined text-base" style={{ color: theme.accent }}>workspace_premium</span>
                 </div>
-              ))
-            ) : (
-              <div className="py-12 text-center bg-white/5 rounded-[2rem] border border-dashed border-white/10">
-                <span className="material-symbols-outlined text-3xl text-slate-600 mb-2 block">history</span>
-                <p className="text-sm text-slate-500 font-medium">아직 저장된 대화가 없습니다.</p>
+                <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white">배지 컬렉션</h3>
               </div>
-            )}
+              <span className="text-xs font-black px-3 py-1 rounded-full" style={{ backgroundColor: theme.bg, color: theme.accent, border: `1px solid ${theme.border}` }}>
+                {unlockedCount}/{badges.length}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-4 gap-3">
+              {badges.map((badge) => (
+                <button key={badge.id} onClick={() => setSelectedBadge(badge)}
+                  className="flex flex-col items-center gap-1.5 transition-all active:scale-90">
+                  <div className="relative">
+                    <div className={`hexagon size-14 flex items-center justify-center transition-all ${badge.isUnlocked ? '' : ''}`}
+                      style={badge.isUnlocked ? {
+                        background: `linear-gradient(135deg, ${theme.bg}, rgba(255,255,255,0.05))`,
+                        filter: `drop-shadow(0 0 8px ${theme.glow})`
+                      } : {
+                        background: 'rgba(255,255,255,0.03)', filter: 'grayscale(1)', opacity: 0.25,
+                      }}>
+                      <span className={`material-symbols-outlined text-xl ${badge.isUnlocked ? badge.color : 'text-slate-600'}`}>
+                        {badge.icon}
+                      </span>
+                    </div>
+                    {!badge.isUnlocked && (
+                      <div className="absolute inset-0 flex items-end justify-center pb-1">
+                        <span className="material-symbols-outlined text-[10px] text-slate-600">lock</span>
+                      </div>
+                    )}
+                    {badge.isUnlocked && (
+                      <div className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full pulse-cyan" style={{ backgroundColor: theme.accent }} />
+                    )}
+                  </div>
+                  <span className="text-[9px] font-bold text-slate-400 whitespace-nowrap leading-tight text-center">{badge.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </section>
+        )}
       </main>
 
       {/* ── 랭크 정보 모달 ── */}
       {showRankInfo && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowRankInfo(false)}>
-          <div
-            className="w-full max-w-sm bg-navy-card rounded-[3rem] p-8 border border-white/10 shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden"
-            onClick={e => e.stopPropagation()}
-          >
+          <div className="w-full max-w-sm bg-[#0D1525] rounded-[3rem] p-8 border border-white/10 shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden"
+            onClick={e => e.stopPropagation()}>
             {!currentRankDetail ? (
               <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                 <div className="flex items-center justify-center mb-6">
-                  <div className="size-14 rounded-2xl flex items-center justify-center border shadow-neon-cyan" style={{ backgroundColor: theme.bg, borderColor: theme.border }}>
+                  <div className="size-14 rounded-2xl flex items-center justify-center border" style={{ backgroundColor: theme.bg, borderColor: theme.border, boxShadow: `0 0 20px ${theme.glow}` }}>
                     <span className="material-symbols-outlined text-3xl" style={{ color: theme.accent }}>{rankIcon}</span>
                   </div>
                 </div>
-                <h3 className="text-xl font-black mb-6 text-center italic tracking-tighter uppercase">Leadership Ranking System</h3>
-                <p className="text-[10px] text-center text-slate-500 mb-6 uppercase tracking-widest">각 단계를 클릭하여 상세 가이드 확인</p>
+                <h3 className="text-xl font-black mb-6 text-center italic tracking-tighter uppercase">Leadership Ranking</h3>
+                <p className="text-[9px] text-center text-slate-600 mb-6 uppercase tracking-widest font-bold">각 단계를 클릭하여 상세 가이드 확인</p>
                 <div className="space-y-3">
                   {Object.keys(RANK_DETAILS).map((key, i) => {
                     const item = RANK_DETAILS[key];
                     const t = getRankTheme(key);
                     const stars = getRankStars(key);
                     return (
-                      <button
-                        key={i}
-                        onClick={() => setSelectedRankName(key)}
-                        className="w-full flex gap-4 p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all group text-left"
-                      >
+                      <button key={i} onClick={() => setSelectedRankName(key)}
+                        className="w-full flex gap-4 p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all group text-left">
                         <div className="flex flex-col items-start gap-1">
                           <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: t.accent }}>{item.lv}</span>
                           <div className="flex gap-0.5">
@@ -421,19 +511,13 @@ const Profile: React.FC = () => {
                     );
                   })}
                 </div>
-                <button
-                  onClick={() => setShowRankInfo(false)}
-                  className="w-full mt-8 py-4 bg-white/5 text-slate-400 font-black text-xs uppercase rounded-xl border border-white/5"
-                >
-                  닫기
-                </button>
+                <button onClick={() => setShowRankInfo(false)}
+                  className="w-full mt-8 py-4 bg-white/5 text-slate-400 font-black text-xs uppercase rounded-xl border border-white/5">닫기</button>
               </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-right-8 duration-300">
-                <button
-                  onClick={() => setSelectedRankName(null)}
-                  className="flex items-center gap-1 text-[10px] font-black text-primary uppercase tracking-widest mb-6 hover:translate-x-[-4px] transition-transform"
-                >
+                <button onClick={() => setSelectedRankName(null)}
+                  className="flex items-center gap-1 text-[10px] font-black text-primary uppercase tracking-widest mb-6 hover:translate-x-[-4px] transition-transform">
                   <span className="material-symbols-outlined text-sm">arrow_back</span> 뒤로가기
                 </button>
                 <div className="mb-6">
@@ -442,11 +526,11 @@ const Profile: React.FC = () => {
                 </div>
                 <div className="space-y-6 max-h-[400px] overflow-y-auto hide-scrollbar pr-1">
                   <section>
-                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">정의</h4>
+                    <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">정의</h4>
                     <p className="text-sm text-slate-300 leading-relaxed font-medium">{currentRankDetail.definition}</p>
                   </section>
                   <section>
-                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">핵심 특징</h4>
+                    <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">핵심 특징</h4>
                     <ul className="space-y-1.5">
                       {currentRankDetail.features.map((f, i) => (
                         <li key={i} className="text-xs text-slate-400 flex items-start gap-2">
@@ -456,11 +540,11 @@ const Profile: React.FC = () => {
                     </ul>
                   </section>
                   <section className="bg-primary/5 p-5 rounded-2xl border border-primary/20">
-                    <h4 className="text-[10px] font-black text-primary uppercase tracking-widest mb-2">훈련 앱 활용 방안</h4>
+                    <h4 className="text-[9px] font-black text-primary uppercase tracking-widest mb-2">훈련 앱 활용 방안</h4>
                     <p className="text-xs text-slate-200 leading-relaxed italic">"{currentRankDetail.usage}"</p>
                   </section>
                   <section>
-                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Next Level 추천 액션</h4>
+                    <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Next Level 추천 액션</h4>
                     <div className="space-y-2">
                       {currentRankDetail.actions.map((a, i) => (
                         <div key={i} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
@@ -471,12 +555,8 @@ const Profile: React.FC = () => {
                     </div>
                   </section>
                 </div>
-                <button
-                  onClick={() => setSelectedRankName(null)}
-                  className="w-full mt-8 py-5 bg-primary text-navy-deep font-black text-xs uppercase rounded-2xl shadow-neon-cyan active:scale-95 transition-all"
-                >
-                  다른 랭크 확인
-                </button>
+                <button onClick={() => setSelectedRankName(null)}
+                  className="w-full mt-8 py-5 bg-primary text-navy-deep font-black text-xs uppercase rounded-2xl shadow-neon-cyan active:scale-95 transition-all">다른 랭크 확인</button>
               </div>
             )}
           </div>
@@ -485,24 +565,17 @@ const Profile: React.FC = () => {
 
       {/* ── 배지 상세 모달 ── */}
       {selectedBadge && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200"
-          onClick={() => setSelectedBadge(null)}
-        >
-          <div
-            className="w-full max-w-sm bg-navy-card rounded-[3rem] p-8 border border-white/10 shadow-2xl text-center flex flex-col items-center"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className={`hexagon size-24 flex items-center justify-center mb-6 ${selectedBadge.isUnlocked ? 'animate-glow-pulse' : ''}`}
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200"
+          onClick={() => setSelectedBadge(null)}>
+          <div className="w-full max-w-sm bg-[#0D1525] rounded-[3rem] p-8 border border-white/10 shadow-2xl text-center flex flex-col items-center"
+            onClick={e => e.stopPropagation()}>
+            <div className={`hexagon size-24 flex items-center justify-center mb-6`}
               style={selectedBadge.isUnlocked ? {
                 background: `linear-gradient(135deg, ${theme.bg}, rgba(255,255,255,0.05))`,
                 filter: `drop-shadow(0 0 16px ${theme.glow})`
               } : {
-                background: 'rgba(255,255,255,0.03)',
-                filter: 'grayscale(1)',
-                opacity: 0.4,
-              }}
-            >
+                background: 'rgba(255,255,255,0.03)', filter: 'grayscale(1)', opacity: 0.4,
+              }}>
               <span className={`material-symbols-outlined text-5xl ${selectedBadge.isUnlocked ? selectedBadge.color : 'text-slate-700'}`}>
                 {selectedBadge.icon}
               </span>
@@ -517,18 +590,14 @@ const Profile: React.FC = () => {
             )}
             <p className="text-slate-400 text-sm leading-relaxed mb-6 font-medium">{selectedBadge.description}</p>
             <div className="w-full bg-white/5 p-5 rounded-2xl border border-white/5 mb-8">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">획득 조건</p>
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">획득 조건</p>
               <p className={`text-sm font-bold ${selectedBadge.isUnlocked ? 'text-primary' : 'text-slate-400'}`}>
                 {selectedBadge.condition}
               </p>
             </div>
-            <button
-              onClick={() => setSelectedBadge(null)}
+            <button onClick={() => setSelectedBadge(null)}
               className="w-full py-4 text-navy-deep font-black text-xs uppercase tracking-widest rounded-xl"
-              style={{ backgroundColor: theme.accent }}
-            >
-              닫기
-            </button>
+              style={{ backgroundColor: theme.accent }}>닫기</button>
           </div>
         </div>
       )}

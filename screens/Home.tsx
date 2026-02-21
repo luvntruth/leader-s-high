@@ -1,167 +1,355 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 // @ts-ignore
 import { useNavigate } from 'react-router-dom';
 import { SCENARIOS } from '../constants';
+import { getCharacterAvatar } from '../services/characterAvatars';
+
+/* ── 퀘스트 등급 메타 ── */
+const getQuestMeta = (intensity: string) => {
+  switch (intensity) {
+    case '높음': return { grade: 'S', xp: 150, gold: 50, color: '#ef4444', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.4)' };
+    case '중간': return { grade: 'A', xp: 120, gold: 0, color: '#FFB800', bg: 'rgba(255,184,0,0.15)', border: 'rgba(255,184,0,0.4)' };
+    default: return { grade: 'B', xp: 80, gold: 0, color: '#10B981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.4)' };
+  }
+};
+
+/* ── 카테고리 영문 라벨 ── */
+const getCategoryLabel = (cat: string) => {
+  const map: Record<string, string> = {
+    '면담': 'SALARY NEGOTIATION',
+    '갈등 관리': 'CONFLICT MGMT',
+    '피드백': 'FEEDBACK',
+    '동기부여': 'MOTIVATION',
+    '성과관리': 'REPORTING',
+    '코칭': 'COACHING',
+    '의사결정': 'DECISION',
+    '위기관리': 'CRISIS MGMT',
+  };
+  return map[cat] || cat.toUpperCase();
+};
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const [questFilter, setQuestFilter] = useState<'all' | 'priority' | 'weekly'>('priority');
+
+  /* 더미 유저 스탯 */
+  const userStats = {
+    level: 12,
+    title: '엘리트 리더',
+    xp: 45,       // % 기준
+    gold: 2450,
+    totalMissions: 30,
+    streak: 5,
+    leadershipPower: 78,
+    leadershipGrowth: 5,
+  };
+
+  const questScenarios = SCENARIOS.slice(0, 4);
 
   return (
-    <div className="flex flex-col min-h-screen pb-24 lg:pb-12 bg-transparent font-manrope text-white">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-[#0A0F1D]/80 backdrop-blur-md px-6 py-5 flex items-center justify-between border-b border-white/5 lg:px-12">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary/20 size-10 rounded-xl flex items-center justify-center border border-primary/30 shadow-neon-cyan lg:hidden">
-            <span className="material-symbols-outlined text-primary text-xl">military_tech</span>
+    <div className="flex flex-col min-h-screen pb-24 lg:pb-8 bg-[#0B1120] font-manrope text-white">
+
+      {/* ═══════════════ TOP HEADER BAR ═══════════════ */}
+      <header className="sticky top-0 z-50 bg-[#0D1526]/95 backdrop-blur-xl border-b border-white/5">
+        <div className="px-5 lg:px-8 py-3 flex items-center justify-between">
+          {/* 좌측: 로고 */}
+          <div className="flex items-center gap-3">
+            <div className="size-9 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center">
+              <span className="material-symbols-outlined text-primary text-base">shield</span>
+            </div>
+            <div className="leading-tight">
+              <p className="text-sm font-black tracking-wider text-white">LEADER'S HIGH</p>
+              <p className="text-[8px] font-bold text-slate-500 tracking-[0.25em] uppercase">Command Center</p>
+            </div>
           </div>
-          <h2 className="text-xl font-bold tracking-tight text-white lg:text-2xl">대시보드</h2>
-        </div>
-        <div className="flex gap-4 items-center">
-          <div className="hidden lg:block text-right">
-             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Logged in as</p>
-             <p className="text-sm font-bold">엘리트 리더</p>
-          </div>
-          <button 
-            onClick={() => navigate('/profile')}
-            className="size-11 flex items-center justify-center rounded-xl border border-primary/20 p-0.5 active:scale-90 transition-transform shadow-neon-cyan/20"
-          >
-            <img 
-              src={`https://ui-avatars.com/api/?name=User&background=00F2FF&color=0A0F1D`} 
-              alt="Profile" 
-              className="size-full rounded-lg object-cover" 
+
+          {/* 중앙: 프로필 + XP */}
+          <div className="hidden lg:flex items-center gap-3">
+            <img
+              src={getCharacterAvatar('리더', undefined, 'neutral')}
+              alt="Avatar"
+              className="size-9 rounded-full border-2 border-primary/30"
             />
+            <div className="flex items-center gap-3">
+              <p className="text-sm font-bold text-white">{userStats.title}</p>
+              <span className="px-2 py-0.5 rounded-md bg-primary/20 border border-primary/40 text-[10px] font-black text-primary">
+                LV.{userStats.level}
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-500">XP</span>
+                <div className="w-24 h-2 rounded-full bg-white/10 overflow-hidden">
+                  <div className="h-full rounded-full bg-primary" style={{ width: `${userStats.xp}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 우측: 골드 + 아이콘 */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+              <span className="text-game-gold text-xs">●</span>
+              <span className="text-xs font-bold text-white">{userStats.gold.toLocaleString()} G</span>
+            </div>
+            <button className="size-9 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+              <span className="material-symbols-outlined text-slate-400 text-lg">notifications</span>
+            </button>
+            <button
+              onClick={() => navigate('/profile')}
+              className="size-9 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
+            >
+              <span className="material-symbols-outlined text-slate-400 text-lg">settings</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* ═══════════════ MAIN CONTENT ═══════════════ */}
+      <div className="px-5 lg:px-8 py-6 space-y-6 flex-1">
+
+        {/* ── CURRENT OBJECTIVE 히어로 ── */}
+        <section className="bg-[#111B2E] border border-white/5 rounded-2xl p-7 lg:p-9 relative overflow-hidden">
+          {/* 미묘한 배경 그라데이션 */}
+          <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/3 to-transparent" />
+
+          <div className="relative z-10">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-5">
+              <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Current Objective
+            </span>
+
+            <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-white mb-4 leading-tight">
+              팀원 퇴사율 <span className="text-primary">0%</span> 도전
+            </h1>
+
+            <p className="text-slate-400 text-sm leading-relaxed max-w-lg mb-1">
+              현실적인 갈등 상황과 팀 관리 퀘스트를 통해 <span className="text-white font-bold">진정한 리더</span>로 거듭나세요.
+            </p>
+            <p className="text-slate-500 text-sm leading-relaxed max-w-lg">
+              게임처럼 익히는 팀장 리더십 시뮬레이션.
+            </p>
+
+            <div className="flex items-center gap-3 mt-7">
+              <div className="flex -space-x-2">
+                {SCENARIOS.slice(0, 3).map((s, i) => (
+                  <img
+                    key={i}
+                    src={getCharacterAvatar(s.memberName, s.id)}
+                    alt={s.memberName}
+                    className="size-8 rounded-full border-2 border-[#111B2E] bg-slate-700"
+                  />
+                ))}
+              </div>
+              <p className="text-xs text-slate-500">
+                <span className="text-slate-300 font-bold">3명</span>의 팀원이 당신의 결정을 기다립니다.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 2-COLUMN LAYOUT: Player Stats + Active Quests ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+          {/* ===== LEFT: PLAYER STATS ===== */}
+          <div className="lg:col-span-3 space-y-4">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Player Stats</p>
+
+            {/* Total Missions */}
+            <div className="bg-[#111B2E] border border-white/5 rounded-xl p-5">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Total Missions</p>
+                <span className="material-symbols-outlined text-slate-600 text-base">swords</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-white">{userStats.totalMissions}</span>
+                <span className="text-xs text-slate-500 font-bold">cleared</span>
+              </div>
+            </div>
+
+            {/* Current Streak */}
+            <div className="bg-[#111B2E] border border-white/5 rounded-xl p-5">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Current Streak</p>
+                <span className="material-symbols-outlined text-game-gold text-base">local_fire_department</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-white">{userStats.streak}</span>
+                <span className="text-xs text-slate-500 font-bold">Days</span>
+              </div>
+            </div>
+
+            {/* Leadership Power */}
+            <div className="bg-[#111B2E] border border-white/5 rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-emerald-400 text-xs">💚</span>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Leadership Power</p>
+                <span className="text-sm font-black text-white ml-auto">{userStats.leadershipPower}<span className="text-slate-600">/100</span></span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden mb-3">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-primary animate-bar-fill"
+                  style={{ width: `${userStats.leadershipPower}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-emerald-400 font-bold">
+                📈 +{userStats.leadershipGrowth}% from last week
+              </p>
+            </div>
+
+            {/* View History Log */}
+            <button
+              onClick={() => navigate('/insights')}
+              className="w-full bg-[#111B2E] border border-white/5 rounded-xl p-4 flex items-center justify-center gap-2 hover:border-white/15 transition-colors"
+            >
+              <span className="material-symbols-outlined text-slate-400 text-base">history</span>
+              <span className="text-xs font-bold text-slate-400">View History Log</span>
+            </button>
+          </div>
+
+          {/* ===== RIGHT: ACTIVE QUESTS ===== */}
+          <div className="lg:col-span-9 space-y-4">
+            {/* 헤더 + 필터 */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-base">task_alt</span>
+                <h3 className="text-base font-black text-white">Active Quests</h3>
+              </div>
+              <div className="flex gap-1.5">
+                {(['all', 'priority', 'weekly'] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setQuestFilter(f)}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all
+                      ${questFilter === f
+                        ? 'bg-white text-[#0B1120] border border-white'
+                        : 'bg-white/5 text-slate-400 border border-white/5 hover:border-white/15'
+                      }`}
+                  >
+                    {f === 'all' ? 'All' : f === 'priority' ? 'Priority' : 'Weekly'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 퀘스트 카드 2x2 그리드 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {questScenarios.map((scenario, idx) => {
+                const meta = getQuestMeta(scenario.intensity);
+                const isFirst = idx === 0;
+                return (
+                  <div
+                    key={scenario.id}
+                    className="bg-[#111B2E] border border-white/5 rounded-xl p-5 hover:border-white/15 transition-all group relative overflow-hidden"
+                  >
+                    {/* 상단: 등급 + 캐릭터 아바타 + 카테고리 + 시간 */}
+                    <div className="flex items-start gap-3 mb-3">
+                      {/* 등급 뱃지 */}
+                      <div className="relative">
+                        <img
+                          src={getCharacterAvatar(scenario.memberName, scenario.id)}
+                          alt={scenario.memberName}
+                          className="size-10 rounded-xl"
+                        />
+                        <span
+                          className="absolute -top-1.5 -left-1.5 size-5 rounded-md flex items-center justify-center text-[10px] font-black"
+                          style={{
+                            backgroundColor: meta.bg,
+                            color: meta.color,
+                            border: `1px solid ${meta.border}`,
+                          }}
+                        >
+                          {meta.grade}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <span
+                          className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded"
+                          style={{ color: meta.color, backgroundColor: meta.bg }}
+                        >
+                          {getCategoryLabel(scenario.category)}
+                        </span>
+                        <h4 className="text-sm font-bold text-white mt-1.5 truncate">{scenario.title}</h4>
+                      </div>
+
+                      {isFirst && (
+                        <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-400 shrink-0">
+                          <span className="size-1.5 rounded-full bg-emerald-400" />
+                          2h left
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 설명 */}
+                    <p className="text-[11px] text-slate-500 leading-relaxed mb-4 line-clamp-2">
+                      {scenario.description}
+                    </p>
+
+                    {/* 보상 + CTA */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-slate-500 font-bold">Rewards:</span>
+                        <span className="text-[10px] font-bold text-game-gold">★ {meta.xp} XP</span>
+                        {meta.gold > 0 && (
+                          <span className="text-[10px] font-bold text-game-hp">♥ {meta.gold} G</span>
+                        )}
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate('/setup', { state: { scenario } });
+                        }}
+                        className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all
+                          ${isFirst
+                            ? 'bg-white text-[#0B1120] hover:bg-slate-200'
+                            : 'bg-white/5 text-slate-300 border border-white/10 hover:border-white/20'
+                          }`}
+                      >
+                        {isFirst ? 'ACCEPT' : 'DETAILS'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* ── 하단 퀵 액세스 2칸 ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <button
+            onClick={() => navigate('/team-office')}
+            className="bg-[#111B2E] border border-white/5 rounded-xl p-5 flex items-center gap-5 text-left group hover:border-white/15 transition-all"
+          >
+            <div className="size-12 rounded-xl bg-accent-purple/15 border border-accent-purple/20 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-accent-purple text-xl">groups</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm text-white">팀 오피스 현황판</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">현재 팀원들의 상태와 업무 부하를 실시간으로 확인합니다.</p>
+            </div>
+            <span className="material-symbols-outlined text-slate-600 text-lg group-hover:translate-x-1 transition-transform">
+              arrow_forward_ios
+            </span>
+          </button>
+
+          <button
+            onClick={() => navigate('/custom-lab')}
+            className="bg-[#111B2E] border border-white/5 rounded-xl p-5 flex items-center gap-5 text-left group hover:border-white/15 transition-all"
+          >
+            <div className="size-12 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-primary text-xl">tune</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm text-white">나만의 상황 커스텀 설계</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">원하는 난이도와 상황을 설정하여 모의 훈련을 진행합니다.</p>
+            </div>
+            <span className="material-symbols-outlined text-slate-600 text-lg group-hover:translate-x-1 transition-transform">
+              arrow_forward_ios
+            </span>
           </button>
         </div>
-      </div>
 
-      <div className="lg:px-12 lg:py-12">
-        {/* Hero Section */}
-        <div className="px-6 py-12 lg:px-0 lg:py-0 lg:mb-16 relative overflow-hidden">
-          <div className="absolute -top-20 -right-20 size-96 bg-primary/5 rounded-full blur-[120px]"></div>
-          
-          <p className="text-primary font-black text-[10px] tracking-[0.4em] uppercase mb-3">Strategic Leadership Simulation</p>
-          {/* 글자 크기를 줄이고 줄간격 170% (1.7) 적용, 문구 최적화 */}
-          <h1 className="text-2xl lg:text-4xl font-bold tracking-tight text-white leading-[1.7]">
-            팀원 퇴사율 0% 도전, <br/>
-            <span className="text-primary italic">게임</span>처럼 익히는 팀장 리더십 시뮬레이션
-          </h1>
-          <p className="text-slate-400 mt-6 text-sm lg:text-base font-medium leading-[1.7] max-w-[550px]">
-            반복된 시뮬레이션은 결정적 순간에 당신의 가장 강력한 무기가 됩니다.<br/>심리학 기반의 정밀 훈련으로 팀원의 마음을 움직이는 기술을 체득하세요.
-          </p>
-        </div>
-
-        {/* Responsive Layout Container */}
-        <div className="lg:grid lg:grid-cols-12 lg:gap-8 space-y-8 lg:space-y-0">
-          
-          {/* Stats Grid - Column 1-4 */}
-          <div className="px-6 lg:px-0 lg:col-span-4 grid grid-cols-2 lg:grid-cols-1 gap-4">
-            <div 
-              onClick={() => navigate('/insights')}
-              className="bg-navy-card border border-white/5 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group cursor-pointer hover:border-primary/30 transition-all"
-            >
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Missions</p>
-              <p className="text-4xl font-black text-white">30</p>
-              <div className="mt-6 flex items-center gap-1 text-[10px] text-primary font-bold">
-                <span className="material-symbols-outlined text-xs">analytics</span>
-                <span>역량 분석 리포트 확인</span>
-              </div>
-            </div>
-            <div 
-              onClick={() => navigate('/streak')}
-              className="bg-navy-card border border-white/5 p-8 rounded-[2.5rem] shadow-2xl cursor-pointer hover:border-accent-amber/30 transition-all relative overflow-hidden"
-            >
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Current Streak</p>
-              <p className="text-4xl font-black text-accent-amber drop-shadow-[0_0_10px_rgba(255,184,0,0.3)]">5 <span className="text-xs text-white/40 font-bold uppercase ml-1">Days</span></p>
-              <div className="mt-6 flex items-center gap-1 text-[10px] text-accent-amber font-bold">
-                <span className="material-symbols-outlined text-xs animate-pulse">local_fire_department</span>
-                <span>불꽃 유지 중</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Cards - Column 5-12 */}
-          <div className="px-6 lg:px-0 lg:col-span-8 space-y-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold tracking-tight text-white uppercase tracking-widest px-2">오늘의 추천 훈련</h3>
-              <button onClick={() => navigate('/missions')} className="text-primary text-[10px] font-bold uppercase tracking-widest hover:underline">훈련 전체 보기</button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 lg:pb-0">
-              {SCENARIOS.slice(0, 4).map(scenario => (
-                <div 
-                  key={scenario.id} 
-                  onClick={() => navigate('/setup', { state: { scenario } })}
-                  className="bg-navy-card border border-white/5 rounded-[3rem] overflow-hidden p-8 shadow-2xl flex flex-col justify-between active:scale-95 transition-all cursor-pointer hover:border-primary/50 group"
-                >
-                  <div>
-                    <span className="bg-primary/10 text-primary border border-primary/20 px-3 py-1 rounded-lg text-[9px] font-black mb-6 inline-block uppercase tracking-[0.2em]">
-                      {scenario.category}
-                    </span>
-                    <h4 className="text-xl font-bold mb-3 tracking-tight text-white group-hover:text-primary transition-colors">{scenario.title}</h4>
-                    <p className="text-slate-500 text-xs mb-10 line-clamp-2 leading-relaxed font-medium">{scenario.description}</p>
-                  </div>
-                  <div className="flex items-center gap-4 mt-auto pt-6 border-t border-white/5">
-                    <div className="size-10 rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
-                       <img 
-                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(scenario.memberName)}&background=00F2FF&color=0A0F1D`} 
-                        alt={scenario.memberName} 
-                        className="size-full object-cover" 
-                       />
-                    </div>
-                    <div className="text-[11px]">
-                      <p className="font-bold text-white">{scenario.memberName} 매니저</p>
-                      <p className="text-slate-500 font-bold uppercase">{scenario.generation}</p>
-                    </div>
-                    <span className="material-symbols-outlined ml-auto text-primary opacity-0 group-hover:opacity-100 transition-all">play_arrow</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => navigate('/team-office')}
-              className="w-full bg-navy-card border border-white/10 p-8 rounded-[3rem] flex items-center justify-between transition-all active:scale-[0.98] hover:border-accent-purple/40 group shadow-2xl relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-10 transition-opacity">
-                <span className="material-symbols-outlined text-8xl">groups</span>
-              </div>
-              <div className="flex items-center gap-5 text-left relative z-10">
-                <div className="bg-accent-purple/10 p-4 rounded-2xl border border-accent-purple/30 group-hover:border-accent-purple/70 transition-colors">
-                  <span className="material-symbols-outlined text-accent-purple text-3xl font-black">groups</span>
-                </div>
-                <div>
-                  <p className="font-bold text-xl tracking-tight">팀 오피스 현황판</p>
-                  <p className="text-slate-500 text-[11px] font-black uppercase tracking-[0.3em] mt-1">Team Office — 팀원 현황 보기</p>
-                </div>
-              </div>
-              <div className="size-12 bg-white/5 rounded-full flex items-center justify-center group-hover:translate-x-2 transition-transform">
-                <span className="material-symbols-outlined text-accent-purple">arrow_forward_ios</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/custom-lab')}
-              className="w-full bg-navy-card border border-white/10 p-10 rounded-[3.5rem] flex items-center justify-between transition-all active:scale-[0.98] hover:bg-white/5 group shadow-2xl relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-10 transition-opacity">
-                <span className="material-symbols-outlined text-8xl">psychology_alt</span>
-              </div>
-              <div className="flex items-center gap-6 text-left relative z-10">
-                <div className="bg-primary/10 p-4 rounded-2xl border border-primary/30 group-hover:border-primary/70 transition-colors shadow-neon-cyan/20">
-                  <span className="material-symbols-outlined text-primary text-3xl font-black">add_reaction</span>
-                </div>
-                <div>
-                  <p className="font-bold text-2xl tracking-tight">나만의 상황 커스텀 설계</p>
-                  <p className="text-slate-500 text-[11px] font-black uppercase tracking-[0.3em] mt-2">Personalized AI AI Scenario Lab</p>
-                </div>
-              </div>
-              <div className="size-12 bg-white/5 rounded-full flex items-center justify-center group-hover:translate-x-2 transition-transform">
-                <span className="material-symbols-outlined text-primary">arrow_forward_ios</span>
-              </div>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

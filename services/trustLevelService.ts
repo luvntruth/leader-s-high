@@ -175,6 +175,8 @@ export interface TrustLevelOutput {
     impact: number;
     reason_short: string;
     evidence: { turn_ids: number[]; snippet: string };
+    change?: string; // e.g., "+3"
+    dimension?: string; // e.g., "신뢰도"
   }>;
   recent_events_out: string[];
   stage: {

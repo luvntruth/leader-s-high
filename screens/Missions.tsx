@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { SCENARIOS, CATEGORIES } from '../constants';
 import { DataService } from '../services/dataService';
 import { Scenario } from '../types';
+import { getCharacterAvatar } from '../services/characterAvatars';
 import { createGeminiClient } from '../src/lib/geminiClient';
 
 /* ── 강도 → 퀘스트 메타데이터 ── */
@@ -26,7 +27,7 @@ const Missions: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [selectedIntensity, setSelectedIntensity] = useState<'전체' | 'low' | 'medium' | 'high'>('전체');
   const [isAnalysing, setIsAnalysing] = useState(false);
-  const [recommendation, setRecommendation] = useState<{scenario: Scenario, reason: string} | null>(null);
+  const [recommendation, setRecommendation] = useState<{ scenario: Scenario, reason: string } | null>(null);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -128,11 +129,10 @@ const Missions: React.FC = () => {
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-black whitespace-nowrap transition-all border uppercase tracking-widest ${
-                selectedCategory === cat
-                  ? 'bg-accent-amber text-navy-deep border-accent-amber shadow-neon-amber'
-                  : 'bg-white/5 text-slate-500 border-white/5 hover:border-accent-amber/30 hover:text-slate-300'
-              }`}
+              className={`px-4 py-1.5 rounded-lg text-[10px] font-black whitespace-nowrap transition-all border uppercase tracking-widest ${selectedCategory === cat
+                ? 'bg-accent-amber text-navy-deep border-accent-amber shadow-neon-amber'
+                : 'bg-white/5 text-slate-500 border-white/5 hover:border-accent-amber/30 hover:text-slate-300'
+                }`}
             >
               {cat}
             </button>
@@ -146,11 +146,10 @@ const Missions: React.FC = () => {
             <button
               key={value}
               onClick={() => setSelectedIntensity(value as any)}
-              className={`px-3 py-1 rounded-md text-[10px] font-black whitespace-nowrap transition-all border ${
-                selectedIntensity === value
-                  ? 'bg-white/10 border-white/30 text-white'
-                  : 'bg-white/5 text-slate-600 border-white/5 hover:border-white/20 hover:text-slate-400'
-              }`}
+              className={`px-3 py-1 rounded-md text-[10px] font-black whitespace-nowrap transition-all border ${selectedIntensity === value
+                ? 'bg-white/10 border-white/30 text-white'
+                : 'bg-white/5 text-slate-600 border-white/5 hover:border-white/20 hover:text-slate-400'
+                }`}
               style={selectedIntensity === value && color ? { color, borderColor: `${color}50`, backgroundColor: `${color}15` } : {}}
             >
               {label}
@@ -212,6 +211,20 @@ const Missions: React.FC = () => {
 
                 {/* 퀘스트 내용 */}
                 <div className="p-6 pt-4">
+                  {/* 캐릭터 아바타 + 이름 */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <img
+                      src={getCharacterAvatar(recommendation.scenario.memberName, recommendation.scenario.id)}
+                      alt={recommendation.scenario.memberName}
+                      className="size-12 rounded-2xl border-2 bg-slate-700"
+                      style={{ borderColor: meta.gradeBorder }}
+                    />
+                    <div>
+                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">대상 팀원</p>
+                      <p className="text-sm font-black text-white">{recommendation.scenario.memberName}</p>
+                      <p className="text-[10px] text-slate-500">{recommendation.scenario.generation}</p>
+                    </div>
+                  </div>
                   <h4 className="text-xl font-black mb-3 text-white group-hover:text-primary transition-colors leading-tight">
                     {recommendation.scenario.title}
                   </h4>
@@ -268,18 +281,20 @@ const Missions: React.FC = () => {
                 <div
                   key={scenario.id}
                   onClick={() => navigate('/setup', { state: { scenario } })}
-                  className="relative quest-pin rounded-[1.5rem] border cursor-pointer group transition-all overflow-visible"
+                  className="relative quest-pin rounded-[1.5rem] border cursor-pointer group transition-all duration-300 overflow-visible hover:scale-[1.02] hover:-translate-y-1"
                   style={{
                     backgroundColor: 'rgba(15,23,41,0.9)',
                     borderColor: isCleared ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.06)',
                     marginTop: '8px',
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 32px ${meta.gradeBg}, 0 0 20px ${meta.gradeBg}`; e.currentTarget.style.borderColor = meta.gradeBorder; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = isCleared ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.06)'; }}
                 >
                   {/* CLEARED 스탬프 */}
                   {isCleared && (
                     <div className="absolute inset-0 rounded-[1.5rem] bg-black/50 z-10 flex items-center justify-center pointer-events-none">
-                      <div className="rotate-[-12deg] border-[3px] border-accent-green/70 rounded-lg px-5 py-2">
-                        <p className="text-accent-green font-black text-lg tracking-[0.3em] uppercase">Cleared</p>
+                      <div className="rotate-[-12deg] border-[3px] border-accent-green/70 rounded-lg px-5 py-2 animate-stamp-in" style={{ animation: 'stamp-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}>
+                        <p className="text-accent-green font-black text-lg tracking-[0.3em] uppercase" style={{ textShadow: '0 0 12px rgba(16,185,129,0.5)' }}>Cleared</p>
                       </div>
                     </div>
                   )}
@@ -320,11 +335,15 @@ const Missions: React.FC = () => {
                     {/* 팀원 정보 + 보상 */}
                     <div className="flex items-center justify-between border-t border-white/5 pt-3">
                       <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
-                          <span className="material-symbols-outlined text-[10px] text-primary">person</span>
-                          <span className="text-[10px] font-bold text-slate-300">{scenario.memberName}</span>
+                        <img
+                          src={getCharacterAvatar(scenario.memberName, scenario.id)}
+                          alt={scenario.memberName}
+                          className="size-8 rounded-xl bg-slate-700 border border-white/10"
+                        />
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-300 block leading-tight">{scenario.memberName}</span>
+                          <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{scenario.generation}</span>
                         </div>
-                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{scenario.generation}</span>
                       </div>
                       <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{ backgroundColor: meta.gradeBg, border: `1px solid ${meta.gradeBorder}` }}>
                         <span className="material-symbols-outlined text-[10px]" style={{ color: meta.gradeColor }}>bolt</span>
@@ -339,10 +358,16 @@ const Missions: React.FC = () => {
 
           {filteredScenarios.length === 0 && (
             <div className="py-24 text-center">
-              <div className="size-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/5">
-                <span className="material-symbols-outlined text-4xl text-slate-700">folder_open</span>
+              <div className="size-20 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-primary/20 animate-pulse">
+                <span className="material-symbols-outlined text-4xl text-primary/40">lock</span>
               </div>
-              <p className="text-slate-500 text-sm font-medium tracking-tight">해당 카테고리의 퀘스트가 준비 중입니다.</p>
+              <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-2">새로운 퀘스트 개방 중...</p>
+              <p className="text-[11px] text-slate-600 font-medium">다른 등급의 퀘스트를 먼저 클리어하면 잠금이 해제됩니다.</p>
+              <div className="mt-6 flex items-center justify-center gap-1">
+                {[0, 0.15, 0.3].map((d, i) => (
+                  <div key={i} className="size-2 rounded-full bg-primary/30 animate-bounce" style={{ animationDelay: `${d}s` }} />
+                ))}
+              </div>
             </div>
           )}
         </div>

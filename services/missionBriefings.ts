@@ -5,7 +5,7 @@ export interface MissionBriefing {
   tasks: string[];
 }
 
-const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
+export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
   'late-comer': {
     theory: "SBI 피드백 모델 (Situation-Behavior-Impact)",
     idealState: "지각이 '팀의 신뢰 비용'을 발생시킴을 인지하고, 구체적인 개선 행동(Behavior)을 약속한 상태",

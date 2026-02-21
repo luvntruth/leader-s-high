@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 // @ts-ignore
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Generation } from '../types';
+import { getCharacterAvatar, getCharacterInfo } from '../services/characterAvatars';
 
 const Setup: React.FC = () => {
   const navigate = useNavigate();
@@ -14,10 +15,23 @@ const Setup: React.FC = () => {
   const [contextStyle, setContextStyle] = useState(initialScenario?.traits?.context || 50);
   const [driverStyle, setDriverStyle] = useState(initialScenario?.traits?.driver || 50);
 
+  // DiceBear 아바타
+  const charInfo = getCharacterInfo(initialScenario?.id, name);
+  const avatarUrl = getCharacterAvatar(name, initialScenario?.id);
+
+  // 퀘스트 등급 메타
+  const gradeMeta = useMemo(() => {
+    const g = initialScenario?.grade;
+    if (g === 'S') return { label: 'S', color: 'text-yellow-400', border: 'border-yellow-500/30', bg: 'bg-yellow-500/10', glow: '0 0 20px rgba(251,191,36,0.3)' };
+    if (g === 'A') return { label: 'A', color: 'text-purple-400', border: 'border-purple-500/30', bg: 'bg-purple-500/10', glow: '0 0 20px rgba(167,139,250,0.3)' };
+    if (g === 'B') return { label: 'B', color: 'text-primary', border: 'border-primary/30', bg: 'bg-primary/10', glow: '0 0 20px rgba(0,242,255,0.3)' };
+    return { label: g || 'C', color: 'text-slate-400', border: 'border-white/10', bg: 'bg-white/5', glow: 'none' };
+  }, [initialScenario?.grade]);
+
   // 시나리오 상황 + 성향 슬라이더를 결합한 초정밀 분석 로직
   const personaBriefing = useMemo(() => {
     if (!initialScenario) return { title: "분석 불가", description: "시나리오 정보가 없습니다.", tip: "기본 설정을 확인해주세요." };
-    
+
     const isDirect = contextStyle < 40;
     const isIndirect = contextStyle > 60;
     const isBalancedContext = !isDirect && !isIndirect;
@@ -28,7 +42,7 @@ const Setup: React.FC = () => {
 
     const scenarioId = initialScenario.id;
     const category = initialScenario.category;
-    
+
     let title = "";
     let description = "";
     let tip = "";
@@ -90,7 +104,7 @@ const Setup: React.FC = () => {
         description = "지적을 받으면 본능적으로 정당성을 찾으려 합니다. 겉으로는 수긍하는 척하지만 속으로는 동의하지 않을 확률이 큽니다.";
         tip = "본인이 직접 본인의 업무를 평가하게 유도하여 스스로 괴리를 깨닫게 만드세요.";
       }
-    } 
+    }
     // 2. 그 외 시나리오들을 위한 카테고리별 범용 로직
     else {
       if (category === '갈등 해결') {
@@ -122,162 +136,218 @@ const Setup: React.FC = () => {
 
   const startSimulation = (mode: 'voice' | 'text') => {
     const path = mode === 'voice' ? '/voice' : '/simulation';
-    navigate(path, { 
-      state: { 
-        name, 
-        generation, 
+    navigate(path, {
+      state: {
+        name,
+        generation,
         contextStyle,
         driverStyle,
-        scenario: initialScenario 
-      } 
+        scenario: initialScenario
+      }
     });
   };
 
   return (
-    <div className="h-screen bg-navy-deep text-white flex flex-col font-display overflow-hidden">
-      <header className="p-4 border-b border-white/5 flex items-center justify-between bg-[#0A0F1D]/80 backdrop-blur-xl">
+    <div className="h-screen bg-[#060B18] command-center-bg text-white flex flex-col font-display overflow-hidden">
+      {/* ── 헤더: QUEST BRIEFING ── */}
+      <header className="p-4 border-b border-white/5 flex items-center justify-between bg-[#060B18]/90 backdrop-blur-xl">
         <button onClick={() => navigate('/missions')} className="p-2 hover:bg-white/10 rounded-full transition-colors">
           <span className="material-symbols-outlined">arrow_back_ios</span>
         </button>
         <div className="text-center">
-            <h2 className="uppercase text-[10px] font-black tracking-[0.3em] text-primary">AI Persona Lab</h2>
-            <p className="text-sm font-bold">맞춤형 팀원 프로파일링</p>
+          <h2 className="uppercase text-[10px] font-black tracking-[0.3em] text-primary" style={{ textShadow: '0 0 10px rgba(0,242,255,0.4)' }}>
+            Quest Briefing
+          </h2>
+          <p className="text-sm font-bold">퀘스트 브리핑</p>
         </div>
-        <div className="w-10"></div>
+        <div className="w-10" />
       </header>
 
-      <main className="flex-1 overflow-y-auto p-6 space-y-8 pb-40 hide-scrollbar lg:max-w-2xl lg:mx-auto lg:w-full">
-        {/* 팀원 기본 정보 */}
+      {/* ── 메인 콘텐츠 ── */}
+      <main className="flex-1 overflow-y-auto p-6 space-y-7 pb-40 hide-scrollbar lg:max-w-2xl lg:mx-auto lg:w-full">
+
+        {/* ── 캐릭터 프로필 카드 ── */}
         <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex items-center gap-3 mb-4">
-             <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary border border-primary/30">
-                <span className="material-symbols-outlined text-xl">face</span>
-             </div>
-             <h3 className="text-lg font-bold">훈련 대상 리더십 정보</h3>
-          </div>
-          <div className="bg-navy-card p-6 rounded-[2rem] border border-white/5 shadow-xl">
-            <div className="flex items-center gap-4">
-               <div className="size-16 rounded-2xl overflow-hidden border-2 border-primary/30 shrink-0">
-                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=00F2FF&color=0A0F1D`} alt="avatar" className="size-full object-cover" />
-               </div>
-               <div className="flex-1">
+          <div className="bg-gradient-to-br from-[#161D2F] to-[#0D1525] p-6 rounded-[2.5rem] border border-primary/20 relative overflow-hidden"
+            style={{ boxShadow: gradeMeta.glow }}>
+            {/* 배경 장식 */}
+            <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+              <span className="material-symbols-outlined text-7xl text-primary">person_search</span>
+            </div>
+
+            <div className="flex items-center gap-5 relative z-10">
+              {/* DiceBear 아바타 */}
+              <div className="relative shrink-0">
+                <div className="size-20 rounded-2xl overflow-hidden border-2 border-primary/40"
+                  style={{ boxShadow: '0 0 20px rgba(0,242,255,0.25)' }}>
+                  <img src={avatarUrl} alt={charInfo.name} className="size-full object-cover bg-navy-card" />
+                </div>
+                {/* 등급 배지 */}
+                <div className={`absolute -top-2 -right-2 size-8 rounded-lg ${gradeMeta.bg} ${gradeMeta.border} border flex items-center justify-center`}>
+                  <span className={`text-sm font-black italic ${gradeMeta.color}`}>{gradeMeta.label}</span>
+                </div>
+              </div>
+
+              {/* 캐릭터 정보 */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
                   <input
-                    className="w-full bg-navy-deep rounded-xl border-white/10 border px-4 py-3 focus:ring-1 focus:ring-primary outline-none text-lg font-bold mb-1"
+                    className="bg-transparent text-xl font-black text-white outline-none border-b border-white/10 focus:border-primary/50 pb-1 w-full transition-colors"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="이름 입력"
                   />
-                  <div className="flex items-center gap-2">
-                    <span className="bg-white/5 px-2 py-0.5 rounded-md text-[9px] font-black text-slate-500 uppercase tracking-widest">{generation}</span>
-                    <span className="bg-primary/10 px-2 py-0.5 rounded-md text-[9px] font-black text-primary uppercase tracking-widest">{initialScenario?.category}</span>
-                  </div>
-               </div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="bg-white/5 px-2.5 py-1 rounded-lg text-[9px] font-black text-slate-500 uppercase tracking-widest border border-white/5">
+                    {charInfo.role}
+                  </span>
+                  <span className="bg-white/5 px-2.5 py-1 rounded-lg text-[9px] font-black text-slate-500 uppercase tracking-widest border border-white/5">
+                    {generation}
+                  </span>
+                  <span className="bg-primary/10 px-2.5 py-1 rounded-lg text-[9px] font-black text-primary uppercase tracking-widest border border-primary/20">
+                    {initialScenario?.category}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 퀘스트 제목 */}
+            <div className="mt-5 pt-4 border-t border-white/5 relative z-10">
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                <span className="material-symbols-outlined text-[10px] align-middle mr-1">swords</span>
+                퀘스트 미션
+              </p>
+              <p className="text-sm font-bold text-white leading-relaxed">{initialScenario?.title}</p>
+              <p className="text-xs text-slate-500 font-medium mt-1.5 leading-relaxed">{initialScenario?.description?.substring(0, 80)}...</p>
             </div>
           </div>
         </section>
 
-        {/* AI 정밀 분석 리포트 */}
+        {/* ── INTEL REPORT (AI 행동 예측) ── */}
         <section className="animate-in fade-in slide-in-from-bottom-6 duration-700">
           <div className="flex items-center gap-3 mb-4">
-             <div className="size-10 rounded-xl bg-accent-neon/20 flex items-center justify-center text-accent-neon border border-accent-neon/30">
-                <span className="material-symbols-outlined text-xl">analytics</span>
-             </div>
-             <h3 className="text-lg font-bold">상황별 AI 행동 예측</h3>
+            <div className="size-8 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 border border-amber-500/20">
+              <span className="material-symbols-outlined text-base">radar</span>
+            </div>
+            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Intel Report</h3>
+            <div className="h-px bg-white/5 flex-1" />
           </div>
-          <div className="bg-gradient-to-br from-[#161D2F] to-[#0D1525] p-8 rounded-[2.5rem] border border-primary/20 relative overflow-hidden group shadow-2xl">
-            <div className="absolute top-0 right-0 p-8 opacity-5">
-               <span className="material-symbols-outlined text-8xl">clinical_notes</span>
+          <div className="bg-gradient-to-br from-[#161D2F] to-[#0D1525] p-7 rounded-[2.5rem] border border-amber-500/15 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+              <span className="material-symbols-outlined text-7xl">clinical_notes</span>
             </div>
             <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="bg-primary/20 text-primary px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/30">
+              {/* 페르소나 타이틀 */}
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
+                <span className="bg-amber-500/15 text-amber-400 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-amber-500/20">
                   {personaBriefing.title}
                 </span>
-                <div className="h-px bg-white/10 flex-1"></div>
               </div>
-              <p className="text-[17px] text-white font-bold leading-relaxed mb-6">
+
+              {/* 분석 내용 */}
+              <p className="text-[15px] text-white/90 font-bold leading-[1.8] mb-5 italic">
                 "{personaBriefing.description}"
               </p>
-              <div className="bg-[#0A0F1D]/60 p-5 rounded-2xl border border-white/5 flex gap-4 items-start">
-                 <div className="size-8 rounded-lg bg-accent-neon/10 flex items-center justify-center text-accent-neon shrink-0">
-                    <span className="material-symbols-outlined text-lg">lightbulb</span>
-                 </div>
-                 <div>
-                    <p className="text-[11px] font-black text-accent-neon uppercase tracking-widest mb-1">리더를 위한 전략 한마디</p>
-                    <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                        {personaBriefing.tip}
-                    </p>
-                 </div>
+
+              {/* 전략 팁 */}
+              <div className="bg-[#0A0F1D]/60 p-4 rounded-2xl border border-accent-neon/15 flex gap-3 items-start">
+                <div className="size-7 rounded-lg bg-accent-neon/10 flex items-center justify-center text-accent-neon shrink-0 border border-accent-neon/20">
+                  <span className="material-symbols-outlined text-sm">bolt</span>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-accent-neon uppercase tracking-[0.2em] mb-1">Tactical Advice</p>
+                  <p className="text-xs text-slate-300 leading-relaxed font-medium">{personaBriefing.tip}</p>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* 성향 조절 슬라이더 */}
+        {/* ── DNA CALIBRATION (성향 슬라이더) ── */}
         <section className="animate-in fade-in slide-in-from-bottom-8 duration-1000">
           <div className="flex items-center justify-between mb-4">
-             <div className="flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-white/10 flex items-center justify-center text-slate-400 border border-white/10">
-                   <span className="material-symbols-outlined text-xl">tune</span>
-                </div>
-                <h3 className="text-lg font-bold">성향 세밀 조정</h3>
-             </div>
-             <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Fine-Tuning DNA</p>
+            <div className="flex items-center gap-3">
+              <div className="size-8 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 border border-purple-500/20">
+                <span className="material-symbols-outlined text-base">tune</span>
+              </div>
+              <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">DNA Calibration</h3>
+            </div>
+            <p className="text-[8px] text-slate-600 font-bold uppercase tracking-widest">세밀 조정</p>
           </div>
-          
-          <div className="bg-navy-card p-8 rounded-[2.5rem] border border-white/5 space-y-12">
+
+          <div className="bg-navy-card p-7 rounded-[2.5rem] border border-white/5 space-y-10">
             {/* 말투 스타일 */}
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div className="flex justify-between items-center">
                 <div className="text-center flex-1">
-                   <p className="text-xs font-bold text-white mb-1">직설적</p>
-                   <p className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">Direct</p>
+                  <div className="flex items-center justify-center gap-1.5 mb-1">
+                    <span className="material-symbols-outlined text-xs text-slate-500">record_voice_over</span>
+                    <p className="text-xs font-bold text-white">직설적</p>
+                  </div>
+                  <p className="text-[7px] text-slate-600 font-bold uppercase tracking-wider">Direct</p>
                 </div>
-                <div className="px-5 text-primary font-black text-[9px] uppercase tracking-widest bg-primary/10 py-1.5 rounded-full border border-primary/20">말투 스타일</div>
+                <div className="px-4 text-primary font-black text-[9px] uppercase tracking-widest bg-primary/10 py-1.5 rounded-full border border-primary/20">
+                  말투 스타일
+                </div>
                 <div className="text-center flex-1">
-                   <p className="text-xs font-bold text-white mb-1">완곡함</p>
-                   <p className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">Indirect</p>
+                  <div className="flex items-center justify-center gap-1.5 mb-1">
+                    <span className="material-symbols-outlined text-xs text-slate-500">spa</span>
+                    <p className="text-xs font-bold text-white">완곡함</p>
+                  </div>
+                  <p className="text-[7px] text-slate-600 font-bold uppercase tracking-wider">Indirect</p>
                 </div>
               </div>
               <div className="relative px-2">
                 <input
                   type="range"
-                  className="w-full h-1.5 bg-white/5 rounded-full appearance-none accent-primary cursor-pointer relative z-10"
+                  className="w-full h-2 bg-white/5 rounded-full appearance-none accent-primary cursor-pointer relative z-10"
                   min="0"
                   max="100"
                   value={contextStyle}
                   onChange={(e) => setContextStyle(parseInt(e.target.value))}
                 />
                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-2">
-                   {[0, 25, 50, 75, 100].map(v => <div key={v} className="size-1 bg-white/10 rounded-full"></div>)}
+                  {[0, 25, 50, 75, 100].map(v => <div key={v} className="size-1 bg-white/10 rounded-full" />)}
                 </div>
               </div>
             </div>
 
-            {/* 움직이는 가치 */}
-            <div className="space-y-6">
+            {/* 구분선 */}
+            <div className="neon-divider" />
+
+            {/* 움직이는 동기 */}
+            <div className="space-y-5">
               <div className="flex justify-between items-center">
                 <div className="text-center flex-1">
-                   <p className="text-xs font-bold text-white mb-1">논리/팩트</p>
-                   <p className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">Logic</p>
+                  <div className="flex items-center justify-center gap-1.5 mb-1">
+                    <span className="material-symbols-outlined text-xs text-slate-500">psychology</span>
+                    <p className="text-xs font-bold text-white">논리/팩트</p>
+                  </div>
+                  <p className="text-[7px] text-slate-600 font-bold uppercase tracking-wider">Logic</p>
                 </div>
-                <div className="px-5 text-accent-neon font-black text-[9px] uppercase tracking-widest bg-accent-neon/10 py-1.5 rounded-full border border-accent-neon/20">움직이는 동기</div>
+                <div className="px-4 text-accent-neon font-black text-[9px] uppercase tracking-widest bg-accent-neon/10 py-1.5 rounded-full border border-accent-neon/20">
+                  움직이는 동기
+                </div>
                 <div className="text-center flex-1">
-                   <p className="text-xs font-bold text-white mb-1">공감/관계</p>
-                   <p className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">Emotion</p>
+                  <div className="flex items-center justify-center gap-1.5 mb-1">
+                    <span className="material-symbols-outlined text-xs text-slate-500">favorite</span>
+                    <p className="text-xs font-bold text-white">공감/관계</p>
+                  </div>
+                  <p className="text-[7px] text-slate-600 font-bold uppercase tracking-wider">Emotion</p>
                 </div>
               </div>
               <div className="relative px-2">
                 <input
                   type="range"
-                  className="w-full h-1.5 bg-white/5 rounded-full appearance-none accent-accent-neon cursor-pointer relative z-10"
+                  className="w-full h-2 bg-white/5 rounded-full appearance-none accent-accent-neon cursor-pointer relative z-10"
                   min="0"
                   max="100"
                   value={driverStyle}
                   onChange={(e) => setDriverStyle(parseInt(e.target.value))}
                 />
                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-2">
-                   {[0, 25, 50, 75, 100].map(v => <div key={v} className="size-1 bg-white/10 rounded-full"></div>)}
+                  {[0, 25, 50, 75, 100].map(v => <div key={v} className="size-1 bg-white/10 rounded-full" />)}
                 </div>
               </div>
             </div>
@@ -285,22 +355,23 @@ const Setup: React.FC = () => {
         </section>
       </main>
 
-      {/* 하단 시작 버튼 */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 pb-12 bg-gradient-to-t from-navy-deep via-navy-deep to-transparent z-40">
-        <div className="max-w-md mx-auto grid grid-cols-2 gap-4">
+      {/* ── 하단 전투 시작 버튼 ── */}
+      <div className="fixed bottom-0 left-0 right-0 p-5 pb-10 bg-gradient-to-t from-[#060B18] via-[#060B18] to-transparent z-40">
+        <div className="max-w-md mx-auto grid grid-cols-2 gap-3">
           <button
             onClick={() => startSimulation('text')}
-            className="bg-white/5 border border-white/10 text-white font-black text-xs uppercase tracking-widest py-5 rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg"
+            className="bg-white/5 border border-white/10 text-white font-black text-xs uppercase tracking-widest py-5 rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-95 battle-card-glow"
           >
-            <span className="material-symbols-outlined text-sm font-bold">chat</span>
-            채팅 세션
+            <span className="material-symbols-outlined text-sm font-bold">swords</span>
+            텍스트 배틀
           </button>
           <button
             onClick={() => startSimulation('voice')}
-            className="bg-primary text-navy-deep font-black text-xs uppercase tracking-widest py-5 rounded-2xl shadow-neon-cyan active:scale-95 transition-all flex items-center justify-center gap-2"
+            className="bg-primary text-navy-deep font-black text-xs uppercase tracking-widest py-5 rounded-2xl shadow-neon-cyan active:scale-95 transition-all flex items-center justify-center gap-2 relative overflow-hidden group"
           >
-            <span className="material-symbols-outlined text-sm font-bold">mic</span>
-            음성 세션
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+            <span className="material-symbols-outlined text-sm font-bold relative z-10">mic</span>
+            <span className="relative z-10">음성 배틀</span>
           </button>
         </div>
       </div>

@@ -4,16 +4,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { GoogleGenAI, Type } from "@google/genai";
 import { createGeminiClient } from '../src/lib/geminiClient';
+import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor } from '../services/characterAvatars';
 
 interface EvaluationData {
   summary: string;
   strengths: { title: string; desc: string }[];
   improvements: { title: string; desc: string }[];
   modelAnswers: { situation: string; bestResponse: string; why: string }[];
-  theoryInsight: { 
-    theoryName: string; 
-    scienceBase: string; 
-    practicalApply: string; 
+  theoryInsight: {
+    theoryName: string;
+    scienceBase: string;
+    practicalApply: string;
   };
   actionItems: string[];
   coachingSkills: {
@@ -37,14 +38,25 @@ interface EvaluationData {
   };
 }
 
+const getRank = (v: number) => {
+  if (v >= 90) return { rank: 'S', cls: 'rank-s' };
+  if (v >= 75) return { rank: 'A', cls: 'rank-a' };
+  if (v >= 60) return { rank: 'B', cls: 'rank-b' };
+  if (v >= 40) return { rank: 'C', cls: 'rank-c' };
+  return { rank: 'D', cls: 'rank-d' };
+};
+
 const Feedback: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { transcript, scenario, sosTipHistory } = location.state || {};
-  
+
   const [isAnalysing, setIsAnalysing] = useState(true);
   const [evaluation, setEvaluation] = useState<EvaluationData | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const charInfo = getCharacterInfo(scenario?.id, scenario?.memberName);
+  const avatarUrl = getCharacterAvatar(scenario?.memberName || '팀원', scenario?.id);
 
   const fetchWithRetry = async (fn: () => Promise<any>, retries = 3) => {
     for (let i = 0; i < retries; i++) {
@@ -60,11 +72,11 @@ const Feedback: React.FC = () => {
   };
 
   const performEvaluation = async () => {
-    if (!transcript || transcript.length === 0) { 
-      navigate('/'); 
-      return; 
+    if (!transcript || transcript.length === 0) {
+      navigate('/');
+      return;
     }
-    
+
     setIsAnalysing(true);
     setError(null);
 
@@ -96,11 +108,10 @@ const Feedback: React.FC = () => {
       `;
 
       const response = await fetchWithRetry(() => ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
-          // Gemini 3 Pro 모델에서 thinkingBudget: 0 설정 시 발생하는 오류를 방지하기 위해 thinkingConfig를 제거하거나 모델이 스스로 결정하게 둠
           responseSchema: {
             type: Type.OBJECT,
             properties: {
@@ -109,9 +120,9 @@ const Feedback: React.FC = () => {
                 type: Type.ARRAY,
                 items: {
                   type: Type.OBJECT,
-                  properties: { 
-                    title: { type: Type.STRING }, 
-                    desc: { type: Type.STRING } 
+                  properties: {
+                    title: { type: Type.STRING },
+                    desc: { type: Type.STRING }
                   },
                   required: ['title', 'desc']
                 }
@@ -120,9 +131,9 @@ const Feedback: React.FC = () => {
                 type: Type.ARRAY,
                 items: {
                   type: Type.OBJECT,
-                  properties: { 
-                    title: { type: Type.STRING }, 
-                    desc: { type: Type.STRING } 
+                  properties: {
+                    title: { type: Type.STRING },
+                    desc: { type: Type.STRING }
                   },
                   required: ['title', 'desc']
                 }
@@ -220,131 +231,242 @@ const Feedback: React.FC = () => {
     performEvaluation();
   }, [transcript]);
 
+  // ── 로딩 화면: 전투 데이터 분석 중 ──
   if (isAnalysing) {
     return (
-      <div className="h-screen bg-[#0A0F1D] flex flex-col items-center justify-center p-8 text-center font-manrope">
-        <div className="size-20 border-4 border-primary/10 border-t-primary rounded-full animate-spin mb-10 shadow-neon-cyan"></div>
-        <h2 className="text-xl font-black text-white mb-4 italic uppercase tracking-widest animate-pulse">Analysing Performance...</h2>
-        <p className="text-slate-400 text-sm max-w-xs leading-relaxed font-medium">데이터를 분석하여 리더님만의 정밀 리포트를 생성하고 있습니다.</p>
+      <div className="h-screen bg-[#060B18] command-center-bg flex flex-col items-center justify-center p-8 text-center font-manrope relative overflow-hidden">
+        {/* 스캔 라인 */}
+        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,242,255,0.03) 2px, rgba(0,242,255,0.03) 4px)' }} />
+
+        {/* 아바타 + 스캔 이펙트 */}
+        <div className="relative mb-10">
+          <div className="size-28 rounded-full overflow-hidden border-2 border-primary/40 animate-pulse" style={{ boxShadow: '0 0 30px rgba(0,242,255,0.4), 0 0 60px rgba(0,242,255,0.15)' }}>
+            <img src={avatarUrl} alt={charInfo.name} className="size-full object-cover bg-navy-card" />
+          </div>
+          <div className="absolute inset-0 rounded-full animate-hologram-scan opacity-50" />
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary/20 border border-primary/30 px-3 py-1 rounded-full">
+            <span className="text-primary text-[9px] font-black uppercase tracking-widest">Scanning</span>
+          </div>
+        </div>
+
+        <h2 className="text-xl font-black text-white mb-3 uppercase tracking-[0.3em]" style={{ textShadow: '0 0 20px rgba(0,242,255,0.5)' }}>
+          전투 데이터 분석 중...
+        </h2>
+        <p className="text-slate-500 text-xs max-w-xs leading-relaxed font-medium mb-8">
+          {charInfo.name} {charInfo.role}와의 면담 데이터를 AI 엔진이 정밀 분석하고 있습니다.
+        </p>
+        <div className="flex items-center gap-1.5">
+          {[0, 0.15, 0.3, 0.45].map((d, i) => (
+            <div key={i} className="size-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: `${d}s` }} />
+          ))}
+        </div>
       </div>
     );
   }
 
+  // ── 에러 화면 ──
   if (error || !evaluation) {
     return (
-      <div className="h-screen bg-[#0A0F1D] flex flex-col items-center justify-center p-8 text-center font-manrope">
-        <span className="material-symbols-outlined text-red-500 text-6xl mb-6">error</span>
-        <h2 className="text-sm font-bold text-white mb-6 leading-relaxed max-w-sm">{error || "리포트 데이터를 불러올 수 없습니다."}</h2>
+      <div className="h-screen bg-[#060B18] command-center-bg flex flex-col items-center justify-center p-8 text-center font-manrope">
+        <div className="size-20 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-6">
+          <span className="material-symbols-outlined text-red-500 text-4xl">error</span>
+        </div>
+        <h2 className="text-sm font-bold text-white mb-2 leading-relaxed max-w-sm">{error || "리포트 데이터를 불러올 수 없습니다."}</h2>
+        <p className="text-xs text-slate-500 mb-8">시스템 오류가 발생했습니다. 재시도해주세요.</p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
-          <button 
-            onClick={performEvaluation} 
-            className="w-full px-8 py-4 bg-primary text-navy-deep font-black rounded-2xl shadow-neon-cyan active:scale-95 transition-all"
+          <button
+            onClick={performEvaluation}
+            className="w-full px-8 py-4 bg-primary text-navy-deep font-black rounded-2xl shadow-neon-cyan active:scale-95 transition-all text-sm uppercase tracking-widest"
           >
-            다시 시도하기
+            재시도
           </button>
-          <button 
-            onClick={() => navigate('/')} 
-            className="w-full px-8 py-4 bg-white/5 text-slate-400 font-bold rounded-2xl active:scale-95 transition-all"
+          <button
+            onClick={() => navigate('/')}
+            className="w-full px-8 py-4 bg-white/5 text-slate-400 font-bold rounded-2xl active:scale-95 transition-all text-sm"
           >
-            홈으로 돌아가기
+            기지 복귀
           </button>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="h-screen overflow-y-auto bg-[#0A0F1D] text-white font-manrope pb-32 hide-scrollbar">
-      <header className="p-5 bg-[#0A0F1D]/90 backdrop-blur-xl sticky top-0 z-30 border-b border-white/5 flex items-center justify-between">
-        <button onClick={() => navigate('/')} className="p-2 text-slate-500 hover:text-white transition-colors">
-          <span className="material-symbols-outlined">close</span>
-        </button>
-        <div className="text-center">
-          <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">ANALYSIS REPORT</h2>
-          <p className="text-sm font-bold">리더십 정밀 분석 리포트</p>
-        </div>
-        <div className="size-10"></div>
-      </header>
+  // ── 전체 평균 점수 계산 ──
+  const avgScore = Math.round(
+    (evaluation.metrics.empathyIndex + evaluation.metrics.sbiScore + evaluation.metrics.outcomeSuccess) / 3
+  );
+  const overallRank = getRank(avgScore);
 
-      <main className="p-6 space-y-12 lg:max-w-4xl lg:mx-auto">
-        {/* 요약 카드 */}
-        <section className="bg-gradient-to-br from-[#161D2F] to-[#0A0F1D] border border-primary/30 p-10 rounded-[3.5rem] shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
-             <span className="material-symbols-outlined text-9xl text-primary">verified_user</span>
+  return (
+    <div className="h-screen overflow-y-auto bg-[#060B18] command-center-bg text-white font-manrope pb-32 hide-scrollbar">
+
+      {/* ── QUEST CLEAR 배너 ── */}
+      <section className="relative py-16 px-6 text-center overflow-hidden">
+        {/* 배경 글로우 */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[400px] rounded-full opacity-20"
+            style={{ background: 'radial-gradient(circle, rgba(0,242,255,0.3), transparent 70%)' }} />
+        </div>
+
+        {/* 상단 작은 태그 */}
+        <div className="relative z-10 flex items-center justify-center gap-2 mb-6">
+          <span className="bg-primary/10 border border-primary/30 text-primary px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.3em]">
+            {scenario?.category || '리더십 훈련'}
+          </span>
+        </div>
+
+        {/* QUEST CLEAR */}
+        <h1 className="relative z-10 text-5xl md:text-6xl font-black italic uppercase tracking-tight mb-4 animate-quest-clear"
+          style={{ textShadow: '0 0 40px rgba(0,242,255,0.5), 0 0 80px rgba(0,242,255,0.2)' }}>
+          <span className="text-primary">Quest</span> <span className="text-white">Clear!</span>
+        </h1>
+
+        {/* 퀘스트 이름 */}
+        <p className="relative z-10 text-sm font-bold text-slate-400 mb-8">
+          {scenario?.title || '시뮬레이션'} 완료
+        </p>
+
+        {/* 아바타 + 정보 */}
+        <div className="relative z-10 flex items-center justify-center gap-4">
+          <div className="size-16 rounded-xl overflow-hidden border-2 border-primary/40 shrink-0"
+            style={{ boxShadow: '0 0 20px rgba(0,242,255,0.3)' }}>
+            <img src={avatarUrl} alt={charInfo.name} className="size-full object-cover bg-navy-card" />
           </div>
-          <p className="text-2xl font-black leading-[1.6] text-white italic tracking-tight">"{evaluation.summary}"</p>
-          <div className="grid grid-cols-3 gap-6 mt-12 border-t border-white/5 pt-10">
-              {[
-                { label: '공감도', value: evaluation.metrics.empathyIndex, color: 'bg-primary' },
-                { label: '전달력', value: evaluation.metrics.sbiScore, color: 'bg-accent-neon' },
-                { label: '성공률', value: evaluation.metrics.outcomeSuccess, color: 'bg-accent-amber' }
-              ].map((m, i) => (
-                <div key={i} className="text-center group">
-                  <p className="text-[10px] font-black text-slate-500 uppercase mb-3">{m.label}</p>
-                  <div className="text-3xl font-black italic mb-3 tracking-tighter">{m.value}%</div>
-                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                      <div className={`h-full ${m.color} shadow-neon-cyan transition-all duration-1000`} style={{ width: `${m.value}%` }}></div>
+          <div className="text-left">
+            <p className="text-lg font-black">{charInfo.name} <span className="text-slate-500 text-xs font-medium">{charInfo.role}</span></p>
+            <p className="text-xs text-slate-500 font-medium">{scenario?.description?.substring(0, 40)}...</p>
+          </div>
+        </div>
+
+        {/* 종합 랭크 */}
+        <div className="relative z-10 mt-8 inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-6 py-3">
+          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">종합 등급</span>
+          <span className={`text-4xl font-black italic ${overallRank.cls}`}>{overallRank.rank}</span>
+          <span className="text-sm font-bold text-slate-400">{avgScore}점</span>
+        </div>
+      </section>
+
+      <main className="px-6 space-y-10 lg:max-w-4xl lg:mx-auto">
+
+        {/* ── 사령관 브리핑 (Summary) ── */}
+        <section className="bg-gradient-to-br from-[#161D2F] to-[#0D1525] border border-primary/20 p-8 rounded-[2.5rem] relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+            <span className="material-symbols-outlined text-8xl text-primary">verified_user</span>
+          </div>
+          <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-5 flex items-center gap-2">
+            <span className="material-symbols-outlined text-xs">description</span>
+            사령관 브리핑
+          </h3>
+          <p className="text-lg font-bold leading-[1.8] text-white/90 italic">"{evaluation.summary}"</p>
+
+          {/* 3대 지표 XP바 */}
+          <div className="grid grid-cols-3 gap-4 mt-8 pt-6 border-t border-white/5">
+            {[
+              { label: '공감도', value: evaluation.metrics.empathyIndex, icon: 'favorite', color: 'bg-pink-500', glow: 'rgba(236,72,153,0.5)' },
+              { label: '전달력', value: evaluation.metrics.sbiScore, icon: 'record_voice_over', color: 'bg-blue-500', glow: 'rgba(59,130,246,0.5)' },
+              { label: '성공률', value: evaluation.metrics.outcomeSuccess, icon: 'emoji_events', color: 'bg-amber-500', glow: 'rgba(245,158,11,0.5)' }
+            ].map((m, i) => {
+              const r = getRank(m.value);
+              return (
+                <div key={i} className="text-center">
+                  <span className="material-symbols-outlined text-lg text-slate-500 mb-1 block">{m.icon}</span>
+                  <p className="text-[9px] font-black text-slate-500 uppercase mb-2">{m.label}</p>
+                  <div className="text-2xl font-black italic mb-2">{m.value}<span className="text-sm text-slate-600">%</span></div>
+                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <div className={`h-full ${m.color} rounded-full`}
+                      style={{ width: `${m.value}%`, boxShadow: `0 0 8px ${m.glow}`, animation: 'count-up-bar 1.5s ease-out' }} />
                   </div>
+                  <span className={`text-[10px] font-black italic mt-1 block ${r.cls}`}>{r.rank}</span>
                 </div>
-              ))}
+              );
+            })}
           </div>
         </section>
 
-        {/* 잘한 점 & 개선점 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-           <section className="bg-navy-card p-8 rounded-[3rem] border border-primary/20">
-              <h3 className="text-primary font-black text-[11px] uppercase tracking-widest mb-8 flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm">thumb_up</span> 잘한 점
-              </h3>
-              <div className="space-y-8">
-                {evaluation.strengths.map((s, i) => (
-                  <div key={i}>
-                    <h4 className="text-base font-black text-white mb-2">{s.title}</h4>
-                    <p className="text-sm text-slate-400 leading-relaxed font-medium">{s.desc}</p>
-                  </div>
-                ))}
-              </div>
-           </section>
-           <section className="bg-navy-card p-8 rounded-[3rem] border border-red-500/20">
-              <h3 className="text-red-400 font-black text-[11px] uppercase tracking-widest mb-8 flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm">warning</span> 개선점
-              </h3>
-              <div className="space-y-8">
-                {evaluation.improvements.map((s, i) => (
-                  <div key={i}>
-                    <h4 className="text-base font-black text-white mb-2">{s.title}</h4>
-                    <p className="text-sm text-slate-400 leading-relaxed font-medium">{s.desc}</p>
-                  </div>
-                ))}
-              </div>
-           </section>
-        </div>
-
-        {/* 코칭 역량 점수 */}
-        {evaluation.coachingSkills && (
-          <section className="bg-navy-card p-8 rounded-[3rem] border border-white/10">
-            <h3 className="text-white font-black text-[11px] uppercase tracking-widest mb-8 flex items-center gap-2">
-              <span className="material-symbols-outlined text-sm text-primary">psychology</span> 코칭 역량 상세 분석
+        {/* ── 크리티컬 히트 / 데미지 리포트 ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* 잘한 점 → 크리티컬 히트 */}
+          <section className="bg-navy-card p-7 rounded-[2.5rem] border border-emerald-500/20 battle-card-glow transition-all duration-300">
+            <h3 className="font-black text-[11px] uppercase tracking-widest mb-6 flex items-center gap-2 text-emerald-400">
+              <span className="size-7 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                <span className="material-symbols-outlined text-sm">bolt</span>
+              </span>
+              크리티컬 히트
             </h3>
             <div className="space-y-5">
+              {evaluation.strengths.map((s, i) => (
+                <div key={i} className="flex gap-3">
+                  <div className="size-7 shrink-0 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-[10px] font-black border border-emerald-500/20">
+                    {i + 1}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-white mb-1">{s.title}</h4>
+                    <p className="text-xs text-slate-400 leading-relaxed font-medium">{s.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 개선점 → 데미지 리포트 */}
+          <section className="bg-navy-card p-7 rounded-[2.5rem] border border-red-500/20 battle-card-glow transition-all duration-300">
+            <h3 className="font-black text-[11px] uppercase tracking-widest mb-6 flex items-center gap-2 text-red-400">
+              <span className="size-7 rounded-lg bg-red-500/20 flex items-center justify-center">
+                <span className="material-symbols-outlined text-sm">heart_broken</span>
+              </span>
+              데미지 리포트
+            </h3>
+            <div className="space-y-5">
+              {evaluation.improvements.map((s, i) => (
+                <div key={i} className="flex gap-3">
+                  <div className="size-7 shrink-0 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 text-[10px] font-black border border-red-500/20">
+                    {i + 1}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-white mb-1">{s.title}</h4>
+                    <p className="text-xs text-slate-400 leading-relaxed font-medium">{s.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {/* ── SKILL STATUS (코칭 역량) ── */}
+        {evaluation.coachingSkills && (
+          <section className="bg-navy-card p-8 rounded-[2.5rem] border border-white/10">
+            <h3 className="font-black text-[11px] uppercase tracking-[0.2em] mb-7 flex items-center gap-2 text-white">
+              <span className="size-7 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400">
+                <span className="material-symbols-outlined text-sm">psychology</span>
+              </span>
+              스킬 스테이터스
+            </h3>
+            <div className="space-y-4">
               {[
-                { key: 'empathyExpression', label: '공감 표현', icon: 'favorite', color: 'bg-pink-500' },
-                { key: 'questionSkill', label: '질문 기술', icon: 'help', color: 'bg-blue-500' },
-                { key: 'emotionControl', label: '감정 조절', icon: 'balance', color: 'bg-purple-500' },
-                { key: 'activeListening', label: '경청력', icon: 'hearing', color: 'bg-green-500' },
-                { key: 'actionGuidance', label: '행동 유도', icon: 'trending_up', color: 'bg-amber-500' },
+                { key: 'empathyExpression', label: '공감 표현', icon: 'favorite', color: 'bg-pink-500', glow: 'rgba(236,72,153,0.4)' },
+                { key: 'questionSkill', label: '질문 기술', icon: 'help', color: 'bg-blue-500', glow: 'rgba(59,130,246,0.4)' },
+                { key: 'emotionControl', label: '감정 조절', icon: 'balance', color: 'bg-purple-500', glow: 'rgba(147,51,234,0.4)' },
+                { key: 'activeListening', label: '경청력', icon: 'hearing', color: 'bg-emerald-500', glow: 'rgba(16,185,129,0.4)' },
+                { key: 'actionGuidance', label: '행동 유도', icon: 'trending_up', color: 'bg-amber-500', glow: 'rgba(245,158,11,0.4)' },
               ].map((skill) => {
                 const value = (evaluation.coachingSkills as any)[skill.key] || 0;
+                const r = getRank(value);
                 return (
-                  <div key={skill.key} className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 w-24 shrink-0">
-                      <span className="material-symbols-outlined text-slate-400 text-sm">{skill.icon}</span>
-                      <span className="text-xs font-bold text-slate-300">{skill.label}</span>
+                  <div key={skill.key} className="group">
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <div className="flex items-center gap-2 w-24 shrink-0">
+                        <span className="material-symbols-outlined text-slate-500 text-sm">{skill.icon}</span>
+                        <span className="text-[11px] font-bold text-slate-300">{skill.label}</span>
+                      </div>
+                      <div className="flex-1 h-2.5 bg-white/5 rounded-full overflow-hidden">
+                        <div className={`h-full ${skill.color} rounded-full`}
+                          style={{ width: `${value}%`, boxShadow: `0 0 6px ${skill.glow}`, animation: 'count-up-bar 1.5s ease-out' }} />
+                      </div>
+                      <div className="flex items-center gap-2 w-16 justify-end">
+                        <span className="text-sm font-black text-white">{value}</span>
+                        <span className={`text-xs font-black italic ${r.cls}`}>{r.rank}</span>
+                      </div>
                     </div>
-                    <div className="flex-1 h-3 bg-white/5 rounded-full overflow-hidden">
-                      <div className={`h-full ${skill.color} rounded-full transition-all duration-1000`} style={{ width: `${value}%` }}></div>
-                    </div>
-                    <span className="text-sm font-black text-white w-12 text-right">{value}</span>
                   </div>
                 );
               })}
@@ -352,94 +474,122 @@ const Feedback: React.FC = () => {
           </section>
         )}
 
-        {/* 골든 스크립트 — 사용자 vs 모범 비교 */}
-        <section className="space-y-6">
-            <h3 className="text-xl font-black tracking-tight px-2 flex items-center gap-3">
-              <span className="material-symbols-outlined text-accent-amber">crown</span> 스크립트 비교 분석
-            </h3>
-            <div className="space-y-6">
-                {evaluation.modelAnswers.map((item, idx) => (
-                    <div key={idx} className="bg-[#1C1F26] border border-accent-amber/20 p-8 rounded-[2.5rem] relative overflow-hidden group">
-                        {/* 상황 설명 */}
-                        <div className="mb-6">
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
-                              <span className="material-symbols-outlined text-[10px] align-middle mr-1">replay</span>
-                              상황 리플레이
-                            </p>
-                            <p className="text-sm text-slate-300 italic font-medium">"{item.situation}"</p>
-                        </div>
-
-                        {/* 비교 레이아웃 */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                          {/* 사용자 실제 발화 */}
-                          <div className="bg-red-500/5 border border-red-500/20 p-5 rounded-2xl">
-                            <div className="flex items-center gap-2 mb-3">
-                              <span className="material-symbols-outlined text-red-400 text-sm">person</span>
-                              <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">나의 발화</p>
-                            </div>
-                            <p className="text-sm text-slate-300 leading-relaxed">"{item.situation}"</p>
-                          </div>
-
-                          {/* 모범 답변 */}
-                          <div className="bg-accent-amber/5 border border-accent-amber/20 p-5 rounded-2xl">
-                            <div className="flex items-center gap-2 mb-3">
-                              <span className="material-symbols-outlined text-accent-amber text-sm">auto_awesome</span>
-                              <p className="text-[10px] font-black text-accent-amber uppercase tracking-widest">추천 답변</p>
-                            </div>
-                            <p className="text-sm text-white font-bold leading-relaxed">"{item.bestResponse}"</p>
-                          </div>
-                        </div>
-
-                        {/* 개선 포인트 */}
-                        <div className="bg-white/5 p-4 rounded-xl flex gap-3 items-start">
-                          <span className="material-symbols-outlined text-primary text-sm mt-0.5 shrink-0">lightbulb</span>
-                          <p className="text-xs text-slate-400 leading-relaxed font-medium">{item.why}</p>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </section>
-
-        {/* 과학적 분석 및 현업 적용 가이드 */}
-        <section className="bg-[#0D1525] border border-white/5 p-10 rounded-[3.5rem] shadow-2xl relative overflow-hidden group">
-           <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-              <span className="material-symbols-outlined text-9xl text-accent-neon">psychology</span>
-           </div>
-           
-           <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-10">Leadership Insight</h3>
-           
-           <div className="space-y-10 relative z-10">
-              <div className="border-l-2 border-primary/30 pl-6">
-                <div className="flex flex-wrap items-center gap-2 mb-4">
-                  <span className="text-primary font-black text-[10px] uppercase tracking-widest bg-primary/10 px-3 py-1 rounded-lg border border-primary/20 italic">
-                    이론 근거: {evaluation.theoryInsight.theoryName}
-                  </span>
-                </div>
-                <p className="text-[16px] text-slate-100 font-bold leading-relaxed mb-10">
-                  {evaluation.theoryInsight.scienceBase}
-                </p>
-                
-                <div className="bg-gradient-to-br from-accent-neon/10 to-[#161D2F] p-8 rounded-[2.5rem] border border-accent-neon/30 shadow-neon-cyan/20">
-                  <div className="flex items-center gap-3 mb-4">
-                     <div className="size-8 rounded-lg bg-accent-neon/20 flex items-center justify-center text-accent-neon border border-accent-neon/30">
-                        <span className="material-symbols-outlined text-lg font-black">bolt</span>
-                     </div>
-                     <p className="text-[12px] font-black text-accent-neon uppercase tracking-[0.2em]">현업 적용 가이드</p>
-                  </div>
-                  <p className="text-base text-white font-black leading-relaxed italic">
-                    "{evaluation.theoryInsight.practicalApply}"
+        {/* ── 골든 스크립트 (모범 답변 비교) ── */}
+        <section className="space-y-5">
+          <h3 className="text-lg font-black tracking-tight px-2 flex items-center gap-3">
+            <span className="size-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
+              <span className="material-symbols-outlined text-lg">auto_awesome</span>
+            </span>
+            골든 스크립트
+          </h3>
+          <div className="space-y-5">
+            {evaluation.modelAnswers.map((item, idx) => (
+              <div key={idx} className="bg-[#1C1F26] border border-amber-500/15 p-6 rounded-[2rem] relative overflow-hidden battle-card-glow transition-all duration-300">
+                {/* 상황 */}
+                <div className="mb-5">
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[10px]">replay</span>
+                    상황 리플레이
                   </p>
+                  <p className="text-xs text-slate-300 italic font-medium leading-relaxed">"{item.situation}"</p>
+                </div>
+
+                {/* 비교 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                  {/* 나의 발화 */}
+                  <div className="bg-red-500/5 border border-red-500/15 p-4 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="material-symbols-outlined text-red-400 text-xs">person</span>
+                      <p className="text-[9px] font-black text-red-400 uppercase tracking-widest">나의 발화</p>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed">"{item.situation}"</p>
+                  </div>
+
+                  {/* 추천 답변 */}
+                  <div className="bg-amber-500/5 border border-amber-500/15 p-4 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="material-symbols-outlined text-amber-400 text-xs">auto_awesome</span>
+                      <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest">추천 답변</p>
+                    </div>
+                    <p className="text-xs text-white font-bold leading-relaxed">"{item.bestResponse}"</p>
+                  </div>
+                </div>
+
+                {/* 코치 코멘트 */}
+                <div className="bg-white/5 p-3 rounded-xl flex gap-3 items-start">
+                  <span className="material-symbols-outlined text-primary text-sm mt-0.5 shrink-0">lightbulb</span>
+                  <p className="text-[11px] text-slate-400 leading-relaxed font-medium">{item.why}</p>
                 </div>
               </div>
-           </div>
+            ))}
+          </div>
         </section>
 
-        <div className="pt-8">
-          <button 
-            onClick={() => navigate('/')} 
-            className="w-full bg-primary text-navy-deep py-7 rounded-[2rem] font-black shadow-neon-cyan active:scale-[0.98] transition-all text-sm uppercase tracking-[0.3em]"
+        {/* ── NEW SKILL UNLOCKED (이론 인사이트) ── */}
+        <section className="bg-gradient-to-br from-[#0D1525] to-[#161D2F] border border-primary/30 p-8 rounded-[2.5rem] relative overflow-hidden animate-skill-unlock">
+          <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
+            <span className="material-symbols-outlined text-8xl text-primary">auto_awesome</span>
+          </div>
+
+          {/* NEW SKILL 배너 */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30">
+              <span className="material-symbols-outlined text-primary text-xl">school</span>
+            </div>
+            <div>
+              <p className="text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-0.5">New Skill Unlocked</p>
+              <p className="text-lg font-black text-white">{evaluation.theoryInsight.theoryName}</p>
+            </div>
+          </div>
+
+          <p className="text-sm text-slate-300 font-medium leading-relaxed mb-6">
+            {evaluation.theoryInsight.scienceBase}
+          </p>
+
+          {/* 현업 적용 가이드 */}
+          <div className="bg-[#0A0F1D]/60 p-5 rounded-2xl border border-primary/20">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="size-7 rounded-lg bg-accent-neon/20 flex items-center justify-center text-accent-neon border border-accent-neon/20">
+                <span className="material-symbols-outlined text-sm">bolt</span>
+              </div>
+              <p className="text-[10px] font-black text-accent-neon uppercase tracking-[0.2em]">현업 적용 가이드</p>
+            </div>
+            <p className="text-sm text-white font-bold leading-relaxed italic">
+              "{evaluation.theoryInsight.practicalApply}"
+            </p>
+          </div>
+        </section>
+
+        {/* ── 액션 아이템 ── */}
+        {evaluation.actionItems && evaluation.actionItems.length > 0 && (
+          <section className="bg-navy-card p-7 rounded-[2.5rem] border border-white/10">
+            <h3 className="font-black text-[11px] uppercase tracking-widest mb-5 flex items-center gap-2 text-white">
+              <span className="size-7 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
+                <span className="material-symbols-outlined text-sm">checklist</span>
+              </span>
+              오퍼레이션 목록
+            </h3>
+            <div className="space-y-3">
+              {evaluation.actionItems.map((item, i) => (
+                <div key={i} className="flex items-start gap-3 py-2 border-b border-white/5 last:border-0">
+                  <div className="size-5 shrink-0 rounded bg-primary/10 flex items-center justify-center text-primary text-[9px] font-black mt-0.5">
+                    {i + 1}
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed font-medium">{item}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── RETURN TO BASE 버튼 ── */}
+        <div className="pt-6">
+          <button
+            onClick={() => navigate('/')}
+            className="w-full bg-primary text-navy-deep py-6 rounded-[2rem] font-black shadow-neon-cyan active:scale-[0.98] transition-all text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-2"
           >
-            분석 완료 및 대시보드 복귀
+            <span className="material-symbols-outlined text-lg">home</span>
+            기지 복귀
           </button>
         </div>
       </main>
