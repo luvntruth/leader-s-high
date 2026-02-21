@@ -73,6 +73,7 @@ const Simulation: React.FC = () => {
   const [sosTipHistory, setSosTipHistory] = useState<{ tip: SOSTip; turnIndex: number; timestamp: string }[]>([]);
   const [showBriefing, setShowBriefing] = useState(true);
   const [initError, setInitError] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Trust Level State Management
   const [trustState, setTrustState] = useState<{
@@ -145,6 +146,21 @@ const Simulation: React.FC = () => {
   }, [trustState.trust]);
 
   const missionBriefing = useMemo(() => getMissionBriefing(scenario?.id), [scenario]);
+
+  // 씬 표시용: 가장 최근 메시지만 추출
+  const latestModelMsg = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'model') return messages[i];
+    }
+    return null;
+  }, [messages]);
+
+  const latestUserMsg = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') return messages[i];
+    }
+    return null;
+  }, [messages]);
 
   const fetchWithRetry = async (fn: () => Promise<any>, retries = 3) => {
     for (let i = 0; i < retries; i++) {
@@ -505,110 +521,161 @@ const Simulation: React.FC = () => {
         </div>
       )}
 
-      {/* ── 비주얼 노벨 채팅 영역 ── */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto hide-scrollbar z-10 relative">
-        <div className="p-4 space-y-5 pb-4">
-          {messages.map((msg, idx) => (
-            <div key={idx} className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+      {/* ══════════════════════════════════════════════
+          ── VISUAL NOVEL SCENE AREA ──
+          사무실 배경 + 캐릭터 초상화 + 대형 말풍선
+      ══════════════════════════════════════════════ */}
+      <div className="flex-1 relative overflow-hidden z-10">
 
-              {/* ── AI (팀원) 메시지 ── */}
-              {msg.role === 'model' ? (
-                msg.isError ? (
-                  /* ── 오류 메시지 (캐릭터 말풍선이 아님) ── */
-                  <div className="flex items-start gap-3 max-w-[90%] animate-speech-in">
-                    <div className="size-9 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center shrink-0 mt-0.5">
-                      <span className="material-symbols-outlined text-red-400 text-[18px]">cloud_off</span>
-                    </div>
-                    <div className="bg-red-500/10 border border-red-500/25 p-4 rounded-2xl rounded-bl-none">
-                      <p className="text-[9px] font-black text-red-400/70 uppercase tracking-widest mb-1.5">연결 오류</p>
-                      <p className="text-[13px] text-red-300 leading-relaxed">{msg.text}</p>
-                      {lastUserMessageRef.current && (
-                        <button
-                          onClick={handleRetry}
-                          disabled={isLoading}
-                          className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-red-400 bg-red-500/15 px-3 py-1.5 rounded-lg border border-red-500/25 hover:bg-red-500/25 transition-all active:scale-95 disabled:opacity-40"
-                        >
-                          <span className="material-symbols-outlined text-[12px]">refresh</span>
-                          재시도
-                        </button>
-                      )}
-                    </div>
+        {/* ── 사무실 배경 레이어 ── */}
+        <div className="absolute inset-0">
+          {/* 기본 다크 그라디언트 */}
+          <div className="absolute inset-0" style={{
+            background: `
+              radial-gradient(ellipse at 50% 0%, rgba(0,120,200,0.07) 0%, transparent 55%),
+              radial-gradient(ellipse at 88% 20%, rgba(0,60,180,0.08) 0%, transparent 35%),
+              radial-gradient(ellipse at 10% 60%, rgba(0,200,255,0.04) 0%, transparent 30%),
+              linear-gradient(180deg, #05091a 0%, #080e22 55%, #0c1430 100%)
+            `
+          }} />
+          {/* 미세 격자 */}
+          <div className="absolute inset-0" style={{
+            backgroundImage: 'linear-gradient(rgba(0,242,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,242,255,0.025) 1px, transparent 1px)',
+            backgroundSize: '56px 56px'
+          }} />
+          {/* 창문 실루엣 (우측 상단) */}
+          <div className="absolute top-[8%] right-[7%] w-[16%] h-[32%] rounded-lg hidden sm:block" style={{
+            background: 'linear-gradient(135deg, rgba(80,140,255,0.04) 0%, rgba(0,80,200,0.09) 100%)',
+            border: '1px solid rgba(100,160,255,0.07)',
+          }}>
+            <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-px p-px opacity-40">
+              {[0,1,2,3].map(i => <div key={i} className="bg-blue-400/5 rounded-sm" />)}
+            </div>
+          </div>
+          {/* 책상 수평선 */}
+          <div className="absolute bottom-[26%] left-0 right-0 h-px bg-white/[0.04]" />
+          {/* 모니터 실루엣 */}
+          <div className="absolute hidden sm:block" style={{ bottom: '27%', right: '18%' }}>
+            <div className="w-14 h-9 rounded-sm" style={{ background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(0,242,255,0.07)', boxShadow: '0 0 12px rgba(0,242,255,0.04)' }} />
+            <div className="w-3 h-2.5 mx-auto" style={{ background: 'rgba(0,0,0,0.4)', borderLeft: '1px solid rgba(255,255,255,0.04)', borderRight: '1px solid rgba(255,255,255,0.04)' }} />
+            <div className="h-px w-8 mx-auto bg-white/5" />
+          </div>
+          {/* 바닥 그림자 */}
+          <div className="absolute bottom-0 left-0 right-0 h-[28%]" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 100%)' }} />
+          {/* Trust 기반 Ambient glow */}
+          <div className="absolute inset-0 transition-all duration-1500 pointer-events-none" style={{
+            background: `radial-gradient(ellipse at 50% 100%, ${hpColor}0a 0%, transparent 55%)`
+          }} />
+        </div>
+
+        {/* ── 상단 힌트 배지 (씬 내부 플로팅) ── */}
+        {trustState.nextHint && messages.length > 0 && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 rounded-full flex items-center gap-1.5 max-w-[85%]"
+            style={{ background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(0,242,255,0.15)', backdropFilter: 'blur(8px)' }}>
+            <span className="material-symbols-outlined text-accent-neon text-[11px] animate-pulse shrink-0">lightbulb</span>
+            <span className="text-[10px] font-bold text-slate-300 truncate">{trustState.nextHint}</span>
+          </div>
+        )}
+
+        {/* ── 유저 마지막 발화 (씬 우측 상단) ── */}
+        {latestUserMsg && (
+          <div className="absolute top-10 right-3 z-20 max-w-[55%] animate-speech-in-right">
+            <div className="bg-primary/15 border border-primary/30 rounded-2xl rounded-tr-sm px-3 py-2 shadow-lg backdrop-blur-sm">
+              <p className="text-[8px] font-black text-primary/60 uppercase tracking-widest mb-0.5">팀장 (나)</p>
+              <p className="text-[12px] text-white/90 leading-snug line-clamp-3">{latestUserMsg.text}</p>
+            </div>
+          </div>
+        )}
+
+        {/* ── 캐릭터 초상화 + 대사 박스 (하단 씬) ── */}
+        <div className="absolute bottom-0 left-0 right-0 flex items-end pb-3 px-3 gap-3 z-20">
+
+          {/* 캐릭터 초상화 열 */}
+          <div className="flex flex-col items-center shrink-0 animate-avatar-entrance">
+            {/* 대형 아바타 원형 프레임 */}
+            <div
+              className="rounded-full overflow-hidden border-4 animate-glow-pulse transition-all duration-700"
+              style={{
+                width: 'clamp(80px, 22vw, 120px)',
+                height: 'clamp(80px, 22vw, 120px)',
+                borderColor: avatarGlow.color,
+                boxShadow: avatarGlow.shadow,
+              }}
+            >
+              <img src={avatarUrl} alt={characterInfo.name} className="size-full object-cover" style={{ background: '#0a1228' }} />
+            </div>
+            {/* 네임플레이트 */}
+            <div className="mt-1.5 text-center px-2 py-1 rounded-lg" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', border: `1px solid ${avatarGlow.color}30` }}>
+              <p className="text-[11px] font-black text-white tracking-tight whitespace-nowrap">{characterInfo.name}</p>
+              <p className="text-[8px] font-bold uppercase tracking-wider whitespace-nowrap" style={{ color: hpColor }}>{characterInfo.role} · {emotionEmoji} {emotionLabel}</p>
+            </div>
+          </div>
+
+          {/* 말풍선 + 히스토리 버튼 열 */}
+          <div className="flex-1 min-w-0 flex flex-col gap-2 mb-1">
+            {/* 히스토리 토글 */}
+            {messages.length > 2 && (
+              <button
+                onClick={() => setShowHistory(true)}
+                className="self-start flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all active:scale-95"
+                style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(6px)', color: 'rgba(255,255,255,0.5)' }}
+              >
+                <span className="material-symbols-outlined text-[11px]">history</span>
+                대화 기록 ({messages.length})
+              </button>
+            )}
+
+            {/* ── 말풍선 ── */}
+            {isLoading ? (
+              /* 로딩 말풍선 */
+              <div className="relative animate-speech-in">
+                <div className="absolute left-[-7px] bottom-5 w-0 h-0" style={{ borderTop: '7px solid transparent', borderBottom: '7px solid transparent', borderRight: '7px solid rgba(15,23,41,0.97)' }} />
+                <div className="rounded-2xl rounded-tl-sm p-4" style={{ background: 'rgba(15,23,41,0.97)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)' }}>
+                  <div className="flex items-center gap-2">
+                    {[0, 0.18, 0.36].map((d, i) => (
+                      <div key={i} className="size-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${d}s` }} />
+                    ))}
+                    <span className="text-[11px] text-slate-500 ml-1">생각하는 중...</span>
                   </div>
-                ) : (
-                /* ── 정상 캐릭터 말풍선 ── */
-                <div className="flex items-end gap-3 max-w-[90%] animate-speech-in">
-                  {/* 캐릭터 아바타 */}
-                  <div className={`shrink-0 flex flex-col items-center gap-1 ${isLastModelMessage(idx) ? 'animate-avatar-entrance' : ''}`}>
-                    <div className={`rounded-full overflow-hidden border-[3px] transition-all duration-700 ${isLastModelMessage(idx) ? 'size-16 animate-glow-pulse' : 'size-11'}`}
-                      style={{ borderColor: avatarGlow.color, boxShadow: isLastModelMessage(idx) ? avatarGlow.shadow : 'none' }}>
-                      <img src={avatarUrl} alt={characterInfo.name} className="size-full object-cover bg-navy-card" />
-                    </div>
-                    {isLastModelMessage(idx) && (
-                      <div className="text-center animate-in fade-in duration-500">
-                        <p className="text-[10px] font-black text-white whitespace-nowrap">{characterInfo.name}</p>
-                        <p className="text-[8px] font-bold whitespace-nowrap" style={{ color: hpColor }}>{characterInfo.role}</p>
-                      </div>
+                </div>
+              </div>
+            ) : latestModelMsg?.isError ? (
+              /* 오류 말풍선 */
+              <div className="animate-speech-in">
+                <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/25 rounded-2xl rounded-tl-sm p-4">
+                  <span className="material-symbols-outlined text-red-400 text-[18px] shrink-0 mt-0.5">cloud_off</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[9px] font-black text-red-400/70 uppercase tracking-widest mb-1">연결 오류</p>
+                    <p className="text-[13px] text-red-300 leading-relaxed">{latestModelMsg.text}</p>
+                    {lastUserMessageRef.current && (
+                      <button onClick={handleRetry} disabled={isLoading}
+                        className="mt-2 flex items-center gap-1 text-[9px] font-black text-red-400 bg-red-500/15 px-2.5 py-1 rounded-lg border border-red-500/25 active:scale-95 transition-all disabled:opacity-40">
+                        <span className="material-symbols-outlined text-[11px]">refresh</span>재시도
+                      </button>
                     )}
                   </div>
-
-                  {/* 비주얼 노벨 말풍선 */}
-                  <div className="relative speech-tail-left">
-                    <div className={`p-4 rounded-2xl rounded-bl-none backdrop-blur-sm border transition-all duration-500 ${
-                      isLastModelMessage(idx)
-                        ? 'bg-navy-mid/95 border-white/15 shadow-[0_4px_30px_rgba(0,0,0,0.5)]'
-                        : 'bg-navy-card/80 border-white/8'
-                    }`}>
-                      {isLastModelMessage(idx) && (
-                        <p className="text-[9px] font-black mb-2 tracking-widest uppercase" style={{ color: hpColor }}>
-                          {characterInfo.name} · {emotionLabel}
-                        </p>
-                      )}
-                      <p className={`leading-relaxed whitespace-pre-wrap ${isLastModelMessage(idx) ? 'text-[14px] text-white' : 'text-[13px] text-slate-300'}`}>
-                        {msg.text}
-                      </p>
-                    </div>
-                  </div>
                 </div>
-                )
-              ) : (
-                /* ── 유저 (팀장) 메시지 ── */
-                <div className="max-w-[78%] animate-speech-in-right">
-                  <div className="relative speech-tail-right">
-                    <div className="p-4 rounded-2xl rounded-br-none bg-primary/20 border border-primary/40 shadow-[0_4px_20px_rgba(0,242,255,0.1)]">
-                      <p className="text-[9px] font-black text-primary/70 mb-1.5 uppercase tracking-widest">팀장 (나)</p>
-                      <p className="text-[14px] text-white leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                    </div>
-                  </div>
+              </div>
+            ) : latestModelMsg ? (
+              /* 정상 캐릭터 대사 말풍선 (밝은 스타일) */
+              <div className="relative animate-speech-in">
+                {/* 말풍선 꼬리 (왼쪽) */}
+                <div className="absolute left-[-8px] bottom-6 w-0 h-0"
+                  style={{ borderTop: '8px solid transparent', borderBottom: '8px solid transparent', borderRight: '8px solid rgba(230,240,255,0.96)' }} />
+                <div className="rounded-2xl rounded-tl-sm p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
+                  style={{ background: 'rgba(230,240,255,0.96)', backdropFilter: 'blur(16px)' }}>
+                  {/* 화자 레이블 */}
+                  <p className="text-[9px] font-black uppercase tracking-widest mb-2" style={{ color: hpColor }}>
+                    {characterInfo.name} · {emotionLabel}
+                  </p>
+                  {/* 대사 텍스트 */}
+                  <p className="text-[14px] leading-relaxed font-medium text-[#08102a] whitespace-pre-wrap">
+                    {latestModelMsg.text}
+                  </p>
                 </div>
-              )}
-            </div>
-          ))}
-
-          {/* 로딩 인디케이터 */}
-          {isLoading && (
-            <div className="flex items-end gap-3 animate-speech-in">
-              <div className="size-11 rounded-full overflow-hidden border-[3px] animate-wiggle shrink-0"
-                style={{ borderColor: avatarGlow.color, boxShadow: avatarGlow.shadow }}>
-                <img src={avatarUrl} alt={characterInfo.name} className="size-full object-cover bg-navy-card" />
               </div>
-              <div className="bg-navy-card/90 p-4 rounded-2xl rounded-bl-none border border-white/10 flex gap-2 items-center speech-tail-left">
-                {[0, 0.2, 0.4].map((delay, i) => (
-                  <div key={i} className="size-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: `${delay}s` }} />
-                ))}
-                <span className="text-[10px] text-slate-500 ml-1">생각 중...</span>
-              </div>
-            </div>
-          )}
-
-          {/* Trust 힌트 */}
-          {trustState.nextHint && messages.length > 0 && (
-            <div className="flex justify-center animate-in fade-in slide-in-from-bottom-2">
-              <div className="bg-accent-neon/5 border border-accent-neon/20 rounded-full px-4 py-1.5 flex items-center gap-2 max-w-[90%]">
-                <span className="material-symbols-outlined text-accent-neon text-xs animate-pulse shrink-0">lightbulb</span>
-                <span className="text-[10px] font-bold text-slate-300">{trustState.nextHint}</span>
-              </div>
-            </div>
-          )}
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -645,6 +712,59 @@ const Simulation: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ── 대화 기록 모달 ── */}
+      {showHistory && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col" onClick={() => setShowHistory(false)}>
+          <div className="flex-1 overflow-y-auto hide-scrollbar" onClick={e => e.stopPropagation()}>
+            {/* 헤더 */}
+            <div className="sticky top-0 flex items-center justify-between px-4 py-4 z-10"
+              style={{ background: 'rgba(6,11,24,0.95)', borderBottom: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-slate-400 text-[18px]">history</span>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-300">대화 기록</h3>
+                <span className="text-[9px] font-black text-slate-600 bg-white/5 px-2 py-0.5 rounded-full">{messages.length}개</span>
+              </div>
+              <button onClick={() => setShowHistory(false)}
+                className="size-8 flex items-center justify-center rounded-xl bg-white/5 text-slate-400 active:scale-90 transition-all">
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+
+            {/* 메시지 목록 */}
+            <div className="px-4 py-4 space-y-3 pb-12">
+              {messages.map((msg, idx) => (
+                msg.role === 'user' ? (
+                  <div key={idx} className="flex justify-end">
+                    <div className="max-w-[78%] bg-primary/15 border border-primary/25 rounded-2xl rounded-tr-sm px-4 py-3">
+                      <p className="text-[8px] font-black text-primary/50 uppercase tracking-widest mb-1">팀장 (나)</p>
+                      <p className="text-[13px] text-white/90 leading-relaxed">{msg.text}</p>
+                    </div>
+                  </div>
+                ) : msg.isError ? (
+                  <div key={idx} className="flex justify-start">
+                    <div className="max-w-[78%] flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-2xl rounded-tl-sm px-4 py-3">
+                      <span className="material-symbols-outlined text-red-400 text-[14px] mt-0.5 shrink-0">cloud_off</span>
+                      <p className="text-[13px] text-red-300/80 leading-relaxed">{msg.text}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div key={idx} className="flex justify-start gap-2">
+                    <div className="size-7 rounded-full overflow-hidden border-2 shrink-0 mt-1"
+                      style={{ borderColor: avatarGlow.color }}>
+                      <img src={avatarUrl} alt={characterInfo.name} className="size-full object-cover" />
+                    </div>
+                    <div className="max-w-[78%] bg-white/5 border border-white/8 rounded-2xl rounded-tl-sm px-4 py-3">
+                      <p className="text-[8px] font-black uppercase tracking-widest mb-1" style={{ color: hpColor }}>{characterInfo.name}</p>
+                      <p className="text-[13px] text-slate-200 leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    </div>
+                  </div>
+                )
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── SOS AI 코칭 모달 ── */}
       {showSOS && (
