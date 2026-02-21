@@ -146,8 +146,8 @@ const CustomLab: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background-dark text-gray-900 overflow-hidden font-manrope">
-      <header className="p-4 border-b border-gray-200 flex items-center justify-between bg-background-dark/80 backdrop-blur-md">
+    <div className="h-screen flex flex-col bg-background-dark text-white overflow-hidden font-manrope">
+      <header className="p-4 border-b border-white/5 flex items-center justify-between bg-background-dark/80 backdrop-blur-md">
         <button onClick={() => navigate('/')} className="p-2 transition-transform active:scale-90"><span className="material-symbols-outlined">close</span></button>
         <div className="text-center">
           <p className="text-[10px] text-accent-neon font-bold uppercase tracking-tighter">AI Scenario Lab</p>
@@ -162,7 +162,7 @@ const CustomLab: React.FC = () => {
             <div className={`max-w-[85%] p-4 rounded-2xl shadow-xl ${
               m.role === 'user' 
                 ? 'bg-primary text-navy-deep font-bold rounded-tr-none' 
-                : 'bg-surface-dark border border-gray-200 text-gray-600 rounded-tl-none'
+                : 'bg-surface-dark border border-white/10 text-slate-200 rounded-tl-none'
             }`}>
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{m.text}</p>
             </div>
@@ -170,7 +170,7 @@ const CustomLab: React.FC = () => {
         ))}
         {isLoading && (
           <div className="flex justify-start animate-pulse">
-            <div className="bg-surface-dark border border-gray-200 p-4 rounded-2xl rounded-tl-none flex gap-1">
+            <div className="bg-surface-dark border border-white/10 p-4 rounded-2xl rounded-tl-none flex gap-1">
               <div className="size-1.5 bg-accent-neon rounded-full"></div>
               <div className="size-1.5 bg-accent-neon/60 rounded-full"></div>
               <div className="size-1.5 bg-accent-neon/30 rounded-full"></div>
@@ -179,21 +179,21 @@ const CustomLab: React.FC = () => {
         )}
       </div>
 
-      <div className="p-4 bg-background-dark/95 border-t border-gray-200 backdrop-blur-sm">
+      <div className="p-4 bg-background-dark/95 border-t border-white/5 backdrop-blur-xl">
         {generatedScenario ? (
           <div className="space-y-4 animate-in slide-in-from-bottom-8 duration-500">
-            <div className="bg-gradient-to-br from-primary/20 to-accent-neon/10 border border-primary/30 p-5 rounded-[2rem] text-center shadow-card">
+            <div className="bg-gradient-to-br from-primary/20 to-accent-neon/10 border border-primary/30 p-5 rounded-[2rem] text-center shadow-2xl">
               <div className="size-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
                 <span className="material-symbols-outlined text-primary">auto_awesome</span>
               </div>
               <p className="text-[10px] text-accent-neon font-bold mb-1 uppercase tracking-widest">Scenario Ready</p>
               <h3 className="text-lg font-bold mb-1">{generatedScenario.memberName}님과의 면담</h3>
-              <p className="text-xs text-gray-500 leading-relaxed px-4">{generatedScenario.description}</p>
+              <p className="text-xs text-slate-400 leading-relaxed px-4">{generatedScenario.description}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => startCustomSim('text')} 
-                className="py-4 bg-gray-100 border border-gray-200 rounded-2xl font-bold hover:bg-gray-100 transition-all active:scale-95"
+                className="py-4 bg-white/5 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all active:scale-95"
               >
                 텍스트 시작
               </button>
@@ -206,17 +206,17 @@ const CustomLab: React.FC = () => {
             </div>
             <button 
               onClick={() => setGeneratedScenario(null)} 
-              className="w-full py-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest hover:text-gray-600 transition-colors"
+              className="w-full py-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest hover:text-slate-300 transition-colors"
             >
               다시 설계하기
             </button>
           </div>
         ) : (
-          <div className="relative flex items-end gap-2 bg-surface-dark border border-gray-200 rounded-2xl p-1.5 focus-within:ring-1 focus-within:ring-accent-neon transition-all">
+          <div className="relative flex items-end gap-2 bg-surface-dark border border-white/10 rounded-2xl p-1.5 focus-within:ring-1 focus-within:ring-accent-neon transition-all">
             <textarea 
               ref={textareaRef}
               rows={1}
-              className="flex-1 bg-transparent border-none px-4 py-2.5 text-sm text-gray-900 focus:outline-none outline-none resize-none hide-scrollbar max-h-[150px]"
+              className="flex-1 bg-transparent border-none px-4 py-2.5 text-sm text-white focus:outline-none outline-none resize-none hide-scrollbar max-h-[150px]"
               placeholder="상황을 설명해주세요..."
               value={inputText}
               onChange={e => setInputText(e.target.value)}

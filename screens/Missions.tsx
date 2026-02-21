@@ -119,9 +119,9 @@ const Missions: React.FC = () => {
   }, [selectedCategory, selectedIntensity]);
 
   return (
-    <div className="h-screen flex flex-col relative overflow-hidden bg-gray-50 text-gray-900 font-manrope">
+    <div className="h-screen flex flex-col relative overflow-hidden bg-[#0A0F1D] text-white font-manrope">
       {/* Header */}
-      <header className="flex flex-col p-5 gap-5 border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-20">
+      <header className="flex flex-col p-5 gap-5 border-b border-white/5 bg-[#0A0F1D]/80 backdrop-blur-xl sticky top-0 z-20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-primary/10 p-2.5 rounded-xl border border-primary/20 shadow-neon-cyan">
@@ -129,7 +129,7 @@ const Missions: React.FC = () => {
             </div>
             <h2 className="text-xl font-bold tracking-tight">미션 보드</h2>
           </div>
-          <button className="size-11 flex items-center justify-center rounded-xl bg-gray-100 border border-gray-200 text-gray-500 hover:text-primary transition-colors">
+          <button className="size-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-primary transition-colors">
             <span className="material-symbols-outlined">search</span>
           </button>
         </div>
@@ -142,8 +142,8 @@ const Missions: React.FC = () => {
               onClick={() => setSelectedCategory(cat)}
               className={`px-5 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all border uppercase tracking-widest ${
                 selectedCategory === cat
-                  ? 'bg-primary text-navy-deep border-primary shadow-[0_0_15px_rgba(49,130,246,0.4)]'
-                  : 'bg-gray-100 text-gray-400 border-gray-200 hover:border-gray-300'
+                  ? 'bg-primary text-navy-deep border-primary shadow-[0_0_15px_rgba(0,242,255,0.4)]'
+                  : 'bg-white/5 text-slate-500 border-white/5 hover:border-white/20'
               }`}
             >
               {cat}
@@ -153,7 +153,7 @@ const Missions: React.FC = () => {
 
         {/* Intensity Filter */}
         <div className="flex gap-2 items-center">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest shrink-0">난이도</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest shrink-0">난이도</span>
           {([['전체', '전체'], ['low', '일상적'], ['medium', '보통'], ['high', '극단적']] as const).map(([value, label]) => (
             <button
               key={value}
@@ -164,7 +164,7 @@ const Missions: React.FC = () => {
                     : value === 'medium' ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
                     : value === 'low' ? 'bg-green-500/20 text-green-400 border-green-500/40'
                     : 'bg-primary/20 text-primary border-primary/40'
-                  : 'bg-gray-100 text-gray-400 border-gray-200 hover:border-gray-300'
+                  : 'bg-white/5 text-slate-500 border-white/5 hover:border-white/20'
               }`}
             >
               {label}
@@ -180,18 +180,18 @@ const Missions: React.FC = () => {
         <section className="animate-in fade-in slide-in-from-top-4 duration-700">
             <div className="flex items-center gap-2 mb-4 px-1">
                 <span className="material-symbols-outlined text-primary text-sm font-bold">auto_awesome</span>
-                <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">나를 위한 인공지능 추천</h3>
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">나를 위한 인공지능 추천</h3>
             </div>
             
             {isAnalysing ? (
-                <div className="bg-navy-card border border-gray-200 p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 animate-pulse">
+                <div className="bg-navy-card border border-white/5 p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 animate-pulse">
                     <div className="size-10 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">맞춤형 미션 분석 중...</p>
+                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">맞춤형 미션 분석 중...</p>
                 </div>
             ) : recommendation && (
                 <div 
                     onClick={() => navigate('/setup', { state: { scenario: recommendation.scenario } })}
-                    className="bg-gradient-to-br from-gray-50 to-white border border-primary/30 p-8 rounded-[3rem] shadow-card group cursor-pointer hover:border-primary transition-all relative overflow-hidden"
+                    className="bg-gradient-to-br from-[#161D2F] to-[#0D1525] border border-primary/30 p-8 rounded-[3rem] shadow-2xl group cursor-pointer hover:border-primary transition-all relative overflow-hidden"
                 >
                     <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                         <span className="material-symbols-outlined text-8xl text-primary">psychology</span>
@@ -207,27 +207,27 @@ const Missions: React.FC = () => {
                         </div>
                     </div>
 
-                    <h4 className="text-2xl font-black mb-3 text-gray-900 group-hover:text-primary transition-colors leading-tight">
+                    <h4 className="text-2xl font-black mb-3 text-white group-hover:text-primary transition-colors leading-tight">
                         {recommendation.scenario.title}
                     </h4>
                     
-                    <div className="bg-gray-100 border border-gray-200 p-5 rounded-2xl mb-6">
-                        <p className="text-[13px] text-gray-600 font-medium leading-[1.7] italic">
+                    <div className="bg-white/5 border border-white/5 p-5 rounded-2xl mb-6">
+                        <p className="text-[13px] text-slate-300 font-medium leading-[1.7] italic">
                             "{recommendation.reason}"
                         </p>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="size-10 rounded-xl overflow-hidden border border-gray-200">
+                        <div className="size-10 rounded-xl overflow-hidden border border-white/10">
                             <img 
-                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(recommendation.scenario.memberName)}&background=3182F6&color=FFFFFF`} 
+                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(recommendation.scenario.memberName)}&background=00F2FF&color=0A0F1D`} 
                                 alt={recommendation.scenario.memberName} 
                                 className="size-full object-cover" 
                             />
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-gray-900">{recommendation.scenario.memberName} 매니저</p>
-                            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{recommendation.scenario.generation}</p>
+                            <p className="text-xs font-bold text-white">{recommendation.scenario.memberName} 매니저</p>
+                            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">{recommendation.scenario.generation}</p>
                         </div>
                         <button className="ml-auto size-12 bg-primary text-navy-deep rounded-2xl flex items-center justify-center shadow-neon-cyan active:scale-90 transition-all">
                             <span className="material-symbols-outlined font-black">play_arrow</span>
@@ -238,10 +238,10 @@ const Missions: React.FC = () => {
         </section>
 
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
             {selectedCategory} <span className="text-primary opacity-60 ml-1">[{filteredScenarios.length}]</span>
           </h3>
-          <div className="h-px bg-gray-100 flex-1 ml-4"></div>
+          <div className="h-px bg-white/5 flex-1 ml-4"></div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -249,7 +249,7 @@ const Missions: React.FC = () => {
             <div
               key={scenario.id}
               onClick={() => navigate('/setup', { state: { scenario } })}
-              className="flex gap-5 p-5 bg-navy-card rounded-[2rem] border border-gray-200 shadow-card cursor-pointer hover:border-primary/30 transition-all active:scale-[0.98] group relative overflow-hidden"
+              className="flex gap-5 p-5 bg-navy-card rounded-[2rem] border border-white/5 shadow-2xl cursor-pointer hover:border-primary/30 transition-all active:scale-[0.98] group relative overflow-hidden"
             >
               {/* Card Accent Decor */}
               <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
@@ -270,18 +270,18 @@ const Missions: React.FC = () => {
 
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start mb-1.5">
-                  <h3 className="text-base font-bold text-gray-900 group-hover:text-primary transition-colors truncate pr-2">{scenario.title}</h3>
+                  <h3 className="text-base font-bold text-white group-hover:text-primary transition-colors truncate pr-2">{scenario.title}</h3>
                 </div>
-                <p className="text-[12px] text-gray-400 line-clamp-2 leading-relaxed font-medium">
+                <p className="text-[12px] text-slate-500 line-clamp-2 leading-relaxed font-medium">
                   {scenario.description}
                 </p>
                 
                 <div className="mt-4 flex items-center gap-3">
-                   <div className="flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-lg border border-gray-200">
+                   <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
                       <span className="material-symbols-outlined text-[10px] text-primary">person</span>
-                      <span className="text-[10px] font-bold text-gray-600">{scenario.memberName}</span>
+                      <span className="text-[10px] font-bold text-slate-300">{scenario.memberName}</span>
                    </div>
-                   <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{scenario.generation}</span>
+                   <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{scenario.generation}</span>
                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${
                      scenario.intensity === 'high' ? 'bg-red-500/15 text-red-400 border border-red-500/30' :
                      scenario.intensity === 'medium' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' :
@@ -297,10 +297,10 @@ const Missions: React.FC = () => {
 
         {filteredScenarios.length === 0 && (
           <div className="py-24 text-center">
-            <div className="size-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6 border border-gray-200">
-              <span className="material-symbols-outlined text-4xl text-gray-500">folder_open</span>
+            <div className="size-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/5">
+              <span className="material-symbols-outlined text-4xl text-slate-700">folder_open</span>
             </div>
-            <p className="text-gray-400 text-sm font-medium tracking-tight">해당 카테고리의 시나리오가 준비 중입니다.</p>
+            <p className="text-slate-500 text-sm font-medium tracking-tight">해당 카테고리의 시나리오가 준비 중입니다.</p>
           </div>
         )}
       </main>

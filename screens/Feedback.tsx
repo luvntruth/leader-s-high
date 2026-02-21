@@ -222,19 +222,19 @@ const Feedback: React.FC = () => {
 
   if (isAnalysing) {
     return (
-      <div className="h-screen bg-gray-50 flex flex-col items-center justify-center p-8 text-center font-manrope">
+      <div className="h-screen bg-[#0A0F1D] flex flex-col items-center justify-center p-8 text-center font-manrope">
         <div className="size-20 border-4 border-primary/10 border-t-primary rounded-full animate-spin mb-10 shadow-neon-cyan"></div>
-        <h2 className="text-xl font-black text-gray-900 mb-4 italic uppercase tracking-widest animate-pulse">Analysing Performance...</h2>
-        <p className="text-gray-500 text-sm max-w-xs leading-relaxed font-medium">데이터를 분석하여 리더님만의 정밀 리포트를 생성하고 있습니다.</p>
+        <h2 className="text-xl font-black text-white mb-4 italic uppercase tracking-widest animate-pulse">Analysing Performance...</h2>
+        <p className="text-slate-400 text-sm max-w-xs leading-relaxed font-medium">데이터를 분석하여 리더님만의 정밀 리포트를 생성하고 있습니다.</p>
       </div>
     );
   }
 
   if (error || !evaluation) {
     return (
-      <div className="h-screen bg-gray-50 flex flex-col items-center justify-center p-8 text-center font-manrope">
+      <div className="h-screen bg-[#0A0F1D] flex flex-col items-center justify-center p-8 text-center font-manrope">
         <span className="material-symbols-outlined text-red-500 text-6xl mb-6">error</span>
-        <h2 className="text-sm font-bold text-gray-900 mb-6 leading-relaxed max-w-sm">{error || "리포트 데이터를 불러올 수 없습니다."}</h2>
+        <h2 className="text-sm font-bold text-white mb-6 leading-relaxed max-w-sm">{error || "리포트 데이터를 불러올 수 없습니다."}</h2>
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <button 
             onClick={performEvaluation} 
@@ -244,7 +244,7 @@ const Feedback: React.FC = () => {
           </button>
           <button 
             onClick={() => navigate('/')} 
-            className="w-full px-8 py-4 bg-gray-100 text-gray-500 font-bold rounded-2xl active:scale-95 transition-all"
+            className="w-full px-8 py-4 bg-white/5 text-slate-400 font-bold rounded-2xl active:scale-95 transition-all"
           >
             홈으로 돌아가기
           </button>
@@ -254,9 +254,9 @@ const Feedback: React.FC = () => {
   }
 
   return (
-    <div className="h-screen overflow-y-auto bg-gray-50 text-gray-900 font-manrope pb-32 hide-scrollbar">
-      <header className="p-5 bg-white/90 backdrop-blur-sm sticky top-0 z-30 border-b border-gray-200 flex items-center justify-between">
-        <button onClick={() => navigate('/')} className="p-2 text-gray-400 hover:text-gray-900 transition-colors">
+    <div className="h-screen overflow-y-auto bg-[#0A0F1D] text-white font-manrope pb-32 hide-scrollbar">
+      <header className="p-5 bg-[#0A0F1D]/90 backdrop-blur-xl sticky top-0 z-30 border-b border-white/5 flex items-center justify-between">
+        <button onClick={() => navigate('/')} className="p-2 text-slate-500 hover:text-white transition-colors">
           <span className="material-symbols-outlined">close</span>
         </button>
         <div className="text-center">
@@ -268,21 +268,21 @@ const Feedback: React.FC = () => {
 
       <main className="p-6 space-y-12 lg:max-w-4xl lg:mx-auto">
         {/* 요약 카드 */}
-        <section className="bg-gradient-to-br from-gray-50 to-white border border-primary/30 p-10 rounded-[3.5rem] shadow-card relative overflow-hidden">
+        <section className="bg-gradient-to-br from-[#161D2F] to-[#0A0F1D] border border-primary/30 p-10 rounded-[3.5rem] shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
              <span className="material-symbols-outlined text-9xl text-primary">verified_user</span>
           </div>
-          <p className="text-2xl font-black leading-[1.6] text-gray-900 italic tracking-tight">"{evaluation.summary}"</p>
-          <div className="grid grid-cols-3 gap-6 mt-12 border-t border-gray-200 pt-10">
+          <p className="text-2xl font-black leading-[1.6] text-white italic tracking-tight">"{evaluation.summary}"</p>
+          <div className="grid grid-cols-3 gap-6 mt-12 border-t border-white/5 pt-10">
               {[
                 { label: '공감도', value: evaluation.metrics.empathyIndex, color: 'bg-primary' },
                 { label: '전달력', value: evaluation.metrics.sbiScore, color: 'bg-accent-neon' },
                 { label: '성공률', value: evaluation.metrics.outcomeSuccess, color: 'bg-accent-amber' }
               ].map((m, i) => (
                 <div key={i} className="text-center group">
-                  <p className="text-[10px] font-black text-gray-400 uppercase mb-3">{m.label}</p>
+                  <p className="text-[10px] font-black text-slate-500 uppercase mb-3">{m.label}</p>
                   <div className="text-3xl font-black italic mb-3 tracking-tighter">{m.value}%</div>
-                  <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                       <div className={`h-full ${m.color} shadow-neon-cyan transition-all duration-1000`} style={{ width: `${m.value}%` }}></div>
                   </div>
                 </div>
@@ -299,8 +299,8 @@ const Feedback: React.FC = () => {
               <div className="space-y-8">
                 {evaluation.strengths.map((s, i) => (
                   <div key={i}>
-                    <h4 className="text-base font-black text-gray-900 mb-2">{s.title}</h4>
-                    <p className="text-sm text-gray-500 leading-relaxed font-medium">{s.desc}</p>
+                    <h4 className="text-base font-black text-white mb-2">{s.title}</h4>
+                    <p className="text-sm text-slate-400 leading-relaxed font-medium">{s.desc}</p>
                   </div>
                 ))}
               </div>
@@ -312,8 +312,8 @@ const Feedback: React.FC = () => {
               <div className="space-y-8">
                 {evaluation.improvements.map((s, i) => (
                   <div key={i}>
-                    <h4 className="text-base font-black text-gray-900 mb-2">{s.title}</h4>
-                    <p className="text-sm text-gray-500 leading-relaxed font-medium">{s.desc}</p>
+                    <h4 className="text-base font-black text-white mb-2">{s.title}</h4>
+                    <p className="text-sm text-slate-400 leading-relaxed font-medium">{s.desc}</p>
                   </div>
                 ))}
               </div>
@@ -322,8 +322,8 @@ const Feedback: React.FC = () => {
 
         {/* 코칭 역량 점수 */}
         {evaluation.coachingSkills && (
-          <section className="bg-navy-card p-8 rounded-[3rem] border border-gray-200">
-            <h3 className="text-gray-900 font-black text-[11px] uppercase tracking-widest mb-8 flex items-center gap-2">
+          <section className="bg-navy-card p-8 rounded-[3rem] border border-white/10">
+            <h3 className="text-white font-black text-[11px] uppercase tracking-widest mb-8 flex items-center gap-2">
               <span className="material-symbols-outlined text-sm text-primary">psychology</span> 코칭 역량 상세 분석
             </h3>
             <div className="space-y-5">
@@ -338,13 +338,13 @@ const Feedback: React.FC = () => {
                 return (
                   <div key={skill.key} className="flex items-center gap-4">
                     <div className="flex items-center gap-2 w-24 shrink-0">
-                      <span className="material-symbols-outlined text-gray-500 text-sm">{skill.icon}</span>
-                      <span className="text-xs font-bold text-gray-600">{skill.label}</span>
+                      <span className="material-symbols-outlined text-slate-400 text-sm">{skill.icon}</span>
+                      <span className="text-xs font-bold text-slate-300">{skill.label}</span>
                     </div>
-                    <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="flex-1 h-3 bg-white/5 rounded-full overflow-hidden">
                       <div className={`h-full ${skill.color} rounded-full transition-all duration-1000`} style={{ width: `${value}%` }}></div>
                     </div>
-                    <span className="text-sm font-black text-gray-900 w-12 text-right">{value}</span>
+                    <span className="text-sm font-black text-white w-12 text-right">{value}</span>
                   </div>
                 );
               })}
@@ -362,11 +362,11 @@ const Feedback: React.FC = () => {
                     <div key={idx} className="bg-[#1C1F26] border border-accent-amber/20 p-8 rounded-[2.5rem] relative overflow-hidden group">
                         {/* 상황 설명 */}
                         <div className="mb-6">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
                               <span className="material-symbols-outlined text-[10px] align-middle mr-1">replay</span>
                               상황 리플레이
                             </p>
-                            <p className="text-sm text-gray-600 italic font-medium">"{item.situation}"</p>
+                            <p className="text-sm text-slate-300 italic font-medium">"{item.situation}"</p>
                         </div>
 
                         {/* 비교 레이아웃 */}
@@ -377,7 +377,7 @@ const Feedback: React.FC = () => {
                               <span className="material-symbols-outlined text-red-400 text-sm">person</span>
                               <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">나의 발화</p>
                             </div>
-                            <p className="text-sm text-gray-600 leading-relaxed">"{item.situation}"</p>
+                            <p className="text-sm text-slate-300 leading-relaxed">"{item.situation}"</p>
                           </div>
 
                           {/* 모범 답변 */}
@@ -386,14 +386,14 @@ const Feedback: React.FC = () => {
                               <span className="material-symbols-outlined text-accent-amber text-sm">auto_awesome</span>
                               <p className="text-[10px] font-black text-accent-amber uppercase tracking-widest">추천 답변</p>
                             </div>
-                            <p className="text-sm text-gray-900 font-bold leading-relaxed">"{item.bestResponse}"</p>
+                            <p className="text-sm text-white font-bold leading-relaxed">"{item.bestResponse}"</p>
                           </div>
                         </div>
 
                         {/* 개선 포인트 */}
-                        <div className="bg-gray-100 p-4 rounded-xl flex gap-3 items-start">
+                        <div className="bg-white/5 p-4 rounded-xl flex gap-3 items-start">
                           <span className="material-symbols-outlined text-primary text-sm mt-0.5 shrink-0">lightbulb</span>
-                          <p className="text-xs text-gray-500 leading-relaxed font-medium">{item.why}</p>
+                          <p className="text-xs text-slate-400 leading-relaxed font-medium">{item.why}</p>
                         </div>
                     </div>
                 ))}
@@ -401,12 +401,12 @@ const Feedback: React.FC = () => {
         </section>
 
         {/* 과학적 분석 및 현업 적용 가이드 */}
-        <section className="bg-gray-50 border border-gray-200 p-10 rounded-[3.5rem] shadow-card relative overflow-hidden group">
+        <section className="bg-[#0D1525] border border-white/5 p-10 rounded-[3.5rem] shadow-2xl relative overflow-hidden group">
            <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
               <span className="material-symbols-outlined text-9xl text-accent-neon">psychology</span>
            </div>
            
-           <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Leadership Insight</h3>
+           <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-10">Leadership Insight</h3>
            
            <div className="space-y-10 relative z-10">
               <div className="border-l-2 border-primary/30 pl-6">
@@ -415,18 +415,18 @@ const Feedback: React.FC = () => {
                     이론 근거: {evaluation.theoryInsight.theoryName}
                   </span>
                 </div>
-                <p className="text-[16px] text-gray-700 font-bold leading-relaxed mb-10">
+                <p className="text-[16px] text-slate-100 font-bold leading-relaxed mb-10">
                   {evaluation.theoryInsight.scienceBase}
                 </p>
                 
-                <div className="bg-gradient-to-br from-primary/5 to-white p-8 rounded-[2.5rem] border border-accent-neon/30 shadow-neon-cyan/20">
+                <div className="bg-gradient-to-br from-accent-neon/10 to-[#161D2F] p-8 rounded-[2.5rem] border border-accent-neon/30 shadow-neon-cyan/20">
                   <div className="flex items-center gap-3 mb-4">
                      <div className="size-8 rounded-lg bg-accent-neon/20 flex items-center justify-center text-accent-neon border border-accent-neon/30">
                         <span className="material-symbols-outlined text-lg font-black">bolt</span>
                      </div>
                      <p className="text-[12px] font-black text-accent-neon uppercase tracking-[0.2em]">현업 적용 가이드</p>
                   </div>
-                  <p className="text-base text-gray-900 font-black leading-relaxed italic">
+                  <p className="text-base text-white font-black leading-relaxed italic">
                     "{evaluation.theoryInsight.practicalApply}"
                   </p>
                 </div>
