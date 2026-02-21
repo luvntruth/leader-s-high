@@ -10,6 +10,7 @@
  *   const ai = createGeminiClient();
  */
 
+/// <reference types="vite/client" />
 import { GoogleGenAI } from '@google/genai';
 
 export function createGeminiClient(): GoogleGenAI {
