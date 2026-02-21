@@ -109,6 +109,7 @@ const Simulation: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const initialized = useRef(false);
   const emotionMachine = useRef(new EmotionStateMachine(30));
+  const lastUserMessageRef = useRef<string>('');
 
   // Cleanup on unmount
   useEffect(() => {
@@ -218,6 +219,7 @@ const Simulation: React.FC = () => {
     if (!isSilent && isLoading) return;
 
     if (!isSilent) {
+      lastUserMessageRef.current = text;
       setMessages(prev => [...prev, { role: 'user', text, timestamp: new Date() }]);
       setInputText('');
     }
@@ -236,9 +238,17 @@ const Simulation: React.FC = () => {
       ]);
 
     } catch (error: any) {
+      console.error('[Simulation] sendMessage failed:', error);
+      const errMsg = error?.status === 401 || error?.status === 403
+        ? 'API 키가 설정되지 않았습니다. 관리자에게 문의하세요.'
+        : error?.status === 404
+        ? '모델을 찾을 수 없습니다. 설정을 확인해주세요.'
+        : error?.status === 429
+        ? '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'
+        : '시스템 연결이 원활하지 않습니다.';
       setMessages(prev => [...prev, {
         role: 'model',
-        text: "시스템 연결이 원활하지 않습니다.",
+        text: errMsg,
         timestamp: new Date(),
         isError: true
       }]);
@@ -281,6 +291,13 @@ const Simulation: React.FC = () => {
       initializeChat();
     }
   }, []);
+
+  const handleRetry = () => {
+    if (!lastUserMessageRef.current) return;
+    // 오류 메시지 제거 후 재전송 (user 메시지는 이미 존재)
+    setMessages(prev => prev.filter(m => !m.isError));
+    handleSend(lastUserMessageRef.current, true);
+  };
 
   const handleSOS = async () => {
     if (isGeneratingSOS) return;
@@ -471,6 +488,23 @@ const Simulation: React.FC = () => {
         </div>
       )}
 
+      {/* ── 초기화 오류 배너 ── */}
+      {initError && (
+        <div className="bg-red-500/10 border-b border-red-500/20 px-4 py-3 flex items-center gap-3 z-20 shrink-0">
+          <span className="material-symbols-outlined text-red-400">cloud_off</span>
+          <div className="flex-1">
+            <p className="text-[11px] font-black text-red-400 uppercase tracking-widest">AI 연결 실패</p>
+            <p className="text-[10px] text-red-300/70 mt-0.5">시스템 초기화에 실패했습니다. 재시도하거나 API 키를 확인하세요.</p>
+          </div>
+          <button
+            onClick={() => { initialized.current = false; initializeChat(); }}
+            className="px-3 py-1.5 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 text-[10px] font-black uppercase active:scale-95 transition-all"
+          >
+            재시도
+          </button>
+        </div>
+      )}
+
       {/* ── 비주얼 노벨 채팅 영역 ── */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto hide-scrollbar z-10 relative">
         <div className="p-4 space-y-5 pb-4">
@@ -479,6 +513,29 @@ const Simulation: React.FC = () => {
 
               {/* ── AI (팀원) 메시지 ── */}
               {msg.role === 'model' ? (
+                msg.isError ? (
+                  /* ── 오류 메시지 (캐릭터 말풍선이 아님) ── */
+                  <div className="flex items-start gap-3 max-w-[90%] animate-speech-in">
+                    <div className="size-9 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="material-symbols-outlined text-red-400 text-[18px]">cloud_off</span>
+                    </div>
+                    <div className="bg-red-500/10 border border-red-500/25 p-4 rounded-2xl rounded-bl-none">
+                      <p className="text-[9px] font-black text-red-400/70 uppercase tracking-widest mb-1.5">연결 오류</p>
+                      <p className="text-[13px] text-red-300 leading-relaxed">{msg.text}</p>
+                      {lastUserMessageRef.current && (
+                        <button
+                          onClick={handleRetry}
+                          disabled={isLoading}
+                          className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-red-400 bg-red-500/15 px-3 py-1.5 rounded-lg border border-red-500/25 hover:bg-red-500/25 transition-all active:scale-95 disabled:opacity-40"
+                        >
+                          <span className="material-symbols-outlined text-[12px]">refresh</span>
+                          재시도
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                /* ── 정상 캐릭터 말풍선 ── */
                 <div className="flex items-end gap-3 max-w-[90%] animate-speech-in">
                   {/* 캐릭터 아바타 */}
                   <div className={`shrink-0 flex flex-col items-center gap-1 ${isLastModelMessage(idx) ? 'animate-avatar-entrance' : ''}`}>
@@ -512,6 +569,7 @@ const Simulation: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                )
               ) : (
                 /* ── 유저 (팀장) 메시지 ── */
                 <div className="max-w-[78%] animate-speech-in-right">
