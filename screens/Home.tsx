@@ -120,6 +120,27 @@ const Home: React.FC = () => {
             </div>
 
             <button
+              onClick={() => navigate('/team-office')}
+              className="w-full bg-navy-card border border-white/10 p-8 rounded-[3rem] flex items-center justify-between transition-all active:scale-[0.98] hover:border-accent-purple/40 group shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-10 transition-opacity">
+                <span className="material-symbols-outlined text-8xl">groups</span>
+              </div>
+              <div className="flex items-center gap-5 text-left relative z-10">
+                <div className="bg-accent-purple/10 p-4 rounded-2xl border border-accent-purple/30 group-hover:border-accent-purple/70 transition-colors">
+                  <span className="material-symbols-outlined text-accent-purple text-3xl font-black">groups</span>
+                </div>
+                <div>
+                  <p className="font-bold text-xl tracking-tight">팀 오피스 현황판</p>
+                  <p className="text-slate-500 text-[11px] font-black uppercase tracking-[0.3em] mt-1">Team Office — 팀원 현황 보기</p>
+                </div>
+              </div>
+              <div className="size-12 bg-white/5 rounded-full flex items-center justify-center group-hover:translate-x-2 transition-transform">
+                <span className="material-symbols-outlined text-accent-purple">arrow_forward_ios</span>
+              </div>
+            </button>
+
+            <button
               onClick={() => navigate('/custom-lab')}
               className="w-full bg-navy-card border border-white/10 p-10 rounded-[3.5rem] flex items-center justify-between transition-all active:scale-[0.98] hover:bg-white/5 group shadow-2xl relative overflow-hidden"
             >

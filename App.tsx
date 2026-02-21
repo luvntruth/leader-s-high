@@ -11,6 +11,7 @@ import Feedback from './screens/Feedback';
 import Insights from './screens/Insights';
 import Profile from './screens/Profile';
 import CustomLab from './screens/CustomLab';
+import TeamOffice from './screens/TeamOffice';
 import StreakDetail from './screens/StreakDetail';
 import AdminDashboard from './screens/AdminDashboard';
 import HistoryList from './screens/HistoryList';
@@ -19,7 +20,7 @@ import Navigation from './components/Navigation';
 
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const noNavPaths = ['/simulation', '/voice', '/setup', '/feedback', '/admin'];
+  const noNavPaths = ['/simulation', '/voice', '/setup', '/feedback', '/admin', '/team-office'];
   const showNav = !noNavPaths.includes(location.pathname);
 
   return (
@@ -48,6 +49,7 @@ const App: React.FC = () => {
           <Route path="/insights" element={<Insights />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/custom-lab" element={<CustomLab />} />
+          <Route path="/team-office" element={<TeamOffice />} />
           <Route path="/streak" element={<StreakDetail />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/history" element={<HistoryList />} />
