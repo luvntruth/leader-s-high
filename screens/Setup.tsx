@@ -134,9 +134,9 @@ const Setup: React.FC = () => {
   };
 
   return (
-    <div className="h-screen bg-navy-deep text-white flex flex-col font-display overflow-hidden">
-      <header className="p-4 border-b border-white/5 flex items-center justify-between bg-[#0A0F1D]/80 backdrop-blur-xl">
-        <button onClick={() => navigate('/missions')} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+    <div className="h-screen bg-navy-deep text-gray-900 flex flex-col font-display overflow-hidden">
+      <header className="p-4 border-b border-gray-200 flex items-center justify-between bg-white/80 backdrop-blur-sm">
+        <button onClick={() => navigate('/missions')} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
           <span className="material-symbols-outlined">arrow_back_ios</span>
         </button>
         <div className="text-center">
@@ -155,20 +155,20 @@ const Setup: React.FC = () => {
              </div>
              <h3 className="text-lg font-bold">훈련 대상 리더십 정보</h3>
           </div>
-          <div className="bg-navy-card p-6 rounded-[2rem] border border-white/5 shadow-xl">
+          <div className="bg-navy-card p-6 rounded-[2rem] border border-gray-200 shadow-xl">
             <div className="flex items-center gap-4">
                <div className="size-16 rounded-2xl overflow-hidden border-2 border-primary/30 shrink-0">
-                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=00F2FF&color=0A0F1D`} alt="avatar" className="size-full object-cover" />
+                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3182F6&color=FFFFFF`} alt="avatar" className="size-full object-cover" />
                </div>
                <div className="flex-1">
                   <input
-                    className="w-full bg-navy-deep rounded-xl border-white/10 border px-4 py-3 focus:ring-1 focus:ring-primary outline-none text-lg font-bold mb-1"
+                    className="w-full bg-navy-deep rounded-xl border-gray-200 border px-4 py-3 focus:ring-1 focus:ring-primary outline-none text-lg font-bold mb-1"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="이름 입력"
                   />
                   <div className="flex items-center gap-2">
-                    <span className="bg-white/5 px-2 py-0.5 rounded-md text-[9px] font-black text-slate-500 uppercase tracking-widest">{generation}</span>
+                    <span className="bg-gray-100 px-2 py-0.5 rounded-md text-[9px] font-black text-gray-400 uppercase tracking-widest">{generation}</span>
                     <span className="bg-primary/10 px-2 py-0.5 rounded-md text-[9px] font-black text-primary uppercase tracking-widest">{initialScenario?.category}</span>
                   </div>
                </div>
@@ -184,7 +184,7 @@ const Setup: React.FC = () => {
              </div>
              <h3 className="text-lg font-bold">상황별 AI 행동 예측</h3>
           </div>
-          <div className="bg-gradient-to-br from-[#161D2F] to-[#0D1525] p-8 rounded-[2.5rem] border border-primary/20 relative overflow-hidden group shadow-2xl">
+          <div className="bg-gradient-to-br from-gray-50 to-white p-8 rounded-[2.5rem] border border-primary/20 relative overflow-hidden group shadow-card">
             <div className="absolute top-0 right-0 p-8 opacity-5">
                <span className="material-symbols-outlined text-8xl">clinical_notes</span>
             </div>
@@ -193,18 +193,18 @@ const Setup: React.FC = () => {
                 <span className="bg-primary/20 text-primary px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/30">
                   {personaBriefing.title}
                 </span>
-                <div className="h-px bg-white/10 flex-1"></div>
+                <div className="h-px bg-gray-100 flex-1"></div>
               </div>
-              <p className="text-[17px] text-white font-bold leading-relaxed mb-6">
+              <p className="text-[17px] text-gray-900 font-bold leading-relaxed mb-6">
                 "{personaBriefing.description}"
               </p>
-              <div className="bg-[#0A0F1D]/60 p-5 rounded-2xl border border-white/5 flex gap-4 items-start">
+              <div className="bg-gray-50/60 p-5 rounded-2xl border border-gray-200 flex gap-4 items-start">
                  <div className="size-8 rounded-lg bg-accent-neon/10 flex items-center justify-center text-accent-neon shrink-0">
                     <span className="material-symbols-outlined text-lg">lightbulb</span>
                  </div>
                  <div>
                     <p className="text-[11px] font-black text-accent-neon uppercase tracking-widest mb-1">리더를 위한 전략 한마디</p>
-                    <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                    <p className="text-xs text-gray-600 leading-relaxed font-medium">
                         {personaBriefing.tip}
                     </p>
                  </div>
@@ -217,39 +217,39 @@ const Setup: React.FC = () => {
         <section className="animate-in fade-in slide-in-from-bottom-8 duration-1000">
           <div className="flex items-center justify-between mb-4">
              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-white/10 flex items-center justify-center text-slate-400 border border-white/10">
+                <div className="size-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 border border-gray-200">
                    <span className="material-symbols-outlined text-xl">tune</span>
                 </div>
                 <h3 className="text-lg font-bold">성향 세밀 조정</h3>
              </div>
-             <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Fine-Tuning DNA</p>
+             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Fine-Tuning DNA</p>
           </div>
           
-          <div className="bg-navy-card p-8 rounded-[2.5rem] border border-white/5 space-y-12">
+          <div className="bg-navy-card p-8 rounded-[2.5rem] border border-gray-200 space-y-12">
             {/* 말투 스타일 */}
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <div className="text-center flex-1">
-                   <p className="text-xs font-bold text-white mb-1">직설적</p>
-                   <p className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">Direct</p>
+                   <p className="text-xs font-bold text-gray-900 mb-1">직설적</p>
+                   <p className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Direct</p>
                 </div>
                 <div className="px-5 text-primary font-black text-[9px] uppercase tracking-widest bg-primary/10 py-1.5 rounded-full border border-primary/20">말투 스타일</div>
                 <div className="text-center flex-1">
-                   <p className="text-xs font-bold text-white mb-1">완곡함</p>
-                   <p className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">Indirect</p>
+                   <p className="text-xs font-bold text-gray-900 mb-1">완곡함</p>
+                   <p className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Indirect</p>
                 </div>
               </div>
               <div className="relative px-2">
                 <input
                   type="range"
-                  className="w-full h-1.5 bg-white/5 rounded-full appearance-none accent-primary cursor-pointer relative z-10"
+                  className="w-full h-1.5 bg-gray-100 rounded-full appearance-none accent-primary cursor-pointer relative z-10"
                   min="0"
                   max="100"
                   value={contextStyle}
                   onChange={(e) => setContextStyle(parseInt(e.target.value))}
                 />
                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-2">
-                   {[0, 25, 50, 75, 100].map(v => <div key={v} className="size-1 bg-white/10 rounded-full"></div>)}
+                   {[0, 25, 50, 75, 100].map(v => <div key={v} className="size-1 bg-gray-100 rounded-full"></div>)}
                 </div>
               </div>
             </div>
@@ -258,26 +258,26 @@ const Setup: React.FC = () => {
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <div className="text-center flex-1">
-                   <p className="text-xs font-bold text-white mb-1">논리/팩트</p>
-                   <p className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">Logic</p>
+                   <p className="text-xs font-bold text-gray-900 mb-1">논리/팩트</p>
+                   <p className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Logic</p>
                 </div>
                 <div className="px-5 text-accent-neon font-black text-[9px] uppercase tracking-widest bg-accent-neon/10 py-1.5 rounded-full border border-accent-neon/20">움직이는 동기</div>
                 <div className="text-center flex-1">
-                   <p className="text-xs font-bold text-white mb-1">공감/관계</p>
-                   <p className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">Emotion</p>
+                   <p className="text-xs font-bold text-gray-900 mb-1">공감/관계</p>
+                   <p className="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">Emotion</p>
                 </div>
               </div>
               <div className="relative px-2">
                 <input
                   type="range"
-                  className="w-full h-1.5 bg-white/5 rounded-full appearance-none accent-accent-neon cursor-pointer relative z-10"
+                  className="w-full h-1.5 bg-gray-100 rounded-full appearance-none accent-accent-neon cursor-pointer relative z-10"
                   min="0"
                   max="100"
                   value={driverStyle}
                   onChange={(e) => setDriverStyle(parseInt(e.target.value))}
                 />
                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-2">
-                   {[0, 25, 50, 75, 100].map(v => <div key={v} className="size-1 bg-white/10 rounded-full"></div>)}
+                   {[0, 25, 50, 75, 100].map(v => <div key={v} className="size-1 bg-gray-100 rounded-full"></div>)}
                 </div>
               </div>
             </div>
@@ -290,7 +290,7 @@ const Setup: React.FC = () => {
         <div className="max-w-md mx-auto grid grid-cols-2 gap-4">
           <button
             onClick={() => startSimulation('text')}
-            className="bg-white/5 border border-white/10 text-white font-black text-xs uppercase tracking-widest py-5 rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg"
+            className="bg-gray-100 border border-gray-200 text-gray-900 font-black text-xs uppercase tracking-widest py-5 rounded-2xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg"
           >
             <span className="material-symbols-outlined text-sm font-bold">chat</span>
             채팅 세션

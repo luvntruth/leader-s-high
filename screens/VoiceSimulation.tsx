@@ -198,14 +198,14 @@ ${initialEmotionContext}
   }, []);
 
   return (
-    <div className="max-w-md mx-auto h-screen bg-[#0A0F1D] text-white flex flex-col font-manrope overflow-hidden relative">
-      <header className="p-5 flex items-center justify-between border-b border-white/5 bg-[#0A0F1D]/80 backdrop-blur-md z-30">
+    <div className="max-w-md mx-auto h-screen bg-gray-50 text-gray-900 flex flex-col font-manrope overflow-hidden relative">
+      <header className="p-5 flex items-center justify-between border-b border-gray-200 bg-white/80 backdrop-blur-md z-30">
         <button onClick={() => navigate(-1)} className="p-2 active:scale-90 transition-transform">
           <span className="material-symbols-outlined">arrow_back_ios_new</span>
         </button>
         <div className="flex-1 flex flex-col items-center mx-4">
           <div className="text-center mb-2">
-            <h1 className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">{config.name} • Live</h1>
+            <h1 className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">{config.name} • Live</h1>
           </div>
 
           {/* Prominent Trust Gauge */}
@@ -214,9 +214,9 @@ ${initialEmotionContext}
                  <span className={`text-[10px] font-bold uppercase tracking-widest ${trustState.trust > 70 ? 'text-green-400' : 'text-primary'}`}>Trust Level</span>
                  <span className={`text-base font-black ${trustState.trust > 70 ? 'text-green-400' : 'text-primary'}`}>{trustState.trust}%</span>
              </div>
-             <div className="h-2.5 bg-navy-deep rounded-full overflow-hidden border border-white/10 shadow-inner">
+             <div className="h-2.5 bg-navy-deep rounded-full overflow-hidden border border-gray-200 shadow-inner">
                  <div
-                    className={`h-full rounded-full transition-all duration-1000 ${trustState.trust > 70 ? 'bg-green-400 shadow-[0_0_12px_#4ade80]' : 'bg-primary shadow-[0_0_12px_#00F2FF]'}`}
+                    className={`h-full rounded-full transition-all duration-1000 ${trustState.trust > 70 ? 'bg-green-400 shadow-[0_0_12px_#4ade80]' : 'bg-primary shadow-[0_0_12px_#3182F6]'}`}
                     style={{ width: `${trustState.trust}%` }}
                  ></div>
              </div>
@@ -226,8 +226,8 @@ ${initialEmotionContext}
             onClick={() => setShowBriefing(!showBriefing)}
             className={`mt-3 px-3 py-1.5 rounded-full flex items-center gap-1.5 border transition-all active:scale-95 ${
               showBriefing
-                ? 'bg-primary/10 border-primary/30 text-primary shadow-[0_0_10px_rgba(0,242,255,0.2)]'
-                : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                ? 'bg-primary/10 border-primary/30 text-primary shadow-[0_0_10px_rgba(49,130,246,0.2)]'
+                : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-100'
             }`}
           >
              <span className="material-symbols-outlined text-[14px]">
@@ -242,7 +242,7 @@ ${initialEmotionContext}
       </header>
 
       {showBriefing && (
-        <div className="bg-gradient-to-br from-[#161D2F] to-[#0A0F1D] border-b border-primary/20 p-4 animate-in slide-in-from-top duration-500 relative overflow-hidden shrink-0 max-h-[25vh] overflow-y-auto">
+        <div className="bg-gradient-to-br from-gray-50 to-white border-b border-primary/20 p-4 animate-in slide-in-from-top duration-500 relative overflow-hidden shrink-0 max-h-[25vh] overflow-y-auto">
           <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
             <span className="material-symbols-outlined text-7xl text-primary">military_tech</span>
           </div>
@@ -252,27 +252,27 @@ ${initialEmotionContext}
               <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] bg-primary/10 px-2 py-1 rounded border border-primary/20">
                 Strategy Briefing
               </span>
-              <button onClick={() => setShowBriefing(false)} className="text-slate-500 hover:text-white">
+              <button onClick={() => setShowBriefing(false)} className="text-gray-400 hover:text-gray-900">
                 <span className="material-symbols-outlined text-sm">close</span>
               </button>
             </div>
 
             <section className="mb-5">
-              <h3 className="text-[11px] font-black text-slate-500 uppercase mb-2 tracking-widest">이상적 도달 상태 (Goal)</h3>
-              <p className="text-[13px] text-slate-100 font-bold leading-relaxed italic">
+              <h3 className="text-[11px] font-black text-gray-400 uppercase mb-2 tracking-widest">이상적 도달 상태 (Goal)</h3>
+              <p className="text-[13px] text-gray-700 font-bold leading-relaxed italic">
                 "{missionBriefing.idealState}"
               </p>
             </section>
 
             <section>
-              <h3 className="text-[11px] font-black text-slate-500 uppercase mb-3 tracking-widest flex justify-between">
+              <h3 className="text-[11px] font-black text-gray-400 uppercase mb-3 tracking-widest flex justify-between">
                 수행 과제 <span>Based on {missionBriefing.theory}</span>
               </h3>
               <div className="space-y-2.5">
                 {missionBriefing.tasks.map((task, i) => (
-                  <div key={i} className="flex gap-3 items-start bg-white/5 p-3 rounded-xl border border-white/5">
+                  <div key={i} className="flex gap-3 items-start bg-gray-100 p-3 rounded-xl border border-gray-200">
                     <span className="material-symbols-outlined text-primary text-sm mt-0.5">check_circle</span>
-                    <p className="text-[12px] text-slate-300 font-medium leading-relaxed">{task}</p>
+                    <p className="text-[12px] text-gray-600 font-medium leading-relaxed">{task}</p>
                   </div>
                 ))}
               </div>
@@ -282,9 +282,9 @@ ${initialEmotionContext}
       )}
 
       <main className="flex-1 flex flex-col p-6 overflow-hidden relative">
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-1.5 bg-navy-card rounded-full border border-white/10 z-20 shadow-2xl">
-          <div className={`size-2 rounded-full ${status === 'open' ? 'bg-accent-neon shadow-[0_0_12px_#00F2FF]' : status === 'connecting' ? 'bg-accent-amber animate-pulse' : 'bg-red-500'}`}></div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-1.5 bg-navy-card rounded-full border border-gray-200 z-20 shadow-card">
+          <div className={`size-2 rounded-full ${status === 'open' ? 'bg-accent-neon shadow-[0_0_12px_#3182F6]' : status === 'connecting' ? 'bg-accent-amber animate-pulse' : 'bg-red-500'}`}></div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
             {status === 'connecting' ? 'SYNCING...' : status === 'open' ? 'VOICE LIVE' : 'STANDBY'}
           </span>
         </div>
@@ -292,7 +292,7 @@ ${initialEmotionContext}
         <div className="flex-1 flex flex-col gap-6 mt-12">
           {/* AI Character Visualizer with Resonance Effect */}
           <div
-             className={`h-[35%] rounded-[3rem] border border-white/5 p-8 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl transition-all duration-1000 ${
+             className={`h-[35%] rounded-[3rem] border border-gray-200 p-8 flex flex-col items-center justify-center relative overflow-hidden shadow-card transition-all duration-1000 ${
                  trustState.trust > 80 ? 'bg-[#0A1A2F] border-primary/30' : 'bg-navy-card'
              }`}
           >
@@ -311,7 +311,7 @@ ${initialEmotionContext}
                    <span className="material-symbols-outlined text-4xl text-navy-deep animate-pulse font-black">mic</span>
                 </div>
                 <div className="absolute -bottom-16 text-center w-full">
-                     <p className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${trustState.trust > 75 ? 'text-primary' : 'text-slate-500'}`}>
+                     <p className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${trustState.trust > 75 ? 'text-primary' : 'text-gray-400'}`}>
                         Team Resonance
                      </p>
                      {trustState.nextHint && (
@@ -341,7 +341,7 @@ ${initialEmotionContext}
           </div>
 
           {/* Transcript Area */}
-          <div ref={scrollRef} className="flex-1 bg-white/5 rounded-[2.5rem] border border-white/10 p-6 overflow-y-auto hide-scrollbar space-y-5">
+          <div ref={scrollRef} className="flex-1 bg-gray-100 rounded-[2.5rem] border border-gray-200 p-6 overflow-y-auto hide-scrollbar space-y-5">
             {transcriptions.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center opacity-20 text-center">
                  <span className="material-symbols-outlined text-5xl mb-3 text-primary">waves</span>
@@ -353,7 +353,7 @@ ${initialEmotionContext}
                   <div className={`max-w-[85%] p-4 rounded-2xl ${
                     t.role === 'user'
                       ? 'bg-primary text-navy-deep font-bold rounded-tr-none'
-                      : 'bg-navy-card text-slate-300 rounded-tl-none border border-white/10'
+                      : 'bg-navy-card text-gray-600 rounded-tl-none border border-gray-200'
                   }`}>
                     <p className="text-[13px] leading-relaxed">{t.text}</p>
                   </div>
@@ -364,8 +364,8 @@ ${initialEmotionContext}
         </div>
       </main>
 
-      <footer className="p-6 pb-12 flex gap-4 bg-[#0A0F1D]/90 backdrop-blur-xl border-t border-white/5 relative z-40">
-        <button onClick={() => navigate('/')} className="flex-1 py-5 rounded-2xl border border-white/10 font-black text-[10px] uppercase tracking-widest text-slate-500">훈련 취소</button>
+      <footer className="p-6 pb-12 flex gap-4 bg-white/90 backdrop-blur-sm border-t border-gray-200 relative z-40">
+        <button onClick={() => navigate('/')} className="flex-1 py-5 rounded-2xl border border-gray-200 font-black text-[10px] uppercase tracking-widest text-gray-400">훈련 취소</button>
         <button
           onClick={saveHistoryAndFinish}
           disabled={transcriptions.length < 1}

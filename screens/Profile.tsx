@@ -69,8 +69,8 @@ const Profile: React.FC = () => {
   const currentRankDetail = selectedRankName ? RANK_DETAILS[selectedRankName] : null;
 
   return (
-    <div className="min-h-screen bg-[#0A0F1D] text-white font-manrope flex flex-col overflow-y-auto">
-      <header className="p-4 flex items-center justify-between sticky top-0 bg-[#0A0F1D]/80 backdrop-blur-md border-b border-white/5 z-10">
+    <div className="min-h-screen bg-gray-50 text-gray-900 font-manrope flex flex-col overflow-y-auto">
+      <header className="p-4 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-200 z-10">
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center border border-primary/40">
             <span className="material-symbols-outlined text-primary">military_tech</span>
@@ -78,10 +78,10 @@ const Profile: React.FC = () => {
           <h1 className="text-lg font-bold">리더 프로필</h1>
         </div>
         <div className="flex items-center gap-3">
-          <button className="p-2"><span className="material-symbols-outlined text-slate-400">notifications</span></button>
+          <button className="p-2"><span className="material-symbols-outlined text-gray-500">notifications</span></button>
           <div className="size-10 rounded-full bg-slate-700 border-2 border-primary overflow-hidden">
             <img 
-              src={`https://ui-avatars.com/api/?name=User&background=00F2FF&color=0A0F1D`} 
+              src={`https://ui-avatars.com/api/?name=User&background=3182F6&color=FFFFFF`} 
               alt="Avatar" 
               className="size-full object-cover" 
             />
@@ -92,14 +92,14 @@ const Profile: React.FC = () => {
       <main className="flex-1 p-6 pb-24 space-y-8">
         {/* User Rank Card */}
         {rank && (
-          <div className="bg-navy-card p-8 rounded-[2.5rem] border border-white/10 relative overflow-hidden shadow-2xl">
+          <div className="bg-navy-card p-8 rounded-[2.5rem] border border-gray-200 relative overflow-hidden shadow-card">
             <div className="absolute -top-10 -right-10 size-40 bg-primary/10 rounded-full blur-3xl"></div>
             
             <div className="flex justify-between items-start mb-4 relative z-10">
               <div>
                 <p className="text-primary text-[10px] font-bold uppercase mb-2 tracking-widest">현재 리더십 랭크</p>
                 <h2 className="text-3xl font-extrabold mb-1 tracking-tighter">{rank.title}</h2>
-                <p className="text-white/60 text-sm font-medium">{rank.subTitle}</p>
+                <p className="text-gray-500 text-sm font-medium">{rank.subTitle}</p>
               </div>
               
               <button 
@@ -107,7 +107,7 @@ const Profile: React.FC = () => {
                   setSelectedRankName(null);
                   setShowRankInfo(true);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-all shadow-[0_0_10px_rgba(0,242,255,0.1)] group"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30 hover:bg-primary/20 transition-all shadow-[0_0_10px_rgba(49,130,246,0.1)] group"
               >
                 <span className="material-symbols-outlined text-sm text-primary font-bold group-hover:scale-110 transition-transform">info</span>
                 <span className="text-[10px] font-black text-primary uppercase tracking-tighter">랭크 안내</span>
@@ -116,10 +116,10 @@ const Profile: React.FC = () => {
 
             <div className="mt-8 space-y-3 relative z-10">
               <div className="flex justify-between text-xs font-bold">
-                <span className="text-slate-500 tracking-tight">Level {rank.level} <span className="mx-1 text-slate-700">/</span> Next Level {rank.level + 1}</span>
+                <span className="text-gray-400 tracking-tight">Level {rank.level} <span className="mx-1 text-gray-500">/</span> Next Level {rank.level + 1}</span>
                 <span className="text-primary font-black">{rank.currentXp} / {rank.nextLevelXp} XP</span>
               </div>
-              <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+              <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden border border-gray-200">
                 <div 
                   className="h-full bg-gradient-to-r from-primary to-primary-dark rounded-full shadow-neon-cyan transition-all duration-1000" 
                   style={{width: `${rank.progress}%`}}
@@ -133,7 +133,7 @@ const Profile: React.FC = () => {
         {showRankInfo && (
           <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowRankInfo(false)}>
              <div 
-               className="w-full max-w-sm bg-navy-card rounded-[3rem] p-8 border border-white/10 shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden" 
+               className="w-full max-w-sm bg-navy-card rounded-[3rem] p-8 border border-gray-200 shadow-card animate-in zoom-in-95 duration-200 overflow-hidden" 
                onClick={e => e.stopPropagation()}
              >
                 {!currentRankDetail ? (
@@ -145,7 +145,7 @@ const Profile: React.FC = () => {
                        </div>
                     </div>
                     <h3 className="text-xl font-black mb-6 text-center italic tracking-tighter uppercase">Leadership Ranking System</h3>
-                    <p className="text-[10px] text-center text-slate-500 mb-6 uppercase tracking-widest">각 단계를 클릭하여 상세 가이드를 확인하세요</p>
+                    <p className="text-[10px] text-center text-gray-400 mb-6 uppercase tracking-widest">각 단계를 클릭하여 상세 가이드를 확인하세요</p>
                     <div className="space-y-3">
                        {Object.keys(RANK_DETAILS).map((key, i) => {
                          const item = RANK_DETAILS[key];
@@ -153,21 +153,21 @@ const Profile: React.FC = () => {
                            <button 
                              key={i} 
                              onClick={() => setSelectedRankName(key)}
-                             className="w-full flex gap-4 p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-primary/30 hover:bg-primary/5 transition-all group text-left"
+                             className="w-full flex gap-4 p-4 bg-gray-100 rounded-2xl border border-gray-200 hover:border-primary/30 hover:bg-primary/5 transition-all group text-left"
                            >
                               <div className="text-[10px] font-black text-primary shrink-0 w-12 pt-0.5">{item.lv}</div>
                               <div className="flex-1">
-                                 <p className="text-sm font-bold text-white group-hover:text-primary transition-colors">{item.name}</p>
-                                 <p className="text-[10px] text-slate-500">{item.definition.slice(0, 22)}...</p>
+                                 <p className="text-sm font-bold text-gray-900 group-hover:text-primary transition-colors">{item.name}</p>
+                                 <p className="text-[10px] text-gray-400">{item.definition.slice(0, 22)}...</p>
                               </div>
-                              <span className="material-symbols-outlined text-slate-700 text-sm group-hover:text-primary transition-colors">chevron_right</span>
+                              <span className="material-symbols-outlined text-gray-500 text-sm group-hover:text-primary transition-colors">chevron_right</span>
                            </button>
                          );
                        })}
                     </div>
                     <button 
                       onClick={() => setShowRankInfo(false)} 
-                      className="w-full mt-8 py-4 bg-white/5 text-slate-400 font-black text-xs uppercase rounded-xl border border-white/5"
+                      className="w-full mt-8 py-4 bg-gray-100 text-gray-500 font-black text-xs uppercase rounded-xl border border-gray-200"
                     >
                       닫기
                     </button>
@@ -189,15 +189,15 @@ const Profile: React.FC = () => {
 
                     <div className="space-y-6 max-h-[400px] overflow-y-auto hide-scrollbar pr-1">
                       <section>
-                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">정의</h4>
-                        <p className="text-sm text-slate-300 leading-relaxed font-medium">{currentRankDetail.definition}</p>
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">정의</h4>
+                        <p className="text-sm text-gray-600 leading-relaxed font-medium">{currentRankDetail.definition}</p>
                       </section>
 
                       <section>
-                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">핵심 특징</h4>
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">핵심 특징</h4>
                         <ul className="space-y-1.5">
                           {currentRankDetail.features.map((f, i) => (
-                            <li key={i} className="text-xs text-slate-400 flex items-start gap-2">
+                            <li key={i} className="text-xs text-gray-500 flex items-start gap-2">
                               <span className="text-primary mt-1 text-[10px]">•</span> {f}
                             </li>
                           ))}
@@ -206,16 +206,16 @@ const Profile: React.FC = () => {
 
                       <section className="bg-primary/5 p-5 rounded-2xl border border-primary/20">
                         <h4 className="text-[10px] font-black text-primary uppercase tracking-widest mb-2">훈련 앱 활용 방안</h4>
-                        <p className="text-xs text-slate-200 leading-relaxed italic">"{currentRankDetail.usage}"</p>
+                        <p className="text-xs text-gray-600 leading-relaxed italic">"{currentRankDetail.usage}"</p>
                       </section>
 
                       <section>
-                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Next Level 추천 액션</h4>
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Next Level 추천 액션</h4>
                         <div className="space-y-2">
                           {currentRankDetail.actions.map((a, i) => (
-                            <div key={i} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
+                            <div key={i} className="flex items-center gap-3 p-3 bg-gray-100 rounded-xl border border-gray-200">
                               <span className="material-symbols-outlined text-primary text-sm">check_circle</span>
-                              <span className="text-xs font-bold text-slate-300">{a}</span>
+                              <span className="text-xs font-bold text-gray-600">{a}</span>
                             </div>
                           ))}
                         </div>
@@ -241,7 +241,7 @@ const Profile: React.FC = () => {
                <span className="material-symbols-outlined text-primary">workspace_premium</span>
                리더십 획득 배지 <span className="text-primary ml-1">{unlockedCount}</span>
              </h3>
-             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Badge Collection</span>
+             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Badge Collection</span>
           </div>
           <div className="grid grid-cols-4 gap-4">
             {badges.map((badge) => (
@@ -252,14 +252,14 @@ const Profile: React.FC = () => {
               >
                 <div className={`size-16 rounded-2xl flex items-center justify-center border transition-all ${
                   badge.isUnlocked 
-                    ? 'bg-white/5 border-white/10 shadow-neon-cyan' 
-                    : 'bg-black/20 border-white/5'
+                    ? 'bg-gray-100 border-gray-200 shadow-neon-cyan' 
+                    : 'bg-black/20 border-gray-200'
                 }`}>
-                  <span className={`material-symbols-outlined text-2xl ${badge.isUnlocked ? badge.color : 'text-slate-500'}`}>
+                  <span className={`material-symbols-outlined text-2xl ${badge.isUnlocked ? badge.color : 'text-gray-400'}`}>
                     {badge.icon}
                   </span>
                 </div>
-                <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">{badge.name}</span>
+                <span className="text-[10px] font-bold text-gray-500 whitespace-nowrap">{badge.name}</span>
               </button>
             ))}
           </div>
@@ -269,7 +269,7 @@ const Profile: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
           <div 
             onClick={() => navigate('/streak')}
-            className="bg-white/5 p-6 rounded-[2rem] border border-white/5 flex flex-col items-center text-center cursor-pointer active:scale-95 transition-all group hover:border-accent-amber/30"
+            className="bg-gray-100 p-6 rounded-[2rem] border border-gray-200 flex flex-col items-center text-center cursor-pointer active:scale-95 transition-all group hover:border-accent-amber/30"
           >
             <div className="size-12 rounded-2xl bg-accent-amber/10 flex items-center justify-center text-accent-amber mb-3 group-hover:shadow-[0_0_15px_rgba(255,184,0,0.2)]">
               <span className="material-symbols-outlined">local_fire_department</span>
@@ -278,9 +278,9 @@ const Profile: React.FC = () => {
           </div>
           <div 
             onClick={() => navigate('/insights')}
-            className="bg-white/5 p-6 rounded-[2rem] border border-white/5 flex flex-col items-center text-center cursor-pointer active:scale-95 transition-all group hover:border-primary/30"
+            className="bg-gray-100 p-6 rounded-[2rem] border border-gray-200 flex flex-col items-center text-center cursor-pointer active:scale-95 transition-all group hover:border-primary/30"
           >
-            <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-3 group-hover:shadow-[0_0_15px_rgba(0,242,255,0.2)]">
+            <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-3 group-hover:shadow-[0_0_15px_rgba(49,130,246,0.2)]">
               <span className="material-symbols-outlined">query_stats</span>
             </div>
             <p className="font-bold text-sm">성과 대시보드</p>
@@ -302,7 +302,7 @@ const Profile: React.FC = () => {
                 <div 
                   key={item.id}
                   onClick={() => navigate(`/history/${item.id}`)}
-                  className="bg-navy-card p-5 rounded-[2rem] border border-white/5 flex items-center justify-between active:scale-[0.98] transition-all hover:border-white/10"
+                  className="bg-navy-card p-5 rounded-[2rem] border border-gray-200 flex items-center justify-between active:scale-[0.98] transition-all hover:border-gray-200"
                 >
                   <div className="flex items-center gap-4">
                     <div className={`size-11 rounded-xl flex items-center justify-center ${item.type === 'voice' ? 'bg-primary/20 text-primary' : 'bg-accent-neon/20 text-accent-neon'}`}>
@@ -310,15 +310,15 @@ const Profile: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-sm font-bold truncate max-w-[150px]">{item.scenarioTitle}</p>
-                      <p className="text-[10px] text-slate-500 font-medium uppercase">{item.memberName} • {new Date(item.date).toLocaleDateString()}</p>
+                      <p className="text-[10px] text-gray-400 font-medium uppercase">{item.memberName} • {new Date(item.date).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <span className="material-symbols-outlined text-slate-600 text-lg">arrow_forward_ios</span>
+                  <span className="material-symbols-outlined text-gray-400 text-lg">arrow_forward_ios</span>
                 </div>
               ))
             ) : (
-              <div className="py-12 text-center bg-white/5 rounded-[2.5rem] border border-dashed border-white/10">
-                <p className="text-sm text-slate-500 font-medium">아직 저장된 대화가 없습니다.</p>
+              <div className="py-12 text-center bg-gray-100 rounded-[2.5rem] border border-dashed border-gray-200">
+                <p className="text-sm text-gray-400 font-medium">아직 저장된 대화가 없습니다.</p>
               </div>
             )}
           </div>
@@ -332,21 +332,21 @@ const Profile: React.FC = () => {
           onClick={() => setSelectedBadge(null)}
         >
           <div 
-            className="w-full max-w-sm bg-navy-card rounded-[3rem] p-8 border border-white/10 shadow-2xl text-center flex flex-col items-center"
+            className="w-full max-w-sm bg-navy-card rounded-[3rem] p-8 border border-gray-200 shadow-card text-center flex flex-col items-center"
             onClick={e => e.stopPropagation()}
           >
-            <div className={`size-24 rounded-[2rem] flex items-center justify-center border mb-6 ${selectedBadge.isUnlocked ? 'bg-white/5 border-primary/30 shadow-neon-cyan' : 'bg-black/40 border-white/5'}`}>
-              <span className={`material-symbols-outlined text-5xl ${selectedBadge.isUnlocked ? selectedBadge.color : 'text-slate-700'}`}>
+            <div className={`size-24 rounded-[2rem] flex items-center justify-center border mb-6 ${selectedBadge.isUnlocked ? 'bg-gray-100 border-primary/30 shadow-neon-cyan' : 'bg-gray-900/40 border-gray-200'}`}>
+              <span className={`material-symbols-outlined text-5xl ${selectedBadge.isUnlocked ? selectedBadge.color : 'text-gray-500'}`}>
                 {selectedBadge.icon}
               </span>
             </div>
             <h3 className="text-2xl font-black mb-2">{selectedBadge.name}</h3>
-            <p className="text-slate-400 text-sm leading-relaxed mb-6 font-medium">
+            <p className="text-gray-500 text-sm leading-relaxed mb-6 font-medium">
               {selectedBadge.description}
             </p>
-            <div className="w-full bg-white/5 p-5 rounded-2xl border border-white/5 mb-8">
-               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">획득 조건</p>
-               <p className={`text-sm font-bold ${selectedBadge.isUnlocked ? 'text-primary' : 'text-slate-400'}`}>
+            <div className="w-full bg-gray-100 p-5 rounded-2xl border border-gray-200 mb-8">
+               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">획득 조건</p>
+               <p className={`text-sm font-bold ${selectedBadge.isUnlocked ? 'text-primary' : 'text-gray-500'}`}>
                  {selectedBadge.condition}
                </p>
             </div>
