@@ -16,6 +16,7 @@ import StreakDetail from './screens/StreakDetail';
 import AdminDashboard from './screens/AdminDashboard';
 import HistoryList from './screens/HistoryList';
 import HistoryDetail from './screens/HistoryDetail';
+import Shop from './screens/Shop';
 import Navigation from './components/Navigation';
 
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -26,10 +27,8 @@ const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   return (
     <div className="min-h-screen bg-navy-deep flex flex-col lg:flex-row">
       {showNav && <Navigation />}
-      <main className={`flex-1 transition-all duration-300 ${showNav ? 'lg:ml-64' : ''}`}>
-        <div className="max-w-screen-2xl mx-auto h-full overflow-x-hidden">
-          {children}
-        </div>
+      <main className={`flex-1 min-h-screen transition-all duration-300 ${showNav ? 'lg:ml-72' : ''}`}>
+        {children}
       </main>
     </div>
   );
@@ -54,6 +53,7 @@ const App: React.FC = () => {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/history" element={<HistoryList />} />
           <Route path="/history/:id" element={<HistoryDetail />} />
+          <Route path="/shop" element={<Shop />} />
         </Routes>
       </LayoutWrapper>
     </HashRouter>

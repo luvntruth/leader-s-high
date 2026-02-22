@@ -1,14 +1,43 @@
 
 export interface MissionBriefing {
-  theory: string;
+  statusSummary: {
+    psychState: string;        // 현재 심리 상태
+    strengths: string[];       // 핵심 강점
+    weaknesses: string[];      // 핵심 약점
+    performance: string[];     // 최근 3개년 고과 (상/중/하 또는 구체적 피드백)
+  };
+  competencyData: {
+    performance: number;       // 성과
+    stress: number;            // 스트레스
+    potential: number;         // 성장 잠재력
+    loyalty: number;           // 충성도
+    communication: number;     // 소통
+  };
+  history?: {
+    type: string;
+    text: string;
+    date: string;
+  }[];
   idealState: string;
+  theory: string;
   tasks: string[];
 }
 
 export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
   'late-comer': {
-    theory: "SBI 피드백 모델 (Situation-Behavior-Impact)",
+    statusSummary: {
+      psychState: "불안과 미안함이 섞여 있으나, 반복되는 지각으로 인해 무뎌진 상태",
+      strengths: ["빠른 업무 습득", "팀원들과의 원만한 관계"],
+      weaknesses: ["시간 관리 미흡", "마감 직전 집중력 저조"],
+      performance: ["2023: 준수(B+)", "2024: 우수(A)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 85, stress: 45, potential: 90, loyalty: 60, communication: 75 },
+    history: [
+      { type: "COACHING SESSION", text: "지각 횟수가 늘고 있어요. 시간 관리에 신경 써주세요.", date: "2026.01.12" },
+      { type: "CASUAL TALK", text: "업무 효율은 좋은데 출근 시간이 불규칙하네요.", date: "2025.12.20" }
+    ],
     idealState: "지각이 '팀의 신뢰 비용'을 발생시킴을 인지하고, 구체적인 개선 행동(Behavior)을 약속한 상태",
+    theory: "상호 신뢰와 책임 모델",
     tasks: [
       "비난 대신 관찰된 사실(시간)과 그로 인한 팀의 영향(Impact)을 연결하여 전달하세요.",
       "팀원이 자신의 지각이 동료들의 심리적 안전감을 해친다는 것을 스스로 말하게 유도하세요.",
@@ -16,8 +45,19 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'team-clash': {
-    theory: "LMX (리더-구성원 교환) 관계 이론",
+    statusSummary: {
+      psychState: "자신의 전문성이 침해받는다고 느껴 공격적이고 방어적인 상태",
+      strengths: ["독보적인 기술 전문성", "철저한 업무 책임감"],
+      weaknesses: ["협업 소통 부족", "새로운 방식에 대한 거부감"],
+      performance: ["2023: 최우수(S)", "2024: 최우수(S)", "2025: 우수(A)"]
+    },
+    competencyData: { performance: 95, stress: 80, potential: 70, loyalty: 85, communication: 40 },
+    history: [
+      { type: "CONFLICT MANAGEMENT", text: "제 방식이 맞아요. 다른 팀원들이 이해를 못 하는 겁니다.", date: "2026.02.05" },
+      { type: "TECHNICAL REVIEW", text: "레거시 코드를 건드리는 건 리스크가 너무 큽니다.", date: "2026.01.15" }
+    ],
     idealState: "시니어의 경험을 존중하되, 의사결정 체계(Hierarchy)는 명확히 재정립된 '상호 존중' 상태",
+    theory: "Hierarchy & Respect 모델",
     tasks: [
       "시니어의 과거 경험을 '존중받아야 할 자산'으로 명명하여 심리적 저항을 낮추세요.",
       "의사결정의 권한은 리더에게 있음을 명확히 하되, 자문(Advisory) 역할을 공식적으로 부여하세요.",
@@ -25,8 +65,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'boundaries': {
-    theory: "경계 설정 이론 (Boundary Theory)",
+    statusSummary: {
+      psychState: "개인의 삶을 보호하려는 의지가 강하며 업무 과부하에 민감한 상태",
+      strengths: ["정확한 마감 준수", "효율적인 시간 배분"],
+      weaknesses: ["팀 긴급 상황 협조 부족", "업무외 책임 공유 기피"],
+      performance: ["2023: 준수(B)", "2024: 준수(B+)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 75, stress: 30, potential: 65, loyalty: 50, communication: 80 },
     idealState: "개인의 워라밸을 지키면서도, 팀의 비상 상황에서는 유연하게 기여(Commitment)하기로 합의된 상태",
+    theory: "Commitment & Boundary 모델",
     tasks: [
       "칼퇴근 자체를 비난하지 말고, 현재 상황의 특수성(Emergency)을 비즈니스 관점에서 설명하세요.",
       "팀원이 우려하는 '개인 시간 침해'가 일회성임을 약속하고 안전감을 주세요.",
@@ -34,8 +81,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'feedback-defense': {
-    theory: "방어 기제 (Defense Mechanisms) 분석",
-    idealState: "피드백을 인격 모독이 아닌 '업무 데이터 교정'으로 받아들이고, 변명 대신 대안을 제시하는 상태",
+    statusSummary: {
+      psychState: "자신의 실수를 인정하는 것을 극도로 두려워하며 자기방어 기제가 최고조에 달한 상태",
+      strengths: ["빠른 문제 인지", "강한 자존감"],
+      weaknesses: ["자기 비판 능력 부족", "피드백 수용성 저하"],
+      performance: ["2023: 준수(B+)", "2024: 준수(B)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 80, stress: 70, potential: 75, loyalty: 65, communication: 30 },
+    idealState: "팀원의 방어 기제가 '두려움'에서 기인했음을 인지하고, 심리적 안전감을 확보한 '정직한 소통' 상태",
+    theory: "심리적 안전감(Psychological Safety)",
     tasks: [
       "팀원의 방어 기제가 '두려움'에서 기인했음을 인지하고, 심리적 안전감을 먼저 확보하세요.",
       "'너의 잘못'이 아닌 '우리가 해결해야 할 프로세스 문제'로 프레임을 전환하세요.",
@@ -43,8 +97,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'low-motivation': {
-    theory: "자기결정성 이론 (SDT - Autonomy)",
+    statusSummary: {
+      psychState: "번아웃 전조 증상을 보이며, 업무의 의미와 주도성을 상실해 냉소적으로 변한 상태",
+      strengths: ["꼼꼼한 업무 처리", "안정적인 시스템 관리"],
+      weaknesses: ["에너지 고갈", "새로운 제안에 소극적"],
+      performance: ["2023: 우수(A)", "2024: 준수(B+)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 75, stress: 90, potential: 80, loyalty: 40, communication: 60 },
     idealState: "통제받는 느낌에서 벗어나, 업무의 주도권(Autonomy)을 회복하고 작은 성취를 목표로 설정한 상태",
+    theory: "자발성 및 주도성 이론",
     tasks: [
       "현재 느끼는 무력감의 원인이 '통제감 상실'인지 '의미 상실'인지 파악하세요.",
       "과거에 그가 가장 빛났던 순간을 상기시키며 유능감(Competence)을 자극하세요.",
@@ -52,8 +113,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'change-resistance': {
-    theory: "ADKAR 변화 관리 모델",
+    statusSummary: {
+      psychState: "과거의 성공 방식에 집착하며, 변화를 위협으로 간주해 불안해하는 상태",
+      strengths: ["기존 프로세스 숙달", "팀원들과의 돈독한 유대"],
+      weaknesses: ["유연성 부족", "학습 의지 저하"],
+      performance: ["2023: 우수(A)", "2024: 준수(B+)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 80, stress: 65, potential: 50, loyalty: 90, communication: 70 },
     idealState: "변화의 필요성(Awareness)을 인정하고, 새로운 방식에 참여하려는 욕구(Desire)를 표현하는 상태",
+    theory: "ADKAR 변화 관리 모델",
     tasks: [
       "과거 방식의 기여를 충분히 인정하여 '부정당했다'는 느낌을 지워주세요.",
       "새로운 툴 도입이 그에게 가져다줄 실질적인 이익(Benefit)을 구체적으로 제시하세요.",
@@ -61,8 +129,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'promotion-fail': {
-    theory: "퀴블러-로스 변화 곡선 (분노→수용)",
+    statusSummary: {
+      psychState: "인사 고과 탈락으로 인해 분노와 좌절감이 섞여 있으며, 회사의 평가 시스템을 불신하는 상태",
+      strengths: ["높은 업무 열정", "과거의 우수한 성과"],
+      weaknesses: ["감정 조절 부족", "결과에 대한 과도한 집착"],
+      performance: ["2023: 우수(A)", "2024: 우수(A)", "2025: 미흡(C)"]
+    },
+    competencyData: { performance: 60, stress: 95, potential: 85, loyalty: 30, communication: 50 },
     idealState: "감정적 분노 단계를 지나, 다음 기회를 위해 부족했던 역량(Gap)을 객관적으로 직시하는 상태",
+    theory: "회복 탄력성 및 성장 마인드셋",
     tasks: [
       "충분한 감정 배설의 시간을 허용하고, 위로보다는 '경청'에 집중하세요.",
       "탈락의 원인을 모호하게 포장하지 말고, 데이터 기반으로 명확히 피드백하세요.",
@@ -70,8 +145,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'quiet-quitting': {
-    theory: "잡 크래프팅 (Job Crafting)",
+    statusSummary: {
+      psychState: "회사에 대한 기대를 접고 최소한의 업무만 수행하며, 심리적으로 이미 이직한 상태",
+      strengths: ["안정적인 루틴 업무", "명확한 선 긋기"],
+      weaknesses: ["주도성 전멸", "팀 기여 의지 부족"],
+      performance: ["2023: 준수(B+)", "2024: 보통(B)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 70, stress: 20, potential: 40, loyalty: 20, communication: 60 },
     idealState: "주어진 업무 안에서 본인이 흥미를 느끼는 요소를 재발견하고, 최소한의 몰입(Engagement)을 회복한 상태",
+    theory: "몰입(Engagement) 모델",
     tasks: [
       "업무와 개인의 삶을 완전히 분리하려는 태도를 존중하되, '프로의 책임' 선을 명확히 하세요.",
       "현재 업무 중 그나마 그가 흥미를 느끼는 부분을 찾아 확장시켜주세요.",
@@ -79,8 +161,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'micro-management': {
-    theory: "신뢰 방정식 (Trust Equation)",
+    statusSummary: {
+      psychState: "리더의 잦은 개입으로 인해 자율성을 상실하고, 감시받는다는 불쾌감과 무력감을 느끼는 상태",
+      strengths: ["세밀한 실행력", "정확한 보고"],
+      weaknesses: ["의사결정 주저", "리더 의존성 심화"],
+      performance: ["2023: 준수(B+)", "2024: 준수(B+)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 80, stress: 85, potential: 75, loyalty: 70, communication: 50 },
     idealState: "중간 보고가 '감시'가 아닌 '신뢰 비용을 낮추는 투자'임을 이해하고, 자발적 공유를 약속한 상태",
+    theory: "신뢰 투자 가이드",
     tasks: [
       "잦은 확인은 '못 믿어서'가 아니라 '리스크 관리' 차원임을 비즈니스 언어로 설명하세요.",
       "결과물의 퀄리티가 확보되면 확인 빈도를 줄이겠다는 조건부 위임을 제안하세요.",
@@ -88,8 +177,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'skill-gap': {
-    theory: "상황적 리더십 (Situational Leadership II)",
+    statusSummary: {
+      psychState: "의욕은 넘치나 실제 역량이 업무 난이도를 따라가지 못해 실수가 잦고 초조해하는 상태",
+      strengths: ["높은 학습 의지", "긍정적인 마인드"],
+      weaknesses: ["업무 완성도 미흡", "리스크 감지 능력 부족"],
+      performance: ["2023: 신입/해당없음", "2024: 보통(B)", "2025: 미흡(C)"]
+    },
+    competencyData: { performance: 40, stress: 70, potential: 95, loyalty: 85, communication: 90 },
     idealState: "자신의 역량 부족(Gap)을 메타인지하고, 의욕을 앞세우기보다 구체적인 학습 계획을 수립한 상태",
+    theory: "Situational Leadership II",
     tasks: [
       "열정은 높이 사되, 결과물의 결함이 팀에 미치는 리스크를 냉정하게 짚어주세요.",
       "'알아서 해보라'는 위임 대신, 구체적인 지시(Directing) 단계로 리더십을 전환하세요.",
@@ -97,8 +193,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'remote-isolation': {
-    theory: "근접성 편향 (Proximity Bias) 극복",
+    statusSummary: {
+      psychState: "물리적 거리로 인해 팀과의 연결감이 약해지고 소외감을 느끼고 있는 상태",
+      strengths: ["독립적 업무 수행", "비대면 툴 숙달"],
+      weaknesses: ["정보 고립", "정서적 유대감 저하"],
+      performance: ["2023: 준수(B+)", "2024: 준수(B+)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 80, stress: 65, potential: 70, loyalty: 50, communication: 40 },
     idealState: "물리적 거리가 심리적 거리로 이어지지 않음을 확인하고, 랜선 너머의 '실재감(Presence)'을 회복한 상태",
+    theory: "Social Presence 이론",
     tasks: [
       "업무 이야기 전, 정서적인 스몰토크(Rapport)로 연결감을 먼저 확보하세요.",
       "비언어적 소통(카메라 켜기, 반응하기)이 협업에 필수적인 예의임을 설득하세요.",
@@ -106,8 +209,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'inter-gen-clash': {
-    theory: "비폭력 대화 (NVC)",
+    statusSummary: {
+      psychState: "서로 다른 가치관과 소통 방식의 차이로 인해 상대방을 '이해 불가' 대상으로 규정한 상태",
+      strengths: ["확고한 소신", "직무 전문성"],
+      weaknesses: ["수용성 부족", "편견 섞인 대화"],
+      performance: ["2023: 우수(A)", "2024: 준수(B+)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 85, stress: 75, potential: 60, loyalty: 70, communication: 20 },
     idealState: "세대 차이를 '틀림'이 아닌 '다름'으로 인식하고, 양측의 입장을 중재할 수 있는 완충 지대를 형성한 상태",
+    theory: "DEI(다양성, 형평성, 포용성)",
     tasks: [
       "양쪽의 입장을 모두 공감해주되, 전언(傳言)하지 말고 직접 소통하게 유도하세요.",
       "서로 다른 업무 스타일이 팀의 다양성(Diversity)에 기여할 수 있음을 재정의하세요.",
@@ -115,8 +225,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'over-commitment': {
-    theory: "에센셜리즘 (Essentialism)",
+    statusSummary: {
+      psychState: "거절하지 못하는 성격으로 인해 과도한 업무를 떠안아 에너지가 고갈되기 직전인 상태",
+      strengths: ["타인 조력", "높은 책임감"],
+      weaknesses: ["우선순위 혼선", "자기 희생적 태도"],
+      performance: ["2023: 준수(B+)", "2024: 우수(A)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 75, stress: 95, potential: 80, loyalty: 90, communication: 80 },
     idealState: "'거절'이 나쁜 것이 아님을 인지하고, 우리 팀의 목표(Priority)를 위해 외부 요청을 차단하기로 한 상태",
+    theory: "Priority Focus 모델",
     tasks: [
       "착한 사람(Nice Guy)이 되려는 욕구가 팀의 성과를 갉아먹고 있음을 직면시키세요.",
       "모든 것을 다 하려는 것은 아무것도 제대로 못 하는 것과 같음을 상기시키세요.",
@@ -124,8 +241,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'negativity-virus': {
-    theory: "정서적 전염 (Emotional Contagion)",
+    statusSummary: {
+      psychState: "조직 전반에 대한 깊은 불신을 가지고 있으며, 주변 동료들에게 부정적인 에너지를 전파하는 상태",
+      strengths: ["비판적 사고", "리스크 감지"],
+      weaknesses: ["냉소주의", "팀 화합 저해"],
+      performance: ["2023: 보통(B)", "2024: 미흡(C)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 65, stress: 80, potential: 50, loyalty: 10, communication: 30 },
     idealState: "자신의 부정적 언어가 팀 분위기를 오염시키고 있음을 자각하고, 불만 표출 방식을 공식 채널로 한정한 상태",
+    theory: "Morale & Culture 관리",
     tasks: [
       "농담으로 포장된 냉소를 묵인하지 말고, 듣는 즉시 정색하며 제지(Confront)하세요.",
       "불만의 내용(Content)과 태도(Attitude)를 분리하여, 태도 문제를 엄중히 경고하세요.",
@@ -133,8 +257,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'career-pivot': {
-    theory: "커리어 구성 이론 (Career Construction)",
+    statusSummary: {
+      psychState: "현재 직무에서 더 이상의 성장을 느끼지 못하고, 새로운 커리어로의 전환을 심각하게 고민하는 상태",
+      strengths: ["지적 호기심", "커리어 설계 능력"],
+      weaknesses: ["현재 업무 몰입도 저하", "방황하는 태도"],
+      performance: ["2023: 우수(A)", "2024: 준수(B+)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 70, stress: 60, potential: 95, loyalty: 30, communication: 75 },
     idealState: "현재 직무에서의 성과가 미래 커리어 전환의 훌륭한 포트폴리오가 됨을 깨닫고, 유종의 미를 약속한 상태",
+    theory: "IDP(개별 개발 계획)",
     tasks: [
       "떠나고 싶은 마음을 비난하지 말고, 그의 커리어 고민을 진심으로 경청하세요.",
       "현재 맡은 프로젝트의 성공이 이직/전직 시 강력한 무기가 됨을 설득하세요.",
@@ -142,8 +273,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'transparency-demand': {
-    theory: "공정성 이론 (Equity Theory)",
+    statusSummary: {
+      psychState: "의사결정 과정이 불투명하다고 느끼며, 모든 정보의 완전한 공개를 강력히 요구하는 상태",
+      strengths: ["공정성 중시", "논리적 판단"],
+      weaknesses: ["수용성 저하", "공격적인 태도"],
+      performance: ["2023: 준수(B+)", "2024: 준수(B+)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 80, stress: 70, potential: 70, loyalty: 50, communication: 40 },
     idealState: "평가 결과 자체는 아쉽더라도, 평가 기준과 절차의 투명성(Procedural Justice)에는 납득한 상태",
+    theory: "절차적 공정성 이론",
     tasks: [
       "감정적 대응을 자제하고, 평가 기준표(Rubric)를 펴놓고 팩트 대 팩트로 대화하세요.",
       "동료와의 비교가 아닌, 절대적인 성과 달성도에 초점을 맞추세요.",
@@ -151,8 +289,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'quality-vs-speed': {
-    theory: "파레토 법칙 (80/20 Rule)",
+    statusSummary: {
+      psychState: "장인 정신이 과하여 납기를 맞추는 것보다 완벽한 품질을 만드는 것에만 집착하는 상태",
+      strengths: ["디테일", "완성도 중심"],
+      weaknesses: ["납기 지연", "비즈니스 마인드 부족"],
+      performance: ["2023: 우수(A)", "2024: 우수(A)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 90, stress: 60, potential: 80, loyalty: 85, communication: 50 },
     idealState: "비즈니스에서는 '완벽'보다 '적시성(Timing)'이 더 중요한 품질임을 깨닫고, MVP 마인드셋을 수용한 상태",
+    theory: "MVP(최소 기능 제품) 사고 방식",
     tasks: [
       "장인 정신은 존중하되, 납기를 어기는 것은 프로답지 않음을 강조하세요.",
       "80%의 완성도로 빠르게 피드백을 받는 것이 결과적으로 퀄리티를 높임을 설득하세요.",
@@ -160,8 +305,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'hidden-agenda': {
-    theory: "원칙 중심 협상 (Principled Negotiation)",
+    statusSummary: {
+      psychState: "표면적으로는 협조하는 척하나 뒤에서는 본인의 사적 이익이나 정치를 우선시하는 상태",
+      strengths: ["정무 감각", "전략적 소통"],
+      weaknesses: ["진정성 부족", "팀워크 저해"],
+      performance: ["2023: 준수(B+)", "2024: 보통(B)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 75, stress: 50, potential: 60, loyalty: 30, communication: 60 },
     idealState: "표면적인 갈등 뒤에 숨겨진 진짜 욕구(Interest)를 드러내고, 정치질 대신 실력으로 경쟁하기로 한 상태",
+    theory: "Interest-Based Negotiation",
     tasks: [
       "빙 돌려 말하는 화법을 차단하고, 원하는 바가 무엇인지 직설적으로 물어보세요.",
       "팀 내 파벌 형성이 결국 본인의 평판 리스크가 됨을 경고하세요.",
@@ -169,8 +321,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'recognition-starve': {
-    theory: "강화 이론 (Reinforcement Theory)",
+    statusSummary: {
+      psychState: "주변의 끊임없는 칭찬과 인정을 갈구하며, 피드백이 늦어지면 극심한 불안을 느끼는 상태",
+      strengths: ["인정 시 폭발적 성과", "성실한 태도"],
+      weaknesses: ["낮은 자존감", "정서적 의존"],
+      performance: ["2023: 준수(B+)", "2024: 우수(A)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 80, stress: 70, potential: 70, loyalty: 85, communication: 90 },
     idealState: "외부의 칭찬 없이도 스스로 성취감을 느끼는 내재적 동기(Intrinsic Motivation) 단계로 진입을 시도하는 상태",
+    theory: "내재적 동기 이론",
     tasks: [
       "결과에 대한 칭찬보다 과정과 노력에 대한 격려(Encouragement)로 전환하세요.",
       "매번 리더에게 확인받지 않고 스스로 판단하고 결정할 기회를 주세요.",
@@ -178,8 +337,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'tech-debt': {
-    theory: "기술 부채 메타포 (Technical Debt)",
+    statusSummary: {
+      psychState: "급하게 구현된 코드로 인한 기술 부채를 견디지 못하며, 당장의 비즈니스 로직 구현에 환멸을 느끼는 상태",
+      strengths: ["엔지니어링 전문성", "설계 능력"],
+      weaknesses: ["비즈니스 이해도 부족", "타협 없는 태도"],
+      performance: ["2023: 준수(B+)", "2024: 우수(A)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 85, stress: 80, potential: 90, loyalty: 70, communication: 30 },
     idealState: "비즈니스 속도와 기술적 완성도 사이의 트레이드오프(Trade-off)를 이해하고, 단계적 리팩토링 계획에 합의한 상태",
+    theory: "기술 부채(Tech Debt) 관리",
     tasks: [
       "개발자의 장인 정신을 존중하되, 회사의 생존(매출/런칭)이 우선임을 설득하세요.",
       "'나중에 반드시 고친다'는 약속을 하고 이를 문서화하여 신뢰를 주세요.",
@@ -187,8 +353,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'passive-aggressive-meeting': {
-    theory: "자기주장 훈련 (Assertiveness Training)",
+    statusSummary: {
+      psychState: "회의 때는 침묵하거나 동의하는 척하지만, 실제로는 행동하지 않거나 뒤에서 반박하는 수동적 공격 상태",
+      strengths: ["표면적 원만함", "실행 약속"],
+      weaknesses: ["진실성 결여", "신뢰 파괴"],
+      performance: ["2023: 보통(B)", "2024: 준수(B+)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 70, stress: 60, potential: 60, loyalty: 40, communication: 20 },
     idealState: "뒤에서 불평하는 대신, 회의 시간 내에 자신의 반대 의견을 논리적으로 개진하는 건설적 대립자가 된 상태",
+    theory: "건설적 대립(Constructive Confrontation)",
     tasks: [
       "침묵은 동의가 아님을 주지시키고, 회의 중 반드시 발언권을 강제로라도 부여하세요.",
       "뒤에서 하는 말은 효력이 없으며, 오직 회의록에 남은 말만 유효함을 선언하세요.",
@@ -196,8 +369,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'fragile-ego-feedback': {
-    theory: "급진적 솔직함 (Radical Candor)",
+    statusSummary: {
+      psychState: "작은 피드백에도 인격적 공격을 받았다고 느끼며, 감정적으로 무너져 대화가 불가능해지는 상태",
+      strengths: ["풍부한 감수성", "팀 분위기 메이커"],
+      weaknesses: ["회복 탄력성 부족", "과도한 일반화"],
+      performance: ["2023: 준수(B+)", "2024: 보통(B)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 75, stress: 85, potential: 70, loyalty: 80, communication: 70 },
     idealState: "리더의 피드백이 '개인적 공격(Personal Attack)'이 아니라 '성장을 위한 챌린지'임을 신뢰하게 된 상태",
+    theory: "피드백 회복 탄력성",
     tasks: [
       "'당신을 인간적으로 아끼기 때문에' 하기 힘든 말을 한다는 진정성을 먼저 전하세요.",
       "눈물이나 감정 호소에 당황하여 피드백을 철회하거나 톤을 낮추지 마세요.",
@@ -205,17 +385,35 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'selective-work-allergy': {
-    theory: "조직 시민 행동 (OCB)",
-    idealState: "화려한 성과뿐만 아니라, 눈에 띄지 않는 기여(설거지 업무)도 팀워크의 필수 요소임을 인정한 상태",
+    statusSummary: {
+      psychState: "화려하고 노출이 많은 업무(발표, 기획 등)에는 열의를 보이나, 팀 운영을 위한 기초 업무나 궂은 일은 숙련도 부족을 핑계로 교묘히 회피하는 '체리피킹(Cherry-picking)' 상태",
+      strengths: ["탁월한 성과 마케팅", "핵심 임원과의 네트워킹", "프레젠테이션 스킬"],
+      weaknesses: ["무임승차 태도", "데이터 정리 등 기초 작업 소홀", "동료간 업무 불균형 야기"],
+      performance: ["2023: 보통(B)", "2024: 우수(A)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 85, stress: 20, potential: 70, loyalty: 30, communication: 90 },
+    history: [
+      { type: "회의 참여", text: "팀장님, 그 전략 분석은 제가 할게요. 근데 자료 조사는 다른 분이 좀 해주셔야 할 것 같아요.", date: "2026.02.10" },
+      { type: "피드백 영수", text: "왜 제가 이런 단순 반복 업무까지 해야 하는지 모르겠네요. 제 역량 낭비 아닌가요?", date: "2026.01.25" }
+    ],
+    idealState: "화려한 성과뿐만 아니라, 보이지 않는 곳에서의 기여가 팀워크의 근간임을 인정하고, 공평한 업무 분담에 동의한 상태",
+    theory: "협업 엔지니어링 모델",
     tasks: [
-      "성과 평가에 '동료 지원'과 '협업 태도'가 포함됨을 명확히 고지하세요.",
-      "체리피킹(Cherry Picking)이 동료들에게 주는 박탈감을 구체적으로 언급하세요.",
-      "궂은 일을 맡는 것이 리더십을 증명하는 기회임을 역설하세요."
+      "성과 평가에 '동료 지원'과 '협업 태도'가 실질적인 데이터로 반영됨을 명확히 고지하세요.",
+      "그의 행동이 팀 전체의 사기(Morale)에 미치는 악영향을 냉정하게 데이터로 제시하세요.",
+      "생색나는 일 대신, 팀에 꼭 필요하지만 아무도 안 하려는 일을 맡겨 리더십 자질을 테스트하세요."
     ]
   },
   'growth-refusal': {
-    theory: "고정 마인드셋 vs 성장 마인드셋",
+    statusSummary: {
+      psychState: "현재 자신의 역량에 안주하며, 새로운 기술이나 변화된 환경에 적응하기를 완강히 거부하는 상태",
+      strengths: ["기존 도메인 숙련", "우직함"],
+      weaknesses: ["학습 민첩성 저조", "고정 마인드셋"],
+      performance: ["2023: 우수(A)", "2024: 준수(B+)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 70, stress: 50, potential: 20, loyalty: 90, communication: 60 },
     idealState: "현재의 전문성을 유지하기 위해서라도 새로운 학습이 필수적임을 깨닫고, 최소한의 변화를 수용한 상태",
+    theory: "Lifelong Learning 모델",
     tasks: [
       "안주하는 것은 현상 유지가 아니라 도태되는 것임을 업계 변화를 들어 설명하세요.",
       "거창한 목표 대신, 부담 없이 시도할 수 있는 마이크로 러닝을 제안하세요.",
@@ -223,8 +421,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'side-project-overload': {
-    theory: "이해 상충 (Conflict of Interest) 관리",
+    statusSummary: {
+      psychState: "본업보다 부업(사이드 프로젝트)에 더 많은 에너지를 쏟고 있으며, 근무 시간 중에도 집중하지 못하는 상태",
+      strengths: ["높은 주도성", "다양한 경험"],
+      weaknesses: ["본업 몰입도 결여", "전문성 분산"],
+      performance: ["2023: 우수(A)", "2024: 준수(B+)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 60, stress: 50, potential: 90, loyalty: 20, communication: 80 },
     idealState: "근무 시간에는 본업에 100% 몰입(Deep Work)하고, 부업은 철저히 업무 외 시간으로 분리하기로 약속한 상태",
+    theory: "Deep Work & Focus Management",
     tasks: [
       "개인의 경제 활동은 존중하되, 근로 계약상의 '성실 의무' 위반은 묵과할 수 없음을 경고하세요.",
       "업무 집중도 저하가 동료들에게 피해를 주고 있음을 팩트로 지적하세요.",
@@ -232,8 +437,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'stealing-credit-misconception': {
-    theory: "귀인 이론 (Attribution Theory)",
+    statusSummary: {
+      psychState: "리더가 자신의 아이디어나 성과를 가로채간다고 오해하며, 피해 의식과 강한 반발심을 가진 상태",
+      strengths: ["창의적 아이디어", "강한 소유권"],
+      weaknesses: ["피해 망상", "신뢰 부재"],
+      performance: ["2023: 준수(B+)", "2024: 우수(A)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 85, stress: 80, potential: 80, loyalty: 30, communication: 30 },
     idealState: "팀장의 역할이 '성과 가로채기'가 아닌 '성과의 판을 깔아주는 것'임을 이해하고, 오해를 푼 상태",
+    theory: "서번트 리더십(Servant Leadership)",
     tasks: [
       "팀 전체 성과 보고 프로세스를 투명하게 공개하여 불신을 해소하세요.",
       "상위 리더에게 해당 팀원의 기여를 구체적으로 언급했음을 증명하세요.",
@@ -241,8 +453,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'informal-leader': {
-    theory: "사회 정체성 이론 (Social Identity Theory)",
+    statusSummary: {
+      psychState: "팀 내에서 공식 리더보다 더 강력한 영향력을 행사하며, 은근히 리더의 권위에 도전하는 상태",
+      strengths: ["강력한 여론 주도", "동료 신뢰"],
+      weaknesses: ["비공식 권력 남용", "조직 체계 교란"],
+      performance: ["2023: 우수(A)", "2024: 우수(A)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 90, stress: 40, potential: 85, loyalty: 40, communication: 90 },
     idealState: "비공식적 영향력을 리더십에 대항하는 데 쓰지 않고, 팀장을 보좌하여 팀을 이끄는 데 쓰기로 협력한 상태",
+    theory: "비공식 리더십 매니지먼트",
     tasks: [
       "그의 영향력을 인정해주고, 공식적인 '파트너'로서 존중을 표하세요.",
       "뒤에서 흔드는 대신 앞에서 공식적으로 의견을 개진해달라고 요청하세요.",
@@ -250,8 +469,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'selective-honesty': {
-    theory: "공감적 대화 (Empathetic Communication)",
+    statusSummary: {
+      psychState: "솔직함이라는 명목 하에 동료들에게 무례한 언행을 일삼으며, 자신의 태도가 문제임을 인지하지 못하는 상태",
+      strengths: ["직설적 정보 전달", "명확성"],
+      weaknesses: ["공감 지수 제로", "팀 분위기 경색"],
+      performance: ["2023: 준수(B+)", "2024: 보통(B)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 75, stress: 30, potential: 60, loyalty: 70, communication: 10 },
     idealState: "무례함과 솔직함의 차이를 인지하고, 할 말은 하되 상대를 배려하는 화법(Filter)을 갖추기로 한 상태",
+    theory: "건설적 솔직함(Radical Candor)",
     tasks: [
       "'솔직함'이 면죄부가 될 수 없으며, 의도가 좋아도 결과가 나쁘면 소통 실패임을 지적하세요.",
       "상처받은 동료들의 입장을 역지사지로 생각해보게 질문하세요.",
@@ -259,8 +485,15 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'tmi-energy-drainer': {
-    theory: "경계 관리 (Boundary Management)",
+    statusSummary: {
+      psychState: "공적인 자리에서도 지나치게 사적인 감정과 사정을 늘어놓아 동료들의 업무 집중도를 떨어뜨리는 상태",
+      strengths: ["친화력", "감정 표현"],
+      weaknesses: ["공사 구분 결여", "시간 관리 미흡"],
+      performance: ["2023: 보통(B)", "2024: 준수(B+)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 65, stress: 70, potential: 50, loyalty: 80, communication: 95 },
     idealState: "직장은 심리 상담소가 아님을 인지하고, 사적인 감정 토로를 자제하며 업무 페르소나를 장착한 상태",
+    theory: "직업적 경계 설정 이론",
     tasks: [
       "팀원의 힘듦에는 공감하지만, 업무 시간의 감정 토로는 프로답지 않음을 선을 그으세요.",
       "동료들이 그의 감정 쓰레기통이 되어 지쳐가고 있음을 직면시키세요.",
@@ -268,19 +501,36 @@ export const MISSION_BRIEFINGS: Record<string, MissionBriefing> = {
     ]
   },
   'emotional-rollercoaster': {
-    theory: "정서 지능 (Emotional Intelligence)",
+    statusSummary: {
+      psychState: "감정의 기복이 매우 심하여 그날의 기분에 따라 업무 성과와 협업 태도가 극단적으로 갈리는 상태",
+      strengths: ["높은 몰입 시 폭발적 성과", "열정"],
+      weaknesses: ["감정 자제력 부족", "예측 불가능한 행동"],
+      performance: ["2023: 우수(A)", "2024: 미흡(C)", "2025: 보통(B)"]
+    },
+    competencyData: { performance: 75, stress: 90, potential: 80, loyalty: 60, communication: 40 },
     idealState: "자신의 기분 변화를 스스로 모니터링하고, 부정적 감정이 태도로 드러나지 않도록 자기 조절(Self-Regulation)하는 상태",
+    theory: "Self-Regulation(자기 조절)",
     tasks: [
       "기분이 태도가 되는 것은 아마추어의 전형적인 특징임을 따끔하게 지적하세요.",
       "감정이 격해질 때는 잠시 자리를 비우는 등의 '타임아웃' 규칙을 정하세요.",
       "일관성 있는 태도가 곧 신뢰(Trust)임을 강조하세요."
     ]
-  }
+  },
 };
 
 const DEFAULT_BRIEFING: MissionBriefing = {
-  theory: "상황 대응 리더십 (Situational Leadership)",
+  statusSummary: {
+    psychState: "현재 자신의 업무 상황에 대해 특별한 이슈를 느끼지 못하는 상태",
+    strengths: ["무난한 협업 능력", "주어진 업무 이행"],
+    weaknesses: ["주도성 부족", "창의적 대안 제시 미흡"],
+    performance: ["최근 3년 평균: 보통(B)"]
+  },
+  competencyData: { performance: 70, stress: 40, potential: 60, loyalty: 70, communication: 70 },
+  history: [
+    { type: "MONTHLY TALK", text: "맡겨진 일은 잘 하고 계시네요. 조금 더 주도적으로 해보세요.", date: "2026.01.20" }
+  ],
   idealState: "팀원의 현재 역량(Competence)과 의욕(Commitment) 수준에 맞는 리더십을 적용하여, 목표 달성에 합의한 상태",
+  theory: "리더십 상황 이론",
   tasks: [
     "팀원의 현 상태를 진단하고 지시/코칭/지원/위임 중 가장 적절한 태도를 취하세요.",
     "리더의 기대치(Expectation)를 구체적인 행동 언어로 전달하세요.",

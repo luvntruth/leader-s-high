@@ -23,7 +23,7 @@ interface SOSTip {
   magicPhrases: string[];
 }
 
-const ANALYSIS_COMPLETE_THRESHOLD = 7; // user turns required
+const ANALYSIS_COMPLETE_THRESHOLD = 12; // user turns required (보스 지시사항)
 const TRUST_SCORING_INTERVAL = 3; // user turns between scoring
 
 // 감정 상태를 Trust Level에 따라 결정하는 함수
@@ -63,8 +63,23 @@ const Simulation: React.FC = () => {
   const location = useLocation();
   // Setup.tsx에서 { name, generation, contextStyle, driverStyle, scenario } 형태로 전달됨
   const state = location.state as any;
-  const config = state?.name ? state : { ...DEFAULT_CHARACTERS[0], generation: 'Gen Z', contextStyle: 50, driverStyle: 50 };
-  const scenario = state?.scenario || { id: 'late-comer', title: '지각하는 팀원 피드백', description: '출근 시간을 자주 어기는 팀원에게 피드백을 전달하세요.' };
+
+  // 1. scenario 정보 추출 (Setup.tsx에서 { scenario } 로 전달함)
+  const scenario = state?.scenario || { id: 'late-comer', title: '지각하는 팀원 피드백', description: '출근 시간을 자주 어기는 팀원에게 피드백을 전달하세요.', memberName: '김철수' };
+
+  // 2. config 구성 (state 자체에 정보가 있거나, scenario.memberName을 활용)
+  const config = useMemo(() => {
+    const name = state?.name || scenario?.memberName || '김철수';
+    // characterAvatars.ts의 getCharacterInfo를 사용하여 기본 캐릭터 정보 가져오기
+    const info = getCharacterInfo(scenario?.id, name);
+
+    return {
+      ...info,
+      generation: state?.generation || scenario?.generation || 'Gen Z',
+      contextStyle: state?.contextStyle || 50,
+      driverStyle: state?.driverStyle || 50
+    };
+  }, [state, scenario]);
 
   const [messages, setMessages] = useState<Message[]>(() => [
     { role: 'model', text: getOpeningLine(scenario?.id, config?.name), timestamp: new Date() }
@@ -76,7 +91,6 @@ const Simulation: React.FC = () => {
   const [sosTip, setSosTip] = useState<SOSTip | null>(null);
   const [sosTipHistory, setSosTipHistory] = useState<{ tip: SOSTip; turnIndex: number; timestamp: string }[]>([]);
   const [initError, setInitError] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
 
   // Trust Level State Management
   const [trustState, setTrustState] = useState<{
@@ -104,6 +118,12 @@ const Simulation: React.FC = () => {
     nextHint: "대화를 시작하여 팀원과의 신뢰를 쌓아보세요.",
     trustHistory: [30] // 트렌드 차트용 히스토리 추가
   });
+
+  // Dramatic UI State
+  const [screenEffect, setScreenEffect] = useState<'none' | 'damage' | 'heal'>('none');
+  const [combatTexts, setCombatTexts] = useState<Array<{ id: number; value: number }>>([]);
+  const effectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const combatIdRef = useRef(0);
 
   // Ref to track latest trustState for async callbacks (avoids stale closures)
   const trustStateRef = useRef(trustState);
@@ -216,6 +236,28 @@ const Simulation: React.FC = () => {
           nextHint: score.next_hint,
           trustHistory: [...prev.trustHistory, score.trust].slice(-10) // 최근 10개 유지
         }));
+
+        // Dramatic UI Trigger
+        if (score.delta !== 0) {
+          // 1. Floating Text
+          const newId = combatIdRef.current++;
+          setCombatTexts(prev => [...prev, { id: newId, value: score.delta }]);
+          setTimeout(() => {
+            setCombatTexts(prev => prev.filter(t => t.id !== newId));
+          }, 2000);
+
+          // 2. Screen Effect
+          if (score.delta < -5) {
+            setScreenEffect('damage');
+          } else if (score.delta > 3) {
+            setScreenEffect('heal');
+          }
+
+          if (effectTimeoutRef.current) clearTimeout(effectTimeoutRef.current);
+          effectTimeoutRef.current = setTimeout(() => {
+            setScreenEffect('none');
+          }, 1000);
+        }
       }
     }).catch(err => {
       console.error("Trust scoring failed:", err);
@@ -280,7 +322,7 @@ const Simulation: React.FC = () => {
       ]);
 
       chatRef.current = ai.chats.create({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.0-flash',
         config: { systemInstruction, temperature: 0.8 },
         history: [
           { role: 'user', parts: [{ text: openingUserText }] },
@@ -335,7 +377,7 @@ const Simulation: React.FC = () => {
       `;
 
       const response = await fetchWithRetry(() => ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.0-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -393,332 +435,369 @@ const Simulation: React.FC = () => {
   }, [messages]);
 
   return (
-    <div className="h-[100dvh] bg-[#060B18] text-white font-manrope overflow-hidden relative flex flex-col sm:flex-row">
+    <>
+      {/* Dramatic UI Overlays */}
+      {screenEffect === 'damage' && (
+        <>
+          <div className="fixed inset-0 pointer-events-none z-[60] animate-red-flash bg-red-500/20" />
+          <div className="fixed inset-0 pointer-events-none z-[50] vignette-danger" />
+        </>
+      )}
+      {screenEffect === 'heal' && (
+        <>
+          <div className="fixed inset-0 pointer-events-none z-[60] animate-blue-flash bg-cyan-500/10" />
+          <div className="fixed inset-0 pointer-events-none z-[50] vignette-safe" />
+        </>
+      )}
 
-      {/* ── BACKGROUND FX ── */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 opacity-20" style={{
-          backgroundImage: 'linear-gradient(rgba(0,242,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0,242,255,0.06) 1px, transparent 1px)',
-          backgroundSize: '60px 60px'
-        }} />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#060B18]/50 to-[#060B18]" />
-        <div className="absolute inset-0 transition-opacity duration-1000" style={ambientStyle} />
+      {/* Floating Combat Texts */}
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[70]">
+        {combatTexts.map(ct => (
+          <div
+            key={ct.id}
+            className={`absolute font-black text-4xl whitespace-nowrap animate-combat-text ${ct.value > 0 ? 'text-cyan-400 game-glow-text' : 'text-red-500 text-shadow-lg'
+              }`}
+          >
+            {ct.value > 0 ? `+${ct.value}` : ct.value} TRUST
+          </div>
+        ))}
       </div>
 
-      {/* ── LEFT PANEL: TACTICAL STATUS ── */}
-      <aside className="w-full sm:w-80 lg:w-96 bg-black/40 backdrop-blur-3xl border-r border-white/5 z-20 flex flex-col shrink-0">
-        <header className="p-6 border-b border-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-slate-500 hover:text-white transition-colors">
-              <span className="material-symbols-outlined">west</span>
-            </button>
-            <div>
-              <h1 className="text-xs font-black tracking-[0.3em] text-primary uppercase">Tactical HUD</h1>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Operation: {scenario?.title?.split(' ')[0] || 'LEADER_SIM'}</p>
-            </div>
-          </div>
-          <div className="size-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#00F2FF]" />
-        </header>
+      <div className={`h-[100dvh] bg-[#060B18] text-white font-manrope overflow-hidden relative flex flex-col sm:flex-row ${screenEffect === 'damage' ? 'animate-shake' : ''}`}>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 hide-scrollbar">
-          {/* Target Profile */}
-          <section>
-            <div className="flex items-center gap-4 mb-6">
-              <div className="relative">
-                <div className="size-20 rounded-2xl overflow-hidden border-2 transition-all duration-500"
-                  style={{ borderColor: avatarGlow.color, boxShadow: `0 0 20px ${avatarGlow.color}40` }}>
-                  <img src={avatarUrl} alt={config.name} className="size-full object-cover" />
-                </div>
-                <div className="absolute -bottom-2 -right-2 size-8 bg-[#0f172a] rounded-xl border border-white/10 flex items-center justify-center text-lg">
-                  {emotionEmoji}
-                </div>
-              </div>
+        {/* ── BACKGROUND FX ── */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 opacity-20" style={{
+            backgroundImage: 'linear-gradient(rgba(0,242,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0,242,255,0.06) 1px, transparent 1px)',
+            backgroundSize: '60px 60px'
+          }} />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#060B18]/50 to-[#060B18]" />
+          <div className="absolute inset-0 transition-opacity duration-1000" style={ambientStyle} />
+        </div>
+
+        {/* ── LEFT PANEL: TACTICAL STATUS (30%) ── */}
+        <aside className="w-full sm:w-[30%] bg-black/40 backdrop-blur-3xl border-r border-white/5 z-20 flex flex-col shrink-0">
+          <header className="p-6 border-b border-white/5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-slate-500 hover:text-white transition-colors">
+                <span className="material-symbols-outlined">west</span>
+              </button>
               <div>
-                <h2 className="text-lg font-black tracking-tight">{config.name}</h2>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded inline-block mt-1">
-                  {characterInfo.role} / {config.generation}
-                </p>
+                <h1 className="text-xs font-black tracking-[0.3em] text-primary uppercase">전술 HUD</h1>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">작전명: {scenario?.title?.split(' ')[0] || 'LEADER_SIM'}</p>
               </div>
             </div>
+            <div className="size-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#00F2FF]" />
+          </header>
 
-            <div className="space-y-4">
-              <HPBar value={trustState.trust} label="Trust Level" colorClass={trustState.trust > 70 ? 'bg-green-400' : trustState.trust > 30 ? 'bg-primary' : 'bg-red-500'} />
-              <div className="grid grid-cols-2 gap-3">
-                <StatInline icon="psychology" label="Alignment" value={`${trustState.dimensions.understanding_alignment}%`} />
-                <StatInline icon="shield" label="Safety" value={`${trustState.dimensions.psychological_safety}%`} />
-              </div>
-            </div>
-          </section>
-
-          {/* Mission Briefing */}
-          <section className="bg-primary/5 border border-primary/20 rounded-2xl p-5 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-3 opacity-20">
-              <span className="material-symbols-outlined text-4xl">military_tech</span>
-            </div>
-            <h3 className="text-[10px] font-black text-primary uppercase tracking-widest mb-3 flex items-center gap-2">
-              <span className="material-symbols-outlined text-xs">description</span> Mission Brief
-            </h3>
-            <p className="text-sm font-bold text-white leading-relaxed line-clamp-3 mb-4 italic group-hover:line-clamp-none transition-all">
-              "{scenario.objective}"
-            </p>
-            <div className="space-y-2">
-              {missionBriefing.tasks?.slice(0, 2).map((task: string, i: number) => (
-                <div key={i} className="flex gap-2 items-start text-[11px] text-slate-400 leading-tight">
-                  <span className="material-symbols-outlined text-primary text-[12px] mt-0.5">check_circle</span>
-                  <span>{task}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Analysis History */}
-          {/* TRUST TREND CHART */}
-          <div className="mb-0 bg-white/5 border border-white/5 rounded-2xl overflow-hidden p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Trust Trend</h3>
-              <span className="text-[8px] font-bold text-primary animate-pulse uppercase">Live Scan</span>
-            </div>
-            <TacticalTrendChart data={trustState.trustHistory} color={trustState.trust < 40 ? '#ef4444' : '#00F2FF'} />
-          </div>
-
-          {/* EVENT LOGS */}
-          <div className="pt-4 border-t border-white/5 h-full overflow-hidden flex flex-col">
-            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Event Logs</h3>
-            <div className="space-y-3">
-              {trustState.lastEvents.length > 0 ? trustState.lastEvents.slice(-3).map((event, i) => (
-                <div key={i} className="group relative flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all">
-                  <div className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${event.impact >= 0 ? 'bg-game-xp/20 text-game-xp' : 'bg-game-hp/20 text-game-hp'}`}>
-                    <span className="material-symbols-outlined text-lg">
-                      {event.impact >= 0 ? 'trending_up' : 'trending_down'}
-                    </span>
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 hide-scrollbar">
+            {/* Target Profile & Trust (웅장하게 복구) */}
+            <section>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="relative group/avatar">
+                  <div className={`size-20 rounded-[1.5rem] overflow-hidden border-2 transition-all duration-700 relative ${avatarGlow.animationClass}`}
+                    style={{ borderColor: avatarGlow.borderColor, boxShadow: avatarGlow.shadow }}>
+                    <img src={avatarUrl} alt={config.name} className="size-full object-cover scale-110 group-hover/avatar:scale-125 transition-transform duration-1000" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-black text-white truncate pr-2 uppercase tracking-tight">
-                        {event.reason_short}
-                      </span>
-                      <span className={`text-[10px] font-black tabular-nums ${event.impact >= 0 ? 'text-game-xp' : 'text-game-hp'}`}>
-                        {event.impact >= 0 ? `+${event.impact}` : event.impact}
-                      </span>
+                  <div className="absolute -bottom-1 -right-1 size-7 bg-[#0f172a] rounded-xl border border-white/20 flex items-center justify-center text-lg shadow-2xl">
+                    {emotionEmoji}
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
+                    {config.name}
+                    <span className="size-2 rounded-full" style={{ backgroundColor: characterInfo.themeColor }} />
+                  </h2>
+                  <p className="text-xs font-black text-slate-500 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded inline-block mt-1">
+                    {characterInfo.role} / {config.generation}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <HPBar value={trustState.trust} label="신뢰도 레벨" colorClass={trustState.trust > 70 ? 'bg-green-400' : trustState.trust > 30 ? 'bg-primary' : 'bg-red-500'} />
+                <div className="grid grid-cols-2 gap-4">
+                  <StatInline icon="psychology" label="정렬도" value={`${trustState.dimensions.understanding_alignment}%`} />
+                  <StatInline icon="shield" label="심리적 안전감" value={`${trustState.dimensions.psychological_safety}%`} />
+                </div>
+              </div>
+            </section>
+
+            {/* 상태 요약 REPORT (복구) */}
+            <section className="bg-primary/5 border border-primary/20 rounded-2xl p-5 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-3 opacity-10">
+                <span className="material-symbols-outlined text-4xl">analytics</span>
+              </div>
+              <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-primary/20 pb-2">
+                개별 심리 보고서
+              </h3>
+
+              <div className="space-y-4">
+                <p className="text-sm font-bold text-white leading-relaxed italic border-l-4 border-primary/40 pl-3">
+                  "{missionBriefing.statusSummary.psychState}"
+                </p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[10px] font-black text-emerald-500/80 uppercase tracking-widest mb-2">핵심 강점</p>
+                    <ul className="space-y-1.5">
+                      {missionBriefing.statusSummary.strengths.slice(0, 3).map((s, i) => (
+                        <li key={i} className="text-xs text-slate-300 flex items-center gap-2">
+                          <span className="text-[10px] text-emerald-500">●</span> {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-rose-500/80 uppercase tracking-widest mb-2">취약 요소</p>
+                    <ul className="space-y-1.5">
+                      {missionBriefing.statusSummary.weaknesses.slice(0, 3).map((w, i) => (
+                        <li key={i} className="text-xs text-slate-300 flex items-center gap-2">
+                          <span className="text-[10px] text-rose-500">○</span> {w}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 핵심 수행 과제 (복구) */}
+            <section className="bg-white/5 border border-white/10 rounded-2xl p-5">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">핵심 전술 목표</h3>
+              <div className="space-y-3">
+                {missionBriefing.tasks?.map((task: string, i: number) => (
+                  <div key={i} className="flex gap-3 items-start text-xs text-slate-400 leading-relaxed">
+                    <div className="size-4 rounded border border-white/20 flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="material-symbols-outlined text-[10px] text-primary">done</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest italic">
-                        {event.family}
-                      </span>
-                      <div className="flex gap-0.5">
-                        {Array.from({ length: 3 }).map((_, i) => (
-                          <div key={i} className={`w-1 h-1 rounded-full ${i < Math.abs(event.impact / 4) ? (event.impact >= 0 ? 'bg-game-xp' : 'bg-game-hp') : 'bg-white/10'}`} />
-                        ))}
+                    <span>{task}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Analysis Dashboard (웅장하게) */}
+            <div className="space-y-6">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">신뢰도 추이</h3>
+                <div className="h-24">
+                  <TacticalTrendChart data={trustState.trustHistory} color={trustState.trust < 40 ? '#ef4444' : '#00F2FF'} />
+                </div>
+              </div>
+
+              <div className="flex flex-col space-y-4">
+                <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">전술 이벤트 로그</h3>
+                <div className="space-y-3">
+                  {trustState.lastEvents.length > 0 ? trustState.lastEvents.slice(-3).map((event, i) => (
+                    <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                      <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${event.impact >= 0 ? 'bg-game-xp/20 text-game-xp' : 'bg-game-hp/20 text-game-hp'}`}>
+                        <span className="material-symbols-outlined">{event.impact >= 0 ? 'trending_up' : 'trending_down'}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[11px] font-black text-white truncate pr-2 uppercase tracking-wide">{event.reason_short}</span>
+                          <span className={`text-[11px] font-black ${event.impact >= 0 ? 'text-game-xp' : 'text-game-hp'}`}>{event.impact >= 0 ? `+${event.impact}` : event.impact}</span>
+                        </div>
+                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{event.family}</p>
                       </div>
                     </div>
+                  )) : (
+                    <div className="text-center py-8 border border-dashed border-white/10 rounded-2xl">
+                      <p className="text-xs font-bold text-slate-600 italic">Accessing Battle History...</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <footer className="p-6 border-t border-white/5 flex items-center gap-4">
+            <TacticalCircularTimer value={messages.filter(m => m.role === 'user').length * (100 / ANALYSIS_COMPLETE_THRESHOLD)} label={`${messages.filter(m => m.role === 'user').length}/${ANALYSIS_COMPLETE_THRESHOLD}`} subLabel="Turns" />
+            <div className="flex-1">
+              <button
+                onClick={() => navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory } })}
+                disabled={!isAnalysisComplete}
+                className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isAnalysisComplete
+                  ? 'bg-primary text-black shadow-neon-cyan hover:scale-[1.05] active:scale-[0.95]'
+                  : 'bg-white/5 text-slate-600 cursor-not-allowed border border-white/5'
+                  }`}
+              >
+                결과 리포트
+              </button>
+            </div>
+          </footer>
+        </aside>
+
+        {/* ── RIGHT AREA: MAIN BATTLE HUD ── */}
+        <main className="flex-1 flex flex-col relative z-10 overflow-hidden">
+
+          {/* HUD Overlay Info */}
+          <div className="absolute top-6 left-6 right-6 z-30 flex justify-between pointer-events-none">
+
+
+            <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 flex items-center gap-3">
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">현재 감정 지수</span>
+              <span className="text-xs font-black" style={{ color: hpColor }}>{emotionLabel}</span>
+            </div>
+          </div>
+
+          {/* Message HUD Area */}
+          <div
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto px-6 pt-24 pb-32 space-y-8 scroll-smooth hide-scrollbar"
+          >
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] group`}>
+                  <div className={`flex items-center gap-2 mb-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${msg.role === 'user' ? 'text-primary' : 'text-slate-500'}`}>
+                      {msg.role === 'user' ? 'Commanding Officer' : config.name}
+                    </span>
+                    <span className="text-[8px] font-bold text-white/20 uppercase tabular-nums">
+                      {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
-                </div>
-              )) : (
-                <div className="text-center py-6 border border-dashed border-white/10 rounded-xl">
-                  <p className="text-[10px] font-bold text-slate-600 italic">No events recorded</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
 
-        <footer className="p-6 border-t border-white/5 flex items-center gap-4">
-          <TacticalCircularTimer value={messages.filter(m => m.role === 'user').length * (100 / ANALYSIS_COMPLETE_THRESHOLD)} label={`${messages.filter(m => m.role === 'user').length}/${ANALYSIS_COMPLETE_THRESHOLD}`} subLabel="Turns" />
-          <div className="flex-1">
-            <button
-              onClick={() => navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory } })}
-              disabled={!isAnalysisComplete}
-              className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isAnalysisComplete
-                ? 'bg-primary text-black shadow-neon-cyan hover:scale-[1.02] active:scale-[0.98]'
-                : 'bg-white/5 text-slate-600 cursor-not-allowed border border-white/5'
-                }`}
-            >
-              Finish Ops
-            </button>
-          </div>
-        </footer>
-      </aside>
-
-      {/* ── RIGHT AREA: MAIN BATTLE HUD ── */}
-      <main className="flex-1 flex flex-col relative z-10 overflow-hidden">
-
-        {/* HUD Overlay Info */}
-        <div className="absolute top-6 left-6 right-6 z-30 flex justify-between pointer-events-none">
-          <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 flex items-center gap-3">
-            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Signal Status</span>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4].map(i => <div key={i} className={`w-1 h-3 rounded-full ${i <= 3 ? 'bg-primary' : 'bg-white/10'}`} />)}
-            </div>
-          </div>
-
-          <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 flex items-center gap-3">
-            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Emotional State</span>
-            <span className="text-xs font-black" style={{ color: hpColor }}>{emotionLabel}</span>
-          </div>
-        </div>
-
-        {/* Message HUD Area */}
-        <div
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto px-6 pt-24 pb-32 space-y-8 scroll-smooth hide-scrollbar"
-        >
-          {messages.map((msg, idx) => (
-            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] group`}>
-                <div className={`flex items-center gap-2 mb-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                  <span className={`text-[10px] font-black uppercase tracking-widest ${msg.role === 'user' ? 'text-primary' : 'text-slate-500'}`}>
-                    {msg.role === 'user' ? 'Commanding Officer' : config.name}
-                  </span>
-                  <span className="text-[8px] font-bold text-white/20 uppercase tabular-nums">
-                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-
-                <div className={`
+                  <div className={`
                   relative p-5 rounded-3xl backdrop-blur-md border transition-all duration-300
                   ${msg.role === 'user'
-                    ? 'bg-primary/10 border-primary/30 rounded-tr-sm shadow-[0_4px_20px_rgba(0,242,255,0.1)]'
-                    : 'bg-white/5 border-white/10 rounded-tl-sm'}
+                      ? 'bg-primary/10 border-primary/30 rounded-tr-sm shadow-[0_4px_20px_rgba(0,242,255,0.1)]'
+                      : 'bg-white/5 border-white/10 rounded-tl-sm'}
                   ${msg.isError ? 'bg-red-500/10 border-red-500/30 text-red-400' : ''}
                 `}>
-                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
 
-                  {/* Corner Accents */}
-                  <div className={`absolute top-0 ${msg.role === 'user' ? 'right-0' : 'left-0'} p-1.5 opacity-40`}>
-                    <div className={`w-2 h-2 border-t border-${msg.role === 'user' ? 'r' : 'l'} rounded-sm border-white/30`} />
+                    {/* Corner Accents */}
+                    <div className={`absolute top-0 ${msg.role === 'user' ? 'right-0' : 'left-0'} p-1.5 opacity-40`}>
+                      <div className={`w-2 h-2 border-t border-${msg.role === 'user' ? 'r' : 'l'} rounded-sm border-white/30`} />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-white/5 border border-white/10 rounded-3xl rounded-tl-sm p-6 max-w-[85%]">
-                <div className="flex gap-2">
-                  <div className="size-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
-                  <div className="size-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                  <div className="size-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-white/5 border border-white/10 rounded-3xl rounded-tl-sm p-6 max-w-[85%]">
+                  <div className="flex gap-2">
+                    <div className="size-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+                    <div className="size-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    <div className="size-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* ── ACTION INPUT DASHBOARD ── */}
-        <div className="absolute bottom-6 left-6 right-6 z-40 bg-navy-mid/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-4 flex flex-col gap-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          {/* ── ACTION INPUT DASHBOARD ── */}
+          <div className="absolute bottom-6 left-6 right-6 z-40 bg-navy-mid/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-4 flex flex-col gap-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
 
-          {/* Action Suggested / SOS Area */}
-          {sosTip && showSOS && !isGeneratingSOS && (
-            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 animate-in slide-in-from-bottom-4">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary text-sm">auto_fix_high</span>
-                  <span className="text-[10px] font-black text-primary uppercase tracking-widest italic">Combat Tactics Recommendation</span>
+            {/* Action Suggested / SOS Area */}
+            {sosTip && showSOS && !isGeneratingSOS && (
+              <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 animate-in slide-in-from-bottom-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary text-sm">auto_fix_high</span>
+                    <span className="text-[10px] font-black text-primary uppercase tracking-widest italic">전술 지원 추천 (SOS)</span>
+                  </div>
+                  <button onClick={() => setShowSOS(false)} className="text-slate-500 hover:text-white transition-colors">
+                    <span className="material-symbols-outlined text-sm">close</span>
+                  </button>
                 </div>
-                <button onClick={() => setShowSOS(false)} className="text-slate-500 hover:text-white transition-colors">
-                  <span className="material-symbols-outlined text-sm">close</span>
+
+                <p className="text-[13px] font-bold text-white mb-4 leading-relaxed">"{sosTip.suggestion}"</p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {sosTip.magicPhrases.map((phrase, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => { setShowSOS(false); handleSend(phrase); }}
+                      className="bg-[#0f172a] hover:bg-primary/10 border border-white/5 hover:border-primary/30 p-3 rounded-xl text-left transition-all active:scale-95 flex items-center gap-2 group"
+                    >
+                      <span className="material-symbols-outlined text-xs text-slate-600 group-hover:text-primary transition-colors">bolt</span>
+                      <span className="text-[11px] font-bold truncate flex-1">{phrase}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Input Bar */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleSOS}
+                disabled={isGeneratingSOS}
+                className={`size-12 rounded-2xl shrink-0 flex items-center justify-center transition-all ${isGeneratingSOS ? 'bg-primary/20 animate-pulse' : 'bg-primary text-navy-deep shadow-neon-cyan active:scale-90'
+                  }`}
+              >
+                <span className="material-symbols-outlined text-xl font-black">
+                  {isGeneratingSOS ? 'sync' : 'psychology'}
+                </span>
+              </button>
+
+              <div className="flex-1 bg-black/40 rounded-2xl border border-white/5 px-2 py-1 flex items-center focus-within:border-primary/40 transition-all">
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  className="w-full bg-transparent border-none px-4 py-2 text-sm text-white placeholder-slate-600 outline-none resize-none hide-scrollbar max-h-[80px] leading-relaxed"
+                  placeholder="입력 장치 활성화 중..."
+                  value={inputText}
+                  disabled={isLoading}
+                  onChange={e => setInputText(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend(inputText))}
+                />
+                <button
+                  onClick={() => handleSend(inputText)}
+                  disabled={!inputText.trim() || isLoading}
+                  className="size-9 bg-white/5 hover:bg-primary hover:text-navy-deep rounded-xl flex items-center justify-center transition-all disabled:opacity-20 shrink-0"
+                >
+                  <span className="material-symbols-outlined text-sm font-black">send</span>
                 </button>
               </div>
 
-              <p className="text-[13px] font-bold text-white mb-4 leading-relaxed">"{sosTip.suggestion}"</p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {sosTip.magicPhrases.map((phrase, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => { setShowSOS(false); handleSend(phrase); }}
-                    className="bg-[#0f172a] hover:bg-primary/10 border border-white/5 hover:border-primary/30 p-3 rounded-xl text-left transition-all active:scale-95 flex items-center gap-2 group"
-                  >
-                    <span className="material-symbols-outlined text-xs text-slate-600 group-hover:text-primary transition-colors">bolt</span>
-                    <span className="text-[11px] font-bold truncate flex-1">{phrase}</span>
-                  </button>
-                ))}
-              </div>
             </div>
-          )}
+          </div>
+        </main>
 
-          {/* Input Bar */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleSOS}
-              disabled={isGeneratingSOS}
-              className={`size-12 rounded-2xl shrink-0 flex items-center justify-center transition-all ${isGeneratingSOS ? 'bg-primary/20 animate-pulse' : 'bg-primary text-navy-deep shadow-neon-cyan active:scale-90'
-                }`}
-            >
-              <span className="material-symbols-outlined text-xl font-black">
-                {isGeneratingSOS ? 'sync' : 'psychology'}
-              </span>
-            </button>
-
-            <div className="flex-1 bg-black/40 rounded-2xl border border-white/5 px-2 py-1 flex items-center focus-within:border-primary/40 transition-all">
-              <textarea
-                ref={textareaRef}
-                rows={1}
-                className="w-full bg-transparent border-none px-4 py-2 text-sm text-white placeholder-slate-600 outline-none resize-none hide-scrollbar max-h-[80px] leading-relaxed"
-                placeholder="입력 장치 활성화 중..."
-                value={inputText}
-                disabled={isLoading}
-                onChange={e => setInputText(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend(inputText))}
-              />
+        {/* ── INIT ERROR OVERLAY ── */}
+        {initError && (
+          <div className="fixed inset-0 z-[100] bg-[#060B18]/95 backdrop-blur-xl flex items-center justify-center p-6">
+            <div className="max-w-sm w-full bg-red-500/10 border border-red-500/20 rounded-[2rem] p-8 text-center">
+              <div className="size-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6 scale-animate">
+                <span className="material-symbols-outlined text-red-400 text-4xl">warning</span>
+              </div>
+              <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight">System Critical Failure</h3>
+              <p className="text-sm text-slate-400 mb-8 leading-relaxed">전술 시스템 연결에 실패했습니다. AI 프로세서와의 동기화를 재시도하십시오.</p>
               <button
-                onClick={() => handleSend(inputText)}
-                disabled={!inputText.trim() || isLoading}
-                className="size-9 bg-white/5 hover:bg-primary hover:text-navy-deep rounded-xl flex items-center justify-center transition-all disabled:opacity-20 shrink-0"
+                onClick={() => { initialized.current = false; initializeChat(); }}
+                className="w-full py-4 bg-red-500 text-white rounded-2xl font-black uppercase tracking-widest active:scale-95 transition-all shadow-[0_0_20px_rgba(239,68,68,0.4)]"
               >
-                <span className="material-symbols-outlined text-sm font-black">send</span>
+                Re-initialize
               </button>
             </div>
+          </div>
+        )}
 
-            <div className="hidden lg:flex items-center gap-3 shrink-0 px-4 border-l border-white/10">
-              <div className="flex flex-col text-right">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">System Latency</span>
-                <span className="text-[10px] font-black tabular-nums text-green-400">42ms</span>
+        {/* ── ANALYZING SOS OVERLAY ── */}
+        {showSOS && isGeneratingSOS && (
+          <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center">
+            <div className="flex flex-col items-center gap-6">
+              <div className="relative size-24">
+                <div className="absolute inset-0 border-4 border-primary/20 rounded-full" />
+                <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                <div className="absolute inset-4 bg-primary/20 rounded-full animate-pulse" />
               </div>
-              <div className="size-8 rounded-lg bg-green-400/10 border border-green-400/30 flex items-center justify-center">
-                <span className="material-symbols-outlined text-[16px] text-green-400">sensors</span>
+              <div className="text-center">
+                <p className="text-primary font-black tracking-[0.4em] uppercase text-sm animate-pulse">Analyzing Battlefield</p>
+                <p className="text-slate-500 text-[10px] font-bold uppercase mt-2">Accessing Neural Patterns...</p>
               </div>
             </div>
           </div>
-        </div>
-      </main>
-
-      {/* ── INIT ERROR OVERLAY ── */}
-      {initError && (
-        <div className="fixed inset-0 z-[100] bg-[#060B18]/95 backdrop-blur-xl flex items-center justify-center p-6">
-          <div className="max-w-sm w-full bg-red-500/10 border border-red-500/20 rounded-[2rem] p-8 text-center">
-            <div className="size-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6 scale-animate">
-              <span className="material-symbols-outlined text-red-400 text-4xl">warning</span>
-            </div>
-            <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight">System Critical Failure</h3>
-            <p className="text-sm text-slate-400 mb-8 leading-relaxed">전술 시스템 연결에 실패했습니다. AI 프로세서와의 동기화를 재시도하십시오.</p>
-            <button
-              onClick={() => { initialized.current = false; initializeChat(); }}
-              className="w-full py-4 bg-red-500 text-white rounded-2xl font-black uppercase tracking-widest active:scale-95 transition-all shadow-[0_0_20px_rgba(239,68,68,0.4)]"
-            >
-              Re-initialize
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── ANALYZING SOS OVERLAY ── */}
-      {showSOS && isGeneratingSOS && (
-        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center">
-          <div className="flex flex-col items-center gap-6">
-            <div className="relative size-24">
-              <div className="absolute inset-0 border-4 border-primary/20 rounded-full" />
-              <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-              <div className="absolute inset-4 bg-primary/20 rounded-full animate-pulse" />
-            </div>
-            <div className="text-center">
-              <p className="text-primary font-black tracking-[0.4em] uppercase text-sm animate-pulse">Analyzing Battlefield</p>
-              <p className="text-slate-500 text-[10px] font-bold uppercase mt-2">Accessing Neural Patterns...</p>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 };
 

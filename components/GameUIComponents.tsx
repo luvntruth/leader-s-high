@@ -20,24 +20,30 @@ export const HPBar: React.FC<HPBarProps> = ({
     value, max = 100, label, colorClass, size = 'md', showValue = true, animate = true
 }) => {
     const pct = Math.min(100, Math.max(0, (value / max) * 100));
+    const isCritical = pct < 30;
     const autoColor = pct >= 60 ? 'bg-game-xp' : pct >= 30 ? 'bg-accent-amber' : 'bg-game-hp';
     const bg = colorClass || autoColor;
     const heights = { sm: 'h-1.5', md: 'h-2.5', lg: 'h-4' };
 
     return (
-        <div className="w-full">
+        <div className={`w-full transition-all duration-500 ${isCritical ? 'pulse-red rounded-xl p-2 -m-2 border border-red-500/0' : ''}`}>
             {(label || showValue) && (
-                <div className="flex items-center justify-between mb-1.5">
-                    {label && <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{label}</span>}
-                    {showValue && <span className="text-[10px] font-black text-slate-400">{value}/{max}</span>}
+                <div className="flex items-center justify-between mb-1.5 px-1">
+                    {label && (
+                        <span className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1 ${isCritical ? 'text-red-500 animate-pulse' : 'text-slate-500'}`}>
+                            {isCritical && <span className="material-symbols-outlined text-[10px]">warning</span>}
+                            {label}
+                        </span>
+                    )}
+                    {showValue && <span className={`text-[10px] font-black tabular-nums ${isCritical ? 'text-red-400' : 'text-slate-400'}`}>{value}/{max}</span>}
                 </div>
             )}
-            <div className={`${heights[size]} rounded-full bg-white/5 overflow-hidden relative`}>
+            <div className={`${heights[size]} rounded-full bg-white/5 overflow-hidden relative border border-white/5`}>
                 <div
-                    className={`h-full rounded-full ${bg} ${animate ? 'animate-bar-fill' : ''} relative`}
+                    className={`h-full rounded-full ${bg} ${animate ? 'animate-bar-fill' : ''} relative shadow-[0_0_15px_rgba(0,0,0,0.3)]`}
                     style={{ width: `${pct}%`, transformOrigin: 'left' }}
                 >
-                    <div className="absolute inset-0 rounded-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-white/20 to-transparent opacity-50" />
                 </div>
                 {/* 세그먼트 마크 */}
                 {size !== 'sm' && (
@@ -93,16 +99,90 @@ export const QuestGradeBadge: React.FC<QuestGradeBadgeProps> = ({ grade, size = 
 
     return (
         <span
-            className={`font-black rounded-md uppercase tracking-widest ${sizes[size]}`}
+            className={`font-black rounded-md uppercase tracking-widest ${sizes[size]} shadow-sm`}
             style={{
                 color: style.color,
                 backgroundColor: style.bg,
                 border: `1px solid ${style.border}`,
-                boxShadow: style.glow,
+                boxShadow: `inset 0 0 10px ${style.border}`,
             }}
         >
             {grade}등급
         </span>
+    );
+};
+
+/* ── 육각형/마름모 프리미엄 등급 배지 ── */
+export const QuestHexBadge: React.FC<{ grade: string, size?: 'sm' | 'md' | 'lg' }> = ({ grade, size = 'md' }) => {
+    const style = GRADE_STYLES[grade] || GRADE_STYLES['B'];
+    const sizes = {
+        sm: 'size-6 text-[10px]',
+        md: 'size-10 text-sm',
+        lg: 'size-14 text-xl'
+    };
+
+    return (
+        <div className={`relative ${sizes[size]} flex items-center justify-center font-black group`}>
+            {/* 육각형 배경 (CSS Polygon) */}
+            <div
+                className="absolute inset-0 transition-all duration-500"
+                style={{
+                    backgroundColor: style.bg,
+                    border: `2px solid ${style.border}`,
+                    clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                    boxShadow: `0 0 15px ${style.border}`,
+                }}
+            />
+            {/* 내부 글로우 */}
+            <div
+                className="absolute inset-1 opacity-40 animate-pulse"
+                style={{
+                    backgroundColor: style.color,
+                    clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                }}
+            />
+            <span className="relative z-10" style={{ color: style.color, textShadow: `0 0 8px ${style.color}80` }}>
+                {grade}
+            </span>
+        </div>
+    );
+};
+
+/* ── 등급 뱃지가 포함된 아바타 (보스 요청 스타일) ── */
+interface AvatarWithGradeProps {
+    src: string;
+    grade: string;
+    size?: 'sm' | 'md' | 'lg';
+    glowColor?: string;
+}
+
+export const AvatarWithGrade: React.FC<AvatarWithGradeProps> = ({
+    src, grade, size = 'md', glowColor
+}) => {
+    const frameSizes = { sm: 'size-16', md: 'size-24', lg: 'size-32' };
+    const badgePositions = { sm: '-top-1 -left-1 scale-[0.7]', md: '-top-2 -left-2', lg: '-top-3 -left-3 scale-[1.3]' };
+
+    return (
+        <div className={`relative ${frameSizes[size]} group`}>
+            {/* 아바타 프레임 */}
+            <div
+                className="absolute inset-0 rounded-2xl bg-[#1e293b] border border-white/10 overflow-hidden shadow-2xl transition-all duration-300 group-hover:border-primary/50"
+                style={{ boxShadow: glowColor ? `0 0 30px ${glowColor}40` : 'none' }}
+            >
+                <img src={src} alt="Avatar" className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-110" />
+
+                {/* 하단 그라데이션 오버레이 */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+            </div>
+
+            {/* 등급 뱃지 오버레이 (Hex Badge) */}
+            <div className={`absolute ${badgePositions[size]} z-10 drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]`}>
+                <QuestHexBadge grade={grade} size="sm" />
+            </div>
+
+            {/* 장식용 코너 라인 */}
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-primary/30 rounded-br-lg" />
+        </div>
     );
 };
 

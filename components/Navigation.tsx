@@ -7,31 +7,52 @@ const Navigation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [isAdminVisible, setIsAdminVisible] = React.useState(localStorage.getItem('leadershigh_admin_mode') === 'true');
+  const [clickCount, setClickCount] = React.useState(0);
+  const clickTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
   const isActive = (path: string) => location.pathname === path;
+
+  const handleLogoClick = () => {
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+
+    const nextCount = clickCount + 1;
+    if (nextCount >= 5) {
+      setIsAdminVisible(true);
+      localStorage.setItem('leadershigh_admin_mode', 'true');
+      setClickCount(0);
+    } else {
+      setClickCount(nextCount);
+      clickTimerRef.current = setTimeout(() => setClickCount(0), 2000);
+    }
+  };
 
   const navItems = [
     { label: '기지', labelEn: 'BASE', icon: 'grid_view', path: '/' },
     { label: '퀘스트', labelEn: 'QUEST', icon: 'swords', path: '/missions' },
-    { label: '성장', labelEn: 'GROWTH', icon: 'trending_up', path: '/skill-tree' },
     { label: '프로필', labelEn: 'PROFILE', icon: 'shield_person', path: '/profile' },
   ];
+
+  if (isAdminVisible) {
+    navItems.push({ label: '전략본부', labelEn: 'ADMIN', icon: 'admin_panel_settings', path: '/admin' });
+  }
 
   return (
     <>
       {/* ── 데스크톱: 사이드바 ── */}
       <aside className="hidden lg:flex flex-col w-72 h-screen fixed left-0 top-0 bg-[#060B18]/95 backdrop-blur-2xl border-r border-white/5 z-50">
         {/* 로고 영역 */}
-        <div className="p-6 pb-4">
+        <div className="p-6 pb-4 cursor-pointer select-none group/logo" onClick={handleLogoClick}>
           <div className="flex items-center gap-3 mb-2">
             <div className="relative">
-              <div className="bg-primary/20 size-11 rounded-2xl flex items-center justify-center border border-primary/30"
+              <div className="bg-primary/20 size-11 rounded-2xl flex items-center justify-center border border-primary/30 group-active/logo:scale-95 transition-transform"
                 style={{ boxShadow: '0 0 20px rgba(0,242,255,0.3)' }}>
                 <span className="material-symbols-outlined text-primary text-xl font-bold">military_tech</span>
               </div>
               <div className="absolute -top-1 -right-1 size-3 bg-accent-neon rounded-full pulse-cyan" />
             </div>
             <div>
-              <h1 className="text-lg font-black italic tracking-tighter">LEADER'S HIGH</h1>
+              <h1 className="text-lg font-black italic tracking-tighter group-hover/logo:text-primary transition-colors">LEADER'S HIGH</h1>
               <p className="text-[8px] font-black text-slate-600 uppercase tracking-[0.3em]">Command System v2</p>
             </div>
           </div>
@@ -45,10 +66,9 @@ const Navigation: React.FC = () => {
               key={item.path}
               onClick={() => navigate(item.path)}
               className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative overflow-hidden ${isActive(item.path)
-                ? 'bg-primary/10 text-primary font-black border border-primary/20'
+                ? 'bg-primary/10 text-primary font-black border border-primary/20 shadow-neon-cyan'
                 : 'text-slate-500 hover:bg-white/5 hover:text-slate-300 border border-transparent'
                 }`}
-              style={isActive(item.path) ? { boxShadow: '0 0 20px rgba(0,242,255,0.1)' } : {}}
             >
               {/* 활성 표시 바 */}
               {isActive(item.path) && (

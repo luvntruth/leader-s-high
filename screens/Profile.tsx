@@ -2,7 +2,9 @@
 import React, { useEffect, useState } from 'react';
 // @ts-ignore
 import { useNavigate } from 'react-router-dom';
+import CompetencyRadar from '../components/CompetencyRadar';
 import { DataService, Badge, UserRank } from '../services/dataService';
+import { createGeminiClient } from '../src/lib/geminiClient';
 
 interface RankDetail {
   lv: string;
@@ -48,16 +50,38 @@ const RANK_DETAILS: Record<string, RankDetail> = {
   }
 };
 
-/* ── 리더십 스킬 트리 (Stitch 디자인 기반) ── */
-const SKILL_TREE = [
-  { name: '경청의 달인', icon: 'hearing', category: '소통', level: 2, maxLevel: 5, effect: '팀원의 숨은 의도 파악 확률 +20%', color: '#00F2FF' },
-  { name: '공감적 대화', icon: 'diversity_3', category: '소통', level: 1, maxLevel: 5, effect: '부정적 대화 차단 특수 선택지 해금', color: '#10B981' },
-  { name: '비언어적 소통', icon: 'emoji_people', category: '소통', level: 0, maxLevel: 5, effect: '표정/행동 인식 정확도 +15%', color: '#6366F1' },
-  { name: '카리스마 지시', icon: 'record_voice_over', category: '리더십', level: 3, maxLevel: 5, effect: '지시 수용률 +25% 상승', color: '#F59E0B' },
-  { name: '전략적 의사결정', icon: 'psychology', category: '리더십', level: 1, maxLevel: 5, effect: '갈등 해결 시 최적 루트 표시', color: '#EF4444' },
-  { name: '성장 멘토링', icon: 'school', category: '육성', level: 2, maxLevel: 5, effect: '팀원 성장속도 +30% 가속', color: '#8B5CF6' },
-  { name: '심리적 안전감', icon: 'shield_with_heart', category: '육성', level: 0, maxLevel: 5, effect: '팀 신뢰도 회복 속도 +15%', color: '#EC4899' },
+/* ── 스킬 노드 데이터 구조 (SkillTree.tsx에서 이관) ── */
+interface SkillNode {
+  id: string;
+  name: string;
+  nameEn: string;
+  icon: string;
+  category: 'communication' | 'leadership' | 'development';
+  level: number;
+  maxLevel: number;
+  description: string;
+  effect: string;
+  nextXp: number;
+  dependencies?: string[];
+  x: number;
+  y: number;
+}
+
+const SKILL_DATA: SkillNode[] = [
+  { id: 'listen', name: '경청의 달인', nameEn: 'ACTIVE LISTENING', icon: 'hearing', category: 'communication', level: 2, maxLevel: 5, x: 20, y: 30, description: '팀원의 발언 뒤에 숨겨진 의도와 감정을 정확히 파악하는 능력입니다.', effect: '심리 분석 정확도 +20%', nextXp: 120 },
+  { id: 'empathy', name: '공감적 대화', nameEn: 'EMPATHIC TALK', icon: 'diversity_3', category: 'communication', level: 1, maxLevel: 5, x: 20, y: 50, description: '상대방의 감정에 공감하며 신뢰를 쌓는 대화 기술입니다.', effect: '신뢰도 회복 속도 +15%', nextXp: 150, dependencies: ['listen'] },
+  { id: 'nonverbal', name: '비언어적 소통', nameEn: 'BODY LANGUAGE', icon: 'emoji_people', category: 'communication', level: 0, maxLevel: 5, x: 20, y: 70, description: '말하지 않아도 표정과 몸짓으로 전해지는 메시지를 읽습니다.', effect: '돌발 대사 해금 확률 +10%', nextXp: 200, dependencies: ['empathy'] },
+  { id: 'command', name: '카리스마 지시', nameEn: 'CHARISMA', icon: 'record_voice_over', category: 'leadership', level: 3, maxLevel: 5, x: 50, y: 30, description: '강력한 장악력으로 팀원에게 명확한 방향을 제시하는 능력입니다.', effect: '지시 수용률 +25%', nextXp: 180 },
+  { id: 'decisive', name: '전략적 의사결정', nameEn: 'STRATEGIC', icon: 'psychology', category: 'leadership', level: 1, maxLevel: 5, x: 50, y: 50, description: '복잡한 상황에서도 최적의 루트를 빠르게 판단하여 결정합니다.', effect: '갈등 해결 보너스 XP +20%', nextXp: 220, dependencies: ['command'] },
+  { id: 'mentor', name: '성장 멘토링', nameEn: 'MENTORING', icon: 'school', category: 'development', level: 2, maxLevel: 5, x: 80, y: 30, description: '팀원의 잠재력을 끌어내어 전문성을 강화시키는 육성 능력입니다.', effect: '팀원 성장속도 +30%', nextXp: 140 },
+  { id: 'safety', name: '심리적 안전감', nameEn: 'PSY SAFETY', icon: 'shield_with_heart', category: 'development', level: 0, maxLevel: 5, x: 80, y: 50, description: '팀원들이 실패를 두려워하지 않고 아이디어를 낼 수 있는 환경을 만듭니다.', effect: '팀 번아웃 확률 -15%', nextXp: 250, dependencies: ['mentor'] },
 ];
+
+const SKILL_CATEGORY_META = {
+  communication: { label: '소통 계열', color: '#F2B90D', glow: 'rgba(242,185,13,0.4)', bg: 'rgba(242,185,13,0.1)' },
+  leadership: { label: '리더십 계열', color: '#FFB800', glow: 'rgba(255,184,0,0.4)', bg: 'rgba(255,184,0,0.1)' },
+  development: { label: '육성 계열', color: '#A855F7', glow: 'rgba(168,85,247,0.4)', bg: 'rgba(168,85,247,0.1)' },
+};
 
 /* ── 우주 별 좌표 ── */
 const STARS = [
@@ -88,7 +112,7 @@ function getRankTheme(title: string): { accent: string; glow: string; bg: string
     return { accent: '#9F7AEA', glow: 'rgba(159,122,234,0.6)', bg: 'rgba(159,122,234,0.08)', border: 'rgba(159,122,234,0.3)', nebula: 'rgba(159,122,234,0.12)' };
   if (title === '프로페셔널 매니저')
     return { accent: '#10B981', glow: 'rgba(16,185,129,0.6)', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.3)', nebula: 'rgba(16,185,129,0.12)' };
-  return { accent: '#00F2FF', glow: 'rgba(0,242,255,0.6)', bg: 'rgba(0,242,255,0.08)', border: 'rgba(0,242,255,0.3)', nebula: 'rgba(0,242,255,0.12)' };
+  return { accent: '#F2B90D', glow: 'rgba(242,185,13,0.6)', bg: 'rgba(242,185,13,0.08)', border: 'rgba(242,185,13,0.3)', nebula: 'rgba(242,185,13,0.12)' };
 }
 
 function getRankIcon(title: string): string {
@@ -108,12 +132,92 @@ const Profile: React.FC = () => {
   const [selectedRankName, setSelectedRankName] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'status' | 'skills' | 'badges'>('status');
 
+  // ── 리더십 리포트 상태 (LeadershipReport.tsx에서 이관) ──
+  const [reportProfile, setReportProfile] = useState<any>(null);
+  const [aiAdvice, setAiAdvice] = useState<string>("리더님의 리더십 트렌드를 정교하게 분석하고 있습니다...");
+  const [isAiLoading, setIsAiLoading] = useState(true);
+
+  // ── 스킬 트리 상태 (SkillTree.tsx에서 이관) ──
+  const [selectedNode, setSelectedNode] = useState<SkillNode | null>(null);
+  const [isSkillReady, setIsSkillReady] = useState(false);
+
   useEffect(() => {
     const history = JSON.parse(localStorage.getItem('leadershigh_history') || '[]');
     setRecentHistory(history.slice(0, 2));
     setBadges(DataService.getUserBadges());
     setRank(DataService.getUserRank());
+
+    // 리포트 데이터 생성
+    const reportData = DataService.generateLeadershipProfile();
+    setReportProfile(reportData);
+    fetchAiAdvice(reportData);
+
+    // 스킬 트리 준비
+    setTimeout(() => setIsSkillReady(true), 100);
   }, []);
+
+  const fetchAiAdvice = async (p: any) => {
+    try {
+      const history = DataService.getUserHistory();
+      const genAI = createGeminiClient();
+      // @ts-ignore
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      const prompt = `
+        리더십 교육 게임 'Leader's High'의 리더십 전문가로서 다음 데이터를 바탕으로 사용자의 리더십 성향 리포트 하단 'Summary & Advice' 섹션에 들어갈 내용을 작성해주세요.
+        
+        사용자 리더십 타이틀: ${p.title} (${p.titleEn})
+        누적 점수: ${p.persona.totalScore}/100
+        팀 친화도: ${p.persona.teamAffinity}%
+        최근 미션 이력 수: ${history.length}
+        
+        요청 사항:
+        1. "귀하는 이번 RPG 시뮬레이션에서 ~" 로 시작하는 전문적이고 통찰력 있는 문체를 사용하세요.
+        2. 구체적인 수치나 구체적인 피드백을 포함하세요.
+        3. 향후 발전 방향에 대한 'Advice'를 한 문장으로 덧붙여주세요.
+        4. 한국어로 작성하고 리더십 전문가다운 신뢰감 있는 어조를 유지하세요.
+        5. 약 300자 내외로 구성하세요.
+      `;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      setAiAdvice(text || "귀하는 이번 시뮬레이션에서 균형 잡힌 리더십을 보여주었습니다.");
+    } catch (e) {
+      console.error("AI Advice Fetch Error", e);
+      setAiAdvice("귀하는 이번 RPG 시뮬레이션에서 인본주의적 가치와 전략적 효율 사이의 완벽한 균형을 보여주었습니다.");
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  const handleDownloadReport = () => {
+    alert("💎 리더십 명예 리포트를 PDF로 생성합니다.\n잠시만 기다려주세요...");
+    setTimeout(() => { window.print(); }, 1000);
+  };
+
+  const renderSkillLines = () => {
+    return SKILL_DATA.map(node => {
+      if (!node.dependencies) return null;
+      return node.dependencies.map(depId => {
+        const depNode = SKILL_DATA.find(n => n.id === depId);
+        if (!depNode) return null;
+        const isUnlocked = node.level > 0 && depNode.level > 0;
+        return (
+          <line
+            key={`${depId}-${node.id}`}
+            x1={`${depNode.x}%`} y1={`${depNode.y}%`}
+            x2={`${node.x}%`} y2={`${node.y}%`}
+            stroke={isUnlocked ? SKILL_CATEGORY_META[node.category].color : 'rgba(255,255,255,0.05)'}
+            strokeWidth="2"
+            strokeDasharray={isUnlocked ? '0' : '5,5'}
+            className={isUnlocked ? 'animate-pulse' : ''}
+            style={{ transition: 'all 1s ease' }}
+          />
+        );
+      });
+    });
+  };
 
   const unlockedCount = badges.filter(b => b.isUnlocked).length;
   const currentRankDetail = selectedRankName ? RANK_DETAILS[selectedRankName] : null;
@@ -122,7 +226,7 @@ const Profile: React.FC = () => {
   const rankIcon = rank ? getRankIcon(rank.title) : 'military_tech';
 
   return (
-    <div className="min-h-screen bg-[#060B18] text-white font-display flex flex-col overflow-y-auto relative">
+    <div className="min-h-screen bg-[#060B18] text-white font-display flex flex-col relative">
 
       {/* ── 우주 배경 ── */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -173,7 +277,7 @@ const Profile: React.FC = () => {
       <div className="sticky top-[65px] z-10 bg-[#060B18]/90 backdrop-blur-xl border-b border-white/5 px-4 py-2">
         <div className="flex gap-1 bg-white/5 rounded-2xl p-1">
           {[
-            { key: 'status' as const, label: '스테이터스', icon: 'person' },
+            { key: 'status' as const, label: '리더 프로필', icon: 'person' },
             { key: 'skills' as const, label: '스킬 트리', icon: 'auto_awesome' },
             { key: 'badges' as const, label: '배지', icon: 'workspace_premium' },
           ].map((tab) => (
@@ -181,8 +285,8 @@ const Profile: React.FC = () => {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.key
-                  ? 'bg-primary/15 text-primary border border-primary/20'
-                  : 'text-slate-600 hover:text-slate-400'
+                ? 'bg-[#F2B90D]/15 text-[#F2B90D] border border-[#F2B90D]/20'
+                : 'text-slate-600 hover:text-slate-400'
                 }`}
             >
               <span className="material-symbols-outlined text-sm">{tab.icon}</span>
@@ -194,85 +298,290 @@ const Profile: React.FC = () => {
 
       <main className="flex-1 p-5 pb-28 space-y-6 relative z-10">
 
-        {/* ════════ 스테이터스 탭 ════════ */}
+        {/* ════════ 스테이터스 탭 (리더 프로필 복구) ════════ */}
         {activeTab === 'status' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* ── RPG 랭크 카드 ── */}
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* ── RPG 랭크 요약 (상단 미니 칩) ── */}
             {rank && (
-              <div
-                className="rounded-[2.5rem] p-7 border relative overflow-hidden"
-                style={{
-                  backgroundColor: 'rgba(15,23,41,0.9)',
-                  borderColor: theme.border,
-                  boxShadow: `0 0 30px ${theme.glow.replace('0.6', '0.15')}, inset 0 0 60px ${theme.bg}`
-                }}
-              >
-                <div className="absolute -top-12 -right-12 size-48 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: theme.bg }} />
-
-                <div className="flex justify-between items-start mb-5 relative z-10">
-                  <div className="size-14 rounded-2xl flex items-center justify-center border"
-                    style={{ backgroundColor: theme.bg, borderColor: theme.border, boxShadow: `0 0 20px ${theme.glow}` }}>
-                    <span className="material-symbols-outlined text-3xl" style={{ color: theme.accent }}>{rankIcon}</span>
-                  </div>
-                  <button
-                    onClick={() => { setSelectedRankName(null); setShowRankInfo(true); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
-                  >
-                    <span className="material-symbols-outlined text-sm text-slate-400">info</span>
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">랭크 안내</span>
-                  </button>
-                </div>
-
-                {/* 별점 */}
-                <div className="flex items-center gap-1 mb-2 relative z-10">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <span key={i} className="text-lg leading-none"
-                      style={{ color: i < rankStars ? theme.accent : 'rgba(255,255,255,0.1)', textShadow: i < rankStars ? `0 0 8px ${theme.glow}` : 'none' }}>
-                      ★
-                    </span>
-                  ))}
-                  <span className="text-[10px] font-black uppercase tracking-widest ml-2" style={{ color: theme.accent }}>
-                    {rankStars}/5
-                  </span>
-                </div>
-
-                {/* 레벨 */}
-                <div className="flex items-end gap-3 mb-1 relative z-10">
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: theme.accent }}>LEVEL</p>
-                    <p className="text-7xl font-black leading-none tracking-tighter" style={{ color: theme.accent, textShadow: `0 0 30px ${theme.glow}` }}>
-                      {rank.level}
-                    </p>
-                  </div>
-                  <div className="mb-3">
-                    <p className="text-white/30 text-xs font-bold">→ NEXT</p>
-                    <p className="text-white/50 text-xl font-black">{rank.level + 1}</p>
-                  </div>
-                </div>
-
-                <p className="text-2xl font-black mb-1 tracking-tight relative z-10">{rank.title}</p>
-                <p className="text-white/40 text-xs font-medium mb-5 relative z-10">{rank.subTitle}</p>
-
-                {/* XP 바 */}
-                <div className="relative z-10">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-[9px] font-black text-white/40 uppercase tracking-wider">EXP</span>
-                    <span className="text-xs font-black" style={{ color: theme.accent }}>{rank.currentXp} / {rank.nextLevelXp} XP</span>
-                  </div>
-                  <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                    <div className="h-full rounded-full"
-                      style={{
-                        width: `${rank.progress}%`,
-                        background: `linear-gradient(90deg, ${theme.accent}99, ${theme.accent})`,
-                        boxShadow: `0 0 12px ${theme.glow}, 0 0 6px ${theme.glow}`
-                      }} />
-                  </div>
+              <div className="flex justify-center">
+                <div className="px-5 py-2 rounded-full bg-[#F2B90D]/10 border border-[#F2B90D]/30 flex items-center gap-3 backdrop-blur-md">
+                  <span className="material-symbols-outlined text-[#F2B90D] text-sm">verified_user</span>
+                  <span className="text-[11px] font-black text-[#F2B90D] uppercase tracking-widest">Comprehensive Leadership Analysis</span>
+                  <div className="w-px h-3 bg-white/20 mx-1" />
+                  <span className="text-[11px] font-black text-white/70 uppercase">LV.{rank.level} {rank.title}</span>
                 </div>
               </div>
             )}
 
-            {/* ── 퀵 스탯 ── */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* 메인 타이틀 */}
+            <header className="text-center mb-4">
+              <h1 className="text-5xl font-black text-white mb-6 tracking-tighter drop-shadow-2xl">리더십 성향 리포트</h1>
+              {reportProfile && (
+                <div className="inline-block relative px-12 py-3 rounded-[2rem] bg-gradient-to-r from-[#F2B90D]/20 to-transparent border border-[#F2B90D]/30 backdrop-blur-md overflow-hidden group shadow-[0_0_30px_rgba(242,185,13,0.2)]">
+                  <div className="absolute inset-0 bg-[#F2B90D]/5 blur-xl group-hover:bg-[#F2B90D]/10 transition-all duration-500" />
+                  <span className="relative z-10 text-3xl font-black italic text-[#F2B90D] group-hover:text-white transition-colors duration-500">
+                    "{reportProfile.title}" <span className="text-lg font-medium not-italic text-slate-400 ml-2">({reportProfile.titleEn})</span>
+                  </span>
+                </div>
+              )}
+            </header>
+
+            {/* 상단 섹션: 아바타 & 차트 그리드 */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* 캐릭터 프로필 카드 (좌측) */}
+              <div className="lg:col-span-3 relative group">
+                <div className="absolute -inset-1 bg-gradient-to-b from-[#F2B90D]/30 to-transparent rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                <div className="relative h-full rounded-[2.5rem] overflow-hidden border border-white/10 bg-[#0D1525] shadow-2xl flex flex-col">
+
+                  {/* 애니메이션 아바타 */}
+                  <div className="flex-1 flex flex-col items-center justify-center relative py-10 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#F2B90D]/5 via-transparent to-transparent" />
+                    {/* 회전 링 */}
+                    <div className="absolute size-52 rounded-full border border-[#F2B90D]/8"
+                      style={{ animation: 'spin 12s linear infinite' }} />
+                    <div className="absolute size-40 rounded-full border border-[#F2B90D]/12 animate-pulse" />
+                    {/* 스캔 라인 */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+                      <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent animate-scan" />
+                    </div>
+
+                    {/* 아바타 코어 */}
+                    <div className="relative z-10">
+                      <div
+                        className="size-28 rounded-full flex items-center justify-center"
+                        style={{
+                          background: 'radial-gradient(circle at 40% 30%, rgba(242,185,13,0.2), rgba(0,242,255,0.05) 70%)',
+                          border: '2px solid rgba(242,185,13,0.45)',
+                          boxShadow: '0 0 40px rgba(242,185,13,0.2), 0 0 80px rgba(242,185,13,0.08)',
+                        }}
+                      >
+                        <span
+                          className="material-symbols-outlined"
+                          style={{
+                            fontSize: '60px',
+                            color: '#F2B90D',
+                            filter: 'drop-shadow(0 0 10px rgba(242,185,13,0.6))',
+                          }}
+                        >
+                          shield_person
+                        </span>
+                      </div>
+                      {/* 온라인 상태 점 */}
+                      <div
+                        className="absolute bottom-1 right-1 size-4 rounded-full border-2 border-[#0D1525] bg-emerald-400"
+                        style={{ boxShadow: '0 0 8px rgba(52,211,153,0.9)', animation: 'pulse 2s ease-in-out infinite' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 동기화율 뱃지 */}
+                  <div className="absolute top-6 right-6 text-right">
+                    <p className="text-[9px] font-black text-[#F2B90D]/60 uppercase tracking-widest mb-1">SYNC RATE</p>
+                    <p className="text-3xl font-black text-[#F2B90D] drop-shadow-[0_0_10px_rgba(242,185,13,0.5)]">
+                      {reportProfile?.syncRate}%
+                    </p>
+                  </div>
+
+                  {/* 하단 정보 */}
+                  <div className="px-7 pb-8">
+                    <p className="text-[9px] font-black text-[#F2B90D] uppercase tracking-[0.3em] mb-1.5">CHARACTER PERSONA</p>
+                    <h2 className="text-2xl font-black text-white tracking-tighter italic">Project Manager <span className="text-[#F2B90D] italic">JAY</span></h2>
+                  </div>
+                </div>
+              </div>
+
+              {/* 역량 레이더 (우측) */}
+              <div className="lg:col-span-9 flex flex-col gap-6">
+                <div className="bg-[#111A2E]/50 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/5 flex-1 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-8 opacity-10">
+                    <span className="material-symbols-outlined text-8xl">analytics</span>
+                  </div>
+
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="size-10 rounded-xl bg-[#F2B90D]/20 flex items-center justify-center text-[#F2B90D] border border-[#F2B90D]/20">
+                      <span className="material-symbols-outlined text-xl">bar_chart</span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-white italic tracking-tight">역량 레이더</h3>
+                    </div>
+                  </div>
+
+
+                  {/* 역량 레이더 컴포넌트 */}
+                  <CompetencyRadar
+                    data={reportProfile?.radarData}
+                    teamAffinity={reportProfile?.persona?.teamAffinity != null ? Math.round(reportProfile.persona.teamAffinity) : undefined}
+                    tacticalRisk={reportProfile?.persona?.riskManagement != null ? Math.round(reportProfile.persona.riskManagement) : undefined}
+                  />
+
+
+                </div>
+
+                {/* 태그 카드 (Row) */}
+                <div className="grid grid-cols-3 gap-4">
+                  {reportProfile?.tags.map((tag: any, i: number) => (
+                    <div key={i} className="bg-[#111A2E]/50 rounded-3xl p-5 border border-white/5 hover:border-[#F2B90D]/30 transition-all group">
+                      <div className="size-10 rounded-xl bg-[#F2B90D]/10 flex items-center justify-center text-[#F2B90D] mb-4 border border-[#F2B90D]/20 group-hover:scale-110 transition-transform">
+                        <span className="material-symbols-outlined text-xl">{tag.icon}</span>
+                      </div>
+                      <h4 className="text-sm font-black text-white mb-2 leading-tight">{tag.title}</h4>
+                      <p className="text-[10px] text-slate-500 font-medium leading-relaxed">{tag.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 하단 요약 섹션 */}
+            <div className="bg-[#111A2E]/80 backdrop-blur-2xl rounded-[3rem] p-10 border border-white/10 relative overflow-hidden group shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+              <div className="absolute top-0 left-0 w-2 h-full bg-[#F2B90D] opacity-50" />
+              <div className="flex flex-col md:flex-row items-center gap-10">
+                <div className="size-20 rounded-full bg-[#F2B90D]/10 flex items-center justify-center border border-[#F2B90D]/20 shrink-0 shadow-[0_0_20px_rgba(242,185,13,0.2)]">
+                  <span className="material-symbols-outlined text-4xl text-[#F2B90D] animate-pulse">lightbulb</span>
+                </div>
+                <div className="flex-1 text-center md:text-left">
+                  <h3 className="text-xl font-black text-white mb-4 italic tracking-tight flex items-center gap-4 justify-center md:justify-start">
+                    Summary & Advice
+                    <div className="h-px w-20 bg-gradient-to-r from-[#F2B90D]/50 to-transparent" />
+                  </h3>
+                  <p className={`text-base leading-relaxed font-medium text-slate-300 ${isAiLoading ? 'animate-pulse blur-[1px]' : ''}`}>
+                    {aiAdvice}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3 min-w-[200px]">
+                  <button className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-[#F2B90D] text-[#060B18] font-black text-sm hover:scale-105 transition-all shadow-[0_0_20px_rgba(242,185,13,0.3)]">
+                    <span className="material-symbols-outlined text-lg">share</span>
+                    결과 공유하기
+                  </button>
+                  <button onClick={handleDownloadReport} className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-white/5 text-white font-black text-sm border border-white/10 hover:bg-white/10 transition-all">
+                    <span className="material-symbols-outlined text-lg">download</span>
+                    PDF 다운로드
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 성과 지표 (기존 RPG 요소 하단 배치) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+              <div className="bg-[#111A2E]/50 rounded-[2.5rem] p-8 border border-white/5 backdrop-blur-lg">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="size-10 rounded-xl bg-[#F2B90D]/20 flex items-center justify-center text-[#F2B90D] border border-[#F2B90D]/20">
+                    <span className="material-symbols-outlined text-xl">history</span>
+                  </div>
+                  <h4 className="text-[11px] font-black text-white uppercase tracking-widest">최근 리더십 로그</h4>
+                </div>
+                <div className="space-y-4">
+                  {recentHistory.map((item) => (
+                    <div key={item.id} className="bg-white/5 p-5 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-white/10 transition-all cursor-pointer">
+                      <div>
+                        <p className="text-sm font-bold text-white mb-1">{item.scenarioTitle}</p>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase">{new Date(item.date).toLocaleDateString()}</p>
+                      </div>
+                      <span className="material-symbols-outlined text-slate-700 group-hover:text-[#F2B90D] transition-colors">arrow_forward</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#111A2E]/50 rounded-[2.5rem] p-8 border border-white/5 backdrop-blur-lg">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="size-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500 border border-amber-500/20">
+                    <span className="material-symbols-outlined text-xl">military_tech</span>
+                  </div>
+                  <h4 className="text-[11px] font-black text-white uppercase tracking-widest">현재 랭크 마일스톤</h4>
+                </div>
+                <div className="flex items-center gap-6 p-6 bg-white/5 rounded-3xl mb-4 border border-white/5">
+                  <div className="size-20 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shadow-[0_0_30px_rgba(255,184,0,0.2)]">
+                    <span className="material-symbols-outlined text-5xl" style={{ color: theme.accent }}>{rankIcon}</span>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-white mb-1 italic" style={{ color: theme.accent }}>{rank?.title}</p>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
+                      {rank?.level}단계 도달 / {rank?.subTitle}
+                    </p>
+                  </div>
+                </div>
+                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-amber-500 to-amber-300" style={{ width: `${rank?.progress}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ════════ 스킬 트리 탭 (Stitch 디자인 기반) ════════ */}
+        {activeTab === 'skills' && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 h-[600px] relative overflow-hidden bg-black/40 rounded-[2.5rem] border border-white/5 cursor-grab active:cursor-grabbing">
+            {/* 스킬 트리 맵 (SkillTree.tsx 로직 통합) */}
+            <div className="absolute inset-0 z-0 opacity-40">
+              <div className="absolute top-[-10%] left-[-10%] size-[60%] rounded-full blur-[120px] bg-[#F2B90D]/10 animate-pulse" />
+              <div className="absolute bottom-[-10%] right-[-10%] size-[50%] rounded-full blur-[100px] bg-purple-600/10 animate-pulse" />
+            </div>
+
+            <div className="relative w-full h-full overflow-auto p-10 select-none hide-scrollbar">
+              <div className="min-w-[800px] min-h-[500px] relative">
+                {/* SVG lines */}
+                <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                  {renderSkillLines()}
+                </svg>
+
+                {/* Skill Nodes */}
+                {SKILL_DATA.map((node) => {
+                  const meta = SKILL_CATEGORY_META[node.category];
+                  const isUnlocked = node.level > 0;
+                  const isSelectable = !node.dependencies || node.dependencies.every(depId => SKILL_DATA.find(n => n.id === depId)!.level > 0);
+
+                  return (
+                    <div
+                      key={node.id}
+                      className={`absolute transition-all duration-700 transform -translate-x-1/2 -translate-y-1/2 ${isSkillReady ? 'opacity-100' : 'opacity-0 scale-50'}`}
+                      style={{ top: `${node.y}%`, left: `${node.x}%` }}
+                    >
+                      <button
+                        onClick={() => setSelectedNode(node)}
+                        className={`flex flex-col items-center group relative ${isUnlocked ? 'cursor-pointer' : isSelectable ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                      >
+                        <div className={`size-14 rounded-2xl flex items-center justify-center border-2 transition-all duration-300 relative ${isUnlocked
+                          ? 'bg-[#0f172a] shadow-lg'
+                          : isSelectable
+                            ? 'bg-[#0f172a]/50 border-white/20'
+                            : 'bg-black/20 border-white/5 opacity-40'
+                          }`}
+                          style={isUnlocked ? { borderColor: meta.color, boxShadow: `0 0 15px ${meta.glow}` } : {}}>
+                          <span className={`material-symbols-outlined text-2xl transition-transform group-hover:scale-110 ${isUnlocked ? '' : 'text-slate-600'
+                            }`} style={isUnlocked ? { color: meta.color, filter: `drop-shadow(0 0 8px ${meta.glow})` } : {}}>
+                            {node.icon}
+                          </span>
+                          {isUnlocked && (
+                            <div className="absolute -bottom-2 -right-2 size-5 rounded-lg flex items-center justify-center border border-white/20 text-[8px] font-black bg-[#0F1729]"
+                              style={{ color: meta.color }}>
+                              {node.level}
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-2 text-center">
+                          <p className={`text-[10px] font-black tracking-tight ${isUnlocked ? 'text-white' : 'text-slate-600'}`}>{node.name}</p>
+                        </div>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 안내 뱃지 */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 pointer-events-none">
+              <span className="material-symbols-outlined text-xs text-[#F2B90D] animate-bounce">pan_tool_alt</span>
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Drag to Explore Skill Map</span>
+            </div>
+          </div>
+        )}
+
+        {/* ════════ 배지 탭 ════════ */}
+        {activeTab === 'badges' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* ── 퀵 스탯 (배지 탭으로 이동) ── */}
+            <div className="grid grid-cols-2 gap-3 mb-8">
               <div onClick={() => navigate('/streak')}
                 className="bg-gradient-to-br from-[#161D2F] to-[#0D1525] p-5 rounded-[2rem] border border-white/5 flex flex-col items-center text-center cursor-pointer active:scale-95 transition-all group hover:border-amber-500/30">
                 <div className="size-11 rounded-2xl bg-amber-500/15 flex items-center justify-center text-amber-400 mb-3 border border-amber-500/20 group-hover:shadow-neon-amber transition-all">
@@ -291,141 +600,6 @@ const Profile: React.FC = () => {
               </div>
             </div>
 
-            {/* ── 최근 히스토리 ── */}
-            <section>
-              <div className="flex justify-between items-center mb-4 px-1">
-                <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-xl bg-accent-neon/20 flex items-center justify-center text-accent-neon border border-accent-neon/20">
-                    <span className="material-symbols-outlined text-base">history</span>
-                  </div>
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white">최근 대화 로그</h3>
-                </div>
-                <button onClick={() => navigate('/history')} className="text-[9px] font-black uppercase tracking-widest" style={{ color: theme.accent }}>전체보기</button>
-              </div>
-              <div className="space-y-2.5">
-                {recentHistory.length > 0 ? (
-                  recentHistory.map((item) => (
-                    <div key={item.id} onClick={() => navigate(`/history/${item.id}`)}
-                      className="bg-gradient-to-r from-[#161D2F] to-[#0D1525] p-4 rounded-2xl border border-white/5 flex items-center justify-between active:scale-[0.98] transition-all hover:border-white/10 cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <div className={`size-10 rounded-xl flex items-center justify-center border ${item.type === 'voice' ? 'bg-primary/15 text-primary border-primary/20' : 'bg-accent-neon/15 text-accent-neon border-accent-neon/20'}`}>
-                          <span className="material-symbols-outlined text-lg">{item.type === 'voice' ? 'mic' : 'swords'}</span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold truncate max-w-[150px]">{item.scenarioTitle}</p>
-                          <p className="text-[9px] text-slate-600 font-bold uppercase">{item.memberName} • {new Date(item.date).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      <span className="material-symbols-outlined text-slate-700 text-lg">arrow_forward_ios</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="py-12 text-center bg-white/3 rounded-[2.5rem] border border-dashed border-white/5">
-                    <span className="material-symbols-outlined text-3xl text-slate-700 mb-2 block">swords</span>
-                    <p className="text-sm text-slate-600 font-bold">전투 기록이 아직 없습니다</p>
-                    <p className="text-[9px] text-slate-700 font-bold mt-1 uppercase tracking-widest">Start Your First Quest</p>
-                  </div>
-                )}
-              </div>
-            </section>
-          </div>
-        )}
-
-        {/* ════════ 스킬 트리 탭 (Stitch 디자인 기반) ════════ */}
-        {activeTab === 'skills' && (
-          <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* 헤더 */}
-            <div className="text-center py-4">
-              <p className="text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-2" style={{ textShadow: '0 0 10px rgba(0,242,255,0.4)' }}>
-                Leadership Skill Tree
-              </p>
-              <h2 className="text-2xl font-black italic tracking-tight">리더십 스킬 트리</h2>
-              <p className="text-xs text-slate-600 font-medium mt-1">퀘스트를 완료하며 리더십 스킬을 성장시키세요</p>
-            </div>
-
-            {/* 카테고리별 스킬 노드 */}
-            {['소통', '리더십', '육성'].map((category) => (
-              <section key={category}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="size-7 rounded-lg bg-white/5 flex items-center justify-center text-slate-500 border border-white/5">
-                    <span className="material-symbols-outlined text-sm">
-                      {category === '소통' ? 'chat' : category === '리더십' ? 'star' : 'school'}
-                    </span>
-                  </div>
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{category} 계열</h3>
-                  <div className="h-px bg-white/5 flex-1" />
-                </div>
-
-                <div className="space-y-3">
-                  {SKILL_TREE.filter(s => s.category === category).map((skill, i) => {
-                    const isUnlocked = skill.level > 0;
-                    return (
-                      <div key={i}
-                        className={`bg-gradient-to-br from-[#161D2F] to-[#0D1525] p-5 rounded-[2rem] border transition-all ${isUnlocked ? 'border-white/10 hover:border-white/20' : 'border-white/5 opacity-60'
-                          }`}
-                        style={isUnlocked ? { boxShadow: `0 0 15px ${skill.color}10` } : {}}
-                      >
-                        <div className="flex items-start gap-4">
-                          {/* 스킬 아이콘 */}
-                          <div className="relative shrink-0">
-                            <div className="size-12 rounded-2xl flex items-center justify-center border"
-                              style={{
-                                backgroundColor: isUnlocked ? `${skill.color}15` : 'rgba(255,255,255,0.03)',
-                                borderColor: isUnlocked ? `${skill.color}30` : 'rgba(255,255,255,0.05)',
-                                boxShadow: isUnlocked ? `0 0 15px ${skill.color}20` : 'none'
-                              }}>
-                              <span className="material-symbols-outlined text-xl" style={{ color: isUnlocked ? skill.color : '#374151' }}>
-                                {skill.icon}
-                              </span>
-                            </div>
-                            {!isUnlocked && (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-xs text-slate-700">lock</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* 스킬 정보 */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1.5">
-                              <h4 className="text-sm font-bold text-white">{skill.name}</h4>
-                              <span className="text-[9px] font-black uppercase tracking-widest"
-                                style={{ color: isUnlocked ? skill.color : '#4B5563' }}>
-                                Lv.{skill.level}/{skill.maxLevel}
-                              </span>
-                            </div>
-
-                            {/* 레벨 게이지 */}
-                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-2.5">
-                              <div className="h-full rounded-full transition-all duration-1000"
-                                style={{
-                                  width: `${(skill.level / skill.maxLevel) * 100}%`,
-                                  background: isUnlocked ? `linear-gradient(90deg, ${skill.color}80, ${skill.color})` : 'transparent',
-                                  boxShadow: isUnlocked ? `0 0 8px ${skill.color}40` : 'none'
-                                }} />
-                            </div>
-
-                            {/* 효과 */}
-                            <p className="text-[10px] font-medium text-slate-500 flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-[10px]" style={{ color: isUnlocked ? skill.color : '#4B5563' }}>
-                                {isUnlocked ? 'check_circle' : 'lock'}
-                              </span>
-                              {skill.effect}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
-
-        {/* ════════ 배지 탭 ════════ */}
-        {activeTab === 'badges' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-3">
                 <div className="size-8 rounded-xl flex items-center justify-center border"
@@ -517,7 +691,7 @@ const Profile: React.FC = () => {
             ) : (
               <div className="animate-in fade-in slide-in-from-right-8 duration-300">
                 <button onClick={() => setSelectedRankName(null)}
-                  className="flex items-center gap-1 text-[10px] font-black text-primary uppercase tracking-widest mb-6 hover:translate-x-[-4px] transition-transform">
+                  className="flex items-center gap-1 text-[10px] font-black text-[#F2B90D] uppercase tracking-widest mb-6 hover:translate-x-[-4px] transition-transform">
                   <span className="material-symbols-outlined text-sm">arrow_back</span> 뒤로가기
                 </button>
                 <div className="mb-6">
@@ -559,6 +733,43 @@ const Profile: React.FC = () => {
                   className="w-full mt-8 py-5 bg-primary text-navy-deep font-black text-xs uppercase rounded-2xl shadow-neon-cyan active:scale-95 transition-all">다른 랭크 확인</button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── 스킬 상세 모달 (SkillTree.tsx 로직 통합) ── */}
+      {selectedNode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300"
+          onClick={() => setSelectedNode(null)}>
+          <div className="w-full max-w-sm bg-[#0D1525] rounded-[3rem] border p-8 shadow-2xl relative overflow-hidden"
+            style={{ borderColor: SKILL_CATEGORY_META[selectedNode.category].color + '40' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="relative z-10 text-center">
+              <div className="size-20 mx-auto rounded-3xl flex items-center justify-center border-2 mb-6"
+                style={{ borderColor: SKILL_CATEGORY_META[selectedNode.category].color, boxShadow: `0 0 20px ${SKILL_CATEGORY_META[selectedNode.category].glow}` }}>
+                <span className="material-symbols-outlined text-5xl" style={{ color: SKILL_CATEGORY_META[selectedNode.category].color }}>
+                  {selectedNode.icon}
+                </span>
+              </div>
+              <h3 className="text-2xl font-black italic tracking-tighter mb-1">{selectedNode.name}</h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-6" style={{ color: SKILL_CATEGORY_META[selectedNode.category].color }}>
+                {SKILL_CATEGORY_META[selectedNode.category].label}
+              </p>
+              <div className="space-y-4 text-left">
+                <section className="bg-white/5 p-4 rounded-2xl border border-white/5">
+                  <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">스킬 설명</h4>
+                  <p className="text-xs text-slate-300 font-medium leading-relaxed">{selectedNode.description}</p>
+                </section>
+                <section className="bg-primary/5 p-4 rounded-2xl border border-primary/20">
+                  <h4 className="text-[9px] font-black text-primary uppercase tracking-widest mb-1">현재 효과 (Lv.{selectedNode.level})</h4>
+                  <p className="text-xs font-black italic text-accent-neon">"{selectedNode.effect}"</p>
+                </section>
+              </div>
+              <button onClick={() => setSelectedNode(null)}
+                className="w-full mt-8 py-4 bg-white/5 text-slate-400 font-black text-xs uppercase rounded-2xl border border-white/5">
+                닫기
+              </button>
+            </div>
           </div>
         </div>
       )}

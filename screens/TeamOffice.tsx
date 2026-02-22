@@ -5,19 +5,20 @@ import { useNavigate } from 'react-router-dom';
 import { SCENARIOS } from '../constants';
 import { getCharacterAvatar, getCharacterInfo } from '../services/characterAvatars';
 import { Scenario } from '../types';
+import { AvatarWithGrade } from '../components/GameUIComponents';
 
 /* ── 시나리오별 감정 말풍선 ── */
 const THOUGHT_MAP: Record<string, { emoji: string; thought: string; color: string }> = {
   'late-comer': { emoji: '⏰', thought: '또 늦겠다...', color: '#FFB800' },
   'team-clash': { emoji: '💥', thought: '이번 미팅이 걱정돼', color: '#ef4444' },
   'feedback-defense': { emoji: '🛡️', thought: '제 방식이 맞아요', color: '#9F7AEA' },
-  'quiet-resignation': { emoji: '💔', thought: '더 이상 못 버텨...', color: '#ef4444' },
-  'overtime-refusal': { emoji: '😤', thought: '칼퇴는 당연한 거야', color: '#f97316' },
-  'credit-stealer': { emoji: '💰', thought: '이 성과는 내 거야', color: '#FFB800' },
-  'perfectionist': { emoji: '✨', thought: '완벽해야만 해', color: '#00F2FF' },
+  'quiet-quitting': { emoji: '😶', thought: '딱 맡은 일만 하렵니다.', color: '#A0A0A0' },
+  'boundaries': { emoji: '😤', thought: '칼퇴는 당연한 거야', color: '#f97316' },
+  'stealing-credit-misconception': { emoji: '💰', thought: '이 성과는 내 거야', color: '#FFB800' },
+  'quality-vs-speed': { emoji: '✨', thought: '완벽해야만 해', color: '#00F2FF' },
   'silent-struggle': { emoji: '🔇', thought: '아무도 몰랐으면...', color: '#6366f1' },
-  'burnout': { emoji: '🔥', thought: '너무 지쳤어', color: '#ef4444' },
-  'gen-z-conflict': { emoji: '🎮', thought: '꼰대 문화는 싫어', color: '#10B981' },
+  'low-motivation': { emoji: '🔥', thought: '너무 지쳤어', color: '#ef4444' },
+  'inter-gen-clash': { emoji: '🤔', thought: '요즘 애들은 참...', color: '#7EBFFF' },
   'new-hire-lost': { emoji: '❓', thought: '뭘 어떻게 해야 하지?', color: '#94a3b8' },
   'presentation-anxiety': { emoji: '😰', thought: '발표가 너무 떨려', color: '#9F7AEA' },
   'always-last-minute': { emoji: '⚡', thought: '마감 직전이 베스트', color: '#FFB800' },
@@ -125,13 +126,13 @@ const TeamOffice: React.FC = () => {
               className="group relative bg-[#0F1729]/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-6 text-left transition-all duration-500 hover:border-primary/30 hover:shadow-[0_0_30px_rgba(0,242,255,0.1)] hover:-translate-y-1 overflow-hidden"
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="size-14 rounded-2xl overflow-hidden border-2 transition-transform duration-500 group-hover:scale-110" style={{ borderColor: intensity.color }}>
-                  <img src={avatarUrl} alt={info.name} className="size-full object-cover" />
-                </div>
+                <AvatarWithGrade
+                  src={avatarUrl}
+                  grade={intensity.label.replace('등급', '')}
+                  size="md"
+                  glowColor={info.themeColor}
+                />
                 <div className="flex flex-col items-end gap-1">
-                  <span className="text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest" style={{ color: intensity.color, backgroundColor: intensity.bg, border: `1px solid ${intensity.border}` }}>
-                    {intensity.label}
-                  </span>
                   <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold">
                     <span className="material-symbols-outlined text-[12px]">schedule</span>
                     {scenario.generation}
@@ -140,8 +141,18 @@ const TeamOffice: React.FC = () => {
               </div>
 
               <div className="mb-4">
-                <h3 className="text-lg font-black group-hover:text-primary transition-colors">{info.name}</h3>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{info.role}</p>
+                <h3 className="text-lg font-black group-hover:text-primary transition-colors flex items-center gap-2">
+                  {info.name}
+                  <span className="size-1.5 rounded-full" style={{ backgroundColor: info.themeColor }} />
+                </h3>
+                <div className="flex flex-wrap gap-1 mt-1 mb-2">
+                  {info.disposition.map((d, i) => (
+                    <span key={i} className="text-[10px] font-black px-2 py-0.5 rounded-md" style={{ backgroundColor: `${info.themeColor}15`, color: info.themeColor, border: `1px solid ${info.themeColor}30` }}>
+                      {d}
+                    </span>
+                  ))}
+                  <span className="text-[8px] font-bold text-slate-600 uppercase px-1.5 py-0.5 rounded bg-white/5 ml-auto">{info.visualTraits.hair}</span>
+                </div>
               </div>
 
               <div className="relative p-3 rounded-2xl bg-white/5 border border-white/5 group-hover:border-primary/20 transition-all">
@@ -173,24 +184,16 @@ const TeamOffice: React.FC = () => {
               onClick={e => e.stopPropagation()}
             >
               {/* 모달 헤더 */}
-              <div className="p-6 flex items-center gap-4 border-b border-white/5">
-                <div
-                  className="size-16 rounded-2xl overflow-hidden border-2 shrink-0"
-                  style={{ borderColor: selected.intensity.color, boxShadow: `0 0 20px ${selected.intensity.bg}` }}
-                >
-                  <img src={selected.avatarUrl} alt={selected.info.name} className="size-full object-cover" style={{ background: 'rgba(15,23,41,1)' }} />
-                </div>
+              <div className="p-6 flex items-center gap-6 border-b border-white/5">
+                <AvatarWithGrade
+                  src={selected.avatarUrl}
+                  grade={selected.intensity.label.replace('등급', '')}
+                  size="md"
+                  glowColor={selected.info.themeColor}
+                />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest"
-                      style={{ color: selected.intensity.color, backgroundColor: selected.intensity.bg, border: `1px solid ${selected.intensity.border}` }}
-                    >
-                      {selected.intensity.label}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-black">{selected.info.name}</h3>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{selected.info.role} · {selected.scenario.generation}</p>
+                  <h3 className="text-xl font-black">{selected.info.name}</h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-loose">{selected.info.role} · {selected.scenario.generation}</p>
                 </div>
                 <button onClick={() => setSelectedMember(null)} className="size-8 flex items-center justify-center rounded-xl bg-white/5 text-slate-500">
                   <span className="material-symbols-outlined text-lg">close</span>
@@ -211,11 +214,22 @@ const TeamOffice: React.FC = () => {
                 </div>
               </div>
 
-              {/* 시나리오 설명 */}
+              {/* 상황 보고서 (Quest Briefing Style) */}
               <div className="px-6 py-4">
-                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">시나리오</h4>
-                <p className="text-sm font-black text-white mb-1">{selected.scenario.title}</p>
-                <p className="text-[11px] text-slate-400 leading-relaxed font-medium">{selected.scenario.description}</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="material-symbols-outlined text-xs text-primary">description</span>
+                  <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">상황 보고서</h4>
+                </div>
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                  <p className="text-[13px] font-black text-white mb-2 ml-1 leading-tight flex items-center gap-2">
+                    <span className="size-1 rounded-full bg-primary" />
+                    {selected.scenario.title}
+                  </p>
+                  <div className="h-px w-full bg-white/5 mb-3" />
+                  <p className="text-[11px] text-slate-400 leading-relaxed font-medium pl-1">
+                    {selected.scenario.description}
+                  </p>
+                </div>
               </div>
 
               {/* 보상 + 시작 버튼 */}
