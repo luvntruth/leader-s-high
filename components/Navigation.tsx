@@ -14,8 +14,9 @@ const Navigation: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const handleLogoClick = () => {
-    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    navigate('/');
 
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
     const nextCount = clickCount + 1;
     if (nextCount >= 5) {
       setIsAdminVisible(true);
