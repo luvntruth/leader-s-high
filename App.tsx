@@ -16,7 +16,6 @@ import StreakDetail from './screens/StreakDetail';
 import AdminDashboard from './screens/AdminDashboard';
 import HistoryList from './screens/HistoryList';
 import HistoryDetail from './screens/HistoryDetail';
-import Shop from './screens/Shop';
 import Navigation from './components/Navigation';
 
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -53,7 +52,6 @@ const App: React.FC = () => {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/history" element={<HistoryList />} />
           <Route path="/history/:id" element={<HistoryDetail />} />
-          <Route path="/shop" element={<Shop />} />
         </Routes>
       </LayoutWrapper>
     </HashRouter>
