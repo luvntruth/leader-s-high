@@ -322,7 +322,7 @@ const Simulation: React.FC = () => {
       ]);
 
       chatRef.current = ai.chats.create({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         config: { systemInstruction, temperature: 0.8 },
         history: [
           { role: 'user', parts: [{ text: openingUserText }] },
@@ -377,7 +377,7 @@ const Simulation: React.FC = () => {
       `;
 
       const response = await fetchWithRetry(() => ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',

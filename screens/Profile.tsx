@@ -161,7 +161,7 @@ const Profile: React.FC = () => {
       const history = DataService.getUserHistory();
       const genAI = createGeminiClient();
       // @ts-ignore
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       const prompt = `
         리더십 교육 게임 'Leader's High'의 리더십 전문가로서 다음 데이터를 바탕으로 사용자의 리더십 성향 리포트 하단 'Summary & Advice' 섹션에 들어갈 내용을 작성해주세요.

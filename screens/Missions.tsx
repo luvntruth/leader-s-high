@@ -111,7 +111,7 @@ const Missions: React.FC = () => {
         `;
 
         const result = await ai.models.generateContent({
-          model: 'gemini-2.0-flash',
+          model: 'gemini-2.5-flash',
           contents: prompt
         });
         const reason = result.text?.trim() || "팀원의 성장을 이끄는 과정에서 리더님의 역량이 한 단계 더 도약할 수 있을 것입니다.";
