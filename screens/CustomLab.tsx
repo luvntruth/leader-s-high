@@ -18,7 +18,7 @@ const CustomLab: React.FC = () => {
   useEffect(() => {
     const ai = createGeminiClient();
     chatRef.current = ai.chats.create({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.5-flash',
       config: {
         thinkingConfig: { thinkingBudget: 0 },
         systemInstruction: `

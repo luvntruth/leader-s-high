@@ -189,6 +189,34 @@ export interface TrustLevelOutput {
   next_hint: string;
 }
 
+// --- Instant Coaching (경량 즉시 피드백) ---
+
+export interface InstantCoachingInput {
+  userMessage: string;
+  modelResponse: string;
+  scenarioContext: string;
+  currentTrust: number;
+}
+
+export interface InstantCoachingResult {
+  positiveImpact: string;
+  negativeRisk: string;
+  estimatedTrustDelta: number;
+  betterAlternative: string;
+  tip: string;
+}
+
+const INSTANT_COACHING_PROMPT = `당신은 리더십 코칭 전문가입니다. 리더의 발언 1개와 팀원의 반응 1개를 분석하여 즉시 피드백을 제공합니다.
+
+[규칙]
+1. 모든 내용은 한국어로 작성
+2. positiveImpact: 이 발언이 신뢰/관계에 미치는 긍정적 영향 (1문장, 60자 이내)
+3. negativeRisk: 이 발언의 잠재적 리스크나 놓친 기회 (1문장, 60자 이내). 리스크 없으면 "특별한 리스크 없음"
+4. estimatedTrustDelta: 이 발언으로 인한 예상 신뢰 변화 (-10 ~ 5 정수). 양수에 + 기호 붙이지 마시오.
+5. betterAlternative: 같은 의도를 더 효과적으로 전달하는 대안 표현 (직접 인용 형태)
+6. tip: 핵심 코칭 팁 (1문장, 40자 이내)
+7. JSON만 출력, 설명/마크다운 금지`;
+
 // Singleton GoogleGenAI instance - reused across calls
 let aiInstance: GoogleGenAI | null = null;
 
@@ -219,7 +247,7 @@ export const TrustLevelService = {
 
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.5-flash',
         contents: JSON.stringify(input),
         config: {
           systemInstruction: TRUST_LEVEL_SYSTEM_PROMPT,
@@ -248,6 +276,53 @@ export const TrustLevelService = {
       return output;
     } catch (error) {
       console.error("TrustLevelService Error:", error);
+      return null;
+    }
+  },
+
+  async getInstantCoaching(input: InstantCoachingInput): Promise<InstantCoachingResult | null> {
+    const ai = getAIInstance();
+
+    try {
+      const userContent = JSON.stringify({
+        userMessage: input.userMessage,
+        modelResponse: input.modelResponse,
+        context: input.scenarioContext,
+        currentTrust: input.currentTrust
+      });
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: userContent,
+        config: {
+          systemInstruction: INSTANT_COACHING_PROMPT,
+          temperature: 0.3,
+          responseMimeType: 'application/json',
+        }
+      });
+
+      const text = response.text;
+      if (!text) return null;
+
+      let cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      cleaned = cleaned.replace(/":\s*\+(\d+)/g, '": $1');
+
+      const output = JSON.parse(cleaned);
+
+      if (
+        typeof output.positiveImpact !== 'string' ||
+        typeof output.negativeRisk !== 'string' ||
+        typeof output.estimatedTrustDelta !== 'number' ||
+        typeof output.betterAlternative !== 'string' ||
+        typeof output.tip !== 'string'
+      ) {
+        console.error("InstantCoaching: Invalid response structure");
+        return null;
+      }
+
+      return output as InstantCoachingResult;
+    } catch (error) {
+      console.error("InstantCoaching Error:", error);
       return null;
     }
   }

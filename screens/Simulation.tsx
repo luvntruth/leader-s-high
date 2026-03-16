@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 // @ts-ignore
 import { useNavigate, useLocation } from 'react-router-dom';
 import { GoogleGenAI, Chat, Type } from "@google/genai";
-import { TrustLevelService, TrustLevelOutput } from '../services/trustLevelService';
+import { TrustLevelService, TrustLevelOutput, InstantCoachingResult } from '../services/trustLevelService';
 import { getMissionBriefing, getOpeningLine } from '../services/missionBriefings';
 import { EmotionStateMachine } from '../services/emotionStateMachine';
 import { createGeminiClient } from '../src/lib/geminiClient';
@@ -24,7 +24,7 @@ interface SOSTip {
 }
 
 const ANALYSIS_COMPLETE_THRESHOLD = 12; // user turns required (보스 지시사항)
-const TRUST_SCORING_INTERVAL = 3; // user turns between scoring
+const TRUST_SCORING_INTERVAL = 4; // user turns between scoring (비용 최적화: 3→4)
 
 // 감정 상태를 Trust Level에 따라 결정하는 함수
 function getEmotionState(trust: number): { state: string; description: string } {
@@ -91,6 +91,12 @@ const Simulation: React.FC = () => {
   const [sosTip, setSosTip] = useState<SOSTip | null>(null);
   const [sosTipHistory, setSosTipHistory] = useState<{ tip: SOSTip; turnIndex: number; timestamp: string }[]>([]);
   const [initError, setInitError] = useState(false);
+
+  // Instant Coaching State
+  const [instantCoaching, setInstantCoaching] = useState<InstantCoachingResult | null>(null);
+  const [isCoachingLoading, setIsCoachingLoading] = useState(false);
+  const [showCoaching, setShowCoaching] = useState(false);
+  const coachingCacheRef = useRef<Map<string, InstantCoachingResult>>(new Map());
 
   // Trust Level State Management
   const [trustState, setTrustState] = useState<{
@@ -347,6 +353,48 @@ const Simulation: React.FC = () => {
     // 오류 메시지 제거 후 재전송 (user 메시지는 이미 존재)
     setMessages(prev => prev.filter(m => !m.isError));
     handleSend(lastUserMessageRef.current, true);
+  };
+
+  const handleInstantCoaching = async () => {
+    if (isCoachingLoading) return;
+
+    const userMessages = messages.filter(m => m.role === 'user');
+    const lastUser = userMessages[userMessages.length - 1];
+    const lastModelIdx = messages.findLastIndex(m => m.role === 'model' && !m.isError);
+    const lastModel = lastModelIdx >= 0 ? messages[lastModelIdx] : null;
+
+    if (!lastUser || !lastModel) return;
+
+    // 캐시 키: 사용자 메시지 + AI 응답의 앞 50자
+    const cacheKey = `${lastUser.text.slice(0, 80)}|${lastModel.text.slice(0, 50)}`;
+    const cached = coachingCacheRef.current.get(cacheKey);
+    if (cached) {
+      setInstantCoaching(cached);
+      setShowCoaching(true);
+      return;
+    }
+
+    setIsCoachingLoading(true);
+    setShowCoaching(true);
+    setInstantCoaching(null);
+
+    try {
+      const result = await TrustLevelService.getInstantCoaching({
+        userMessage: lastUser.text,
+        modelResponse: lastModel.text,
+        scenarioContext: `상황: ${scenario?.title}, 팀원: ${config.name}(${config.generation})`,
+        currentTrust: trustState.trust
+      });
+
+      if (result && mountedRef.current) {
+        setInstantCoaching(result);
+        coachingCacheRef.current.set(cacheKey, result);
+      }
+    } catch (err) {
+      console.error('Instant coaching failed:', err);
+    } finally {
+      if (mountedRef.current) setIsCoachingLoading(false);
+    }
   };
 
   const handleSOS = async () => {
@@ -688,6 +736,58 @@ const Simulation: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* Instant Coaching Card */}
+            {showCoaching && (
+              <div className="mx-2 animate-in slide-in-from-bottom-4">
+                <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-400 text-sm">tips_and_updates</span>
+                      <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Instant Coaching</span>
+                    </div>
+                    <button onClick={() => setShowCoaching(false)} className="text-slate-500 hover:text-white transition-colors">
+                      <span className="material-symbols-outlined text-sm">close</span>
+                    </button>
+                  </div>
+
+                  {isCoachingLoading ? (
+                    <div className="flex items-center justify-center py-4 gap-3">
+                      <div className="size-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-[11px] font-bold text-amber-400/70 uppercase tracking-widest animate-pulse">Analyzing your response...</span>
+                    </div>
+                  ) : instantCoaching ? (
+                    <div className="space-y-2.5">
+                      <div className="flex items-start gap-2">
+                        <span className="text-emerald-400 text-sm mt-0.5">✅</span>
+                        <p className="text-[13px] text-slate-300 leading-relaxed">{instantCoaching.positiveImpact}</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-amber-400 text-sm mt-0.5">⚠️</span>
+                        <p className="text-[13px] text-slate-300 leading-relaxed">{instantCoaching.negativeRisk}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-blue-400 text-sm">📊</span>
+                        <span className="text-[12px] text-slate-400">예상 신뢰 변화:</span>
+                        <span className={`text-[14px] font-black ${instantCoaching.estimatedTrustDelta > 0 ? 'text-emerald-400' : instantCoaching.estimatedTrustDelta < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                          {instantCoaching.estimatedTrustDelta > 0 ? '+' : ''}{instantCoaching.estimatedTrustDelta}
+                        </span>
+                      </div>
+                      <div className="bg-black/30 rounded-xl p-3 border border-amber-500/10">
+                        <div className="flex items-start gap-2">
+                          <span className="text-amber-300 text-sm mt-0.5">💬</span>
+                          <p className="text-[13px] text-amber-200/90 leading-relaxed italic">"{instantCoaching.betterAlternative}"</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2 pt-1">
+                        <span className="text-cyan-400 text-sm mt-0.5">🎯</span>
+                        <p className="text-[12px] font-bold text-cyan-300">{instantCoaching.tip}</p>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ── ACTION INPUT DASHBOARD ── */}
@@ -756,6 +856,21 @@ const Simulation: React.FC = () => {
                 </button>
               </div>
 
+              {/* Instant Coaching Button */}
+              <button
+                onClick={handleInstantCoaching}
+                disabled={isCoachingLoading || messages.filter(m => m.role === 'user').length === 0 || isLoading}
+                className={`size-12 rounded-2xl shrink-0 flex items-center justify-center transition-all ${
+                  isCoachingLoading
+                    ? 'bg-amber-500/20 animate-pulse'
+                    : 'bg-amber-500 text-navy-deep shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:shadow-[0_0_25px_rgba(245,158,11,0.5)] active:scale-90 disabled:opacity-30 disabled:shadow-none'
+                }`}
+                title="즉시 코칭"
+              >
+                <span className="material-symbols-outlined text-xl font-black">
+                  {isCoachingLoading ? 'sync' : 'tips_and_updates'}
+                </span>
+              </button>
 
             </div>
           </div>
