@@ -7,6 +7,7 @@ import { createGeminiClient } from '../src/lib/geminiClient';
 import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor } from '../services/characterAvatars';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
+import { SCENARIOS } from '../constants';
 
 interface EvaluationData {
   summary: string;
@@ -47,6 +48,8 @@ const getRank = (v: number) => {
   if (v >= 40) return { rank: 'C', cls: 'rank-c' };
   return { rank: 'D', cls: 'rank-d' };
 };
+
+const FREE_SCENARIOS = ['late-comer', 'boundaries', 'team-clash'];
 
 const Feedback: React.FC = () => {
   const navigate = useNavigate();
@@ -707,8 +710,49 @@ const Feedback: React.FC = () => {
           </section>
         )}
 
-        {/* ── RETURN TO BASE 버튼 ── */}
-        <div className="pt-6">
+        {/* ── 다음 도전 / RETURN TO BASE 버튼 ── */}
+        <div className="pt-6 space-y-4">
+          {/* 무료 플랜 사용자: 다음 시나리오 안내 */}
+          {!isFullReport && (() => {
+            const currentIdx = FREE_SCENARIOS.indexOf(scenario?.id);
+            const isLastFree = currentIdx === FREE_SCENARIOS.length - 1;
+            const hasNext = currentIdx >= 0 && currentIdx < FREE_SCENARIOS.length - 1;
+            const nextScenarioId = hasNext ? FREE_SCENARIOS[currentIdx + 1] : null;
+            const nextScenario = nextScenarioId ? SCENARIOS.find(s => s.id === nextScenarioId) : null;
+
+            if (isLastFree) {
+              return (
+                <div className="text-center space-y-4">
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6">
+                    <p className="text-amber-400 text-lg font-black mb-2">3개 시나리오를 모두 완료했습니다!</p>
+                    <p className="text-slate-400 text-xs">나의 리더십 역량을 종합 분석해보세요.</p>
+                  </div>
+                  <button
+                    onClick={() => navigate('/profile')}
+                    className="w-full bg-amber-500 text-slate-900 py-5 rounded-[2rem] font-black active:scale-[0.98] transition-all text-sm uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
+                  >
+                    나의 리더십 분석 보기
+                    <span className="text-lg">&rarr;</span>
+                  </button>
+                </div>
+              );
+            }
+
+            if (hasNext && nextScenario) {
+              return (
+                <button
+                  onClick={() => navigate('/setup', { state: { scenario: nextScenario } })}
+                  className="w-full bg-amber-500 text-slate-900 py-5 rounded-[2rem] font-black active:scale-[0.98] transition-all text-sm tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
+                >
+                  다음 도전: {nextScenario.title}
+                  <span className="text-lg">&rarr;</span>
+                </button>
+              );
+            }
+
+            return null;
+          })()}
+
           <button
             onClick={() => navigate('/')}
             className="w-full bg-primary text-navy-deep py-6 rounded-[2rem] font-black shadow-neon-cyan active:scale-[0.98] transition-all text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-2"

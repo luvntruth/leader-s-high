@@ -7,6 +7,7 @@ import { getCharacterAvatar } from '../services/characterAvatars';
 import { useAuth } from '../contexts/AuthContext';
 import { usageService } from '../services/usageService';
 import { dbService } from '../services/dbService';
+import Onboarding from './Onboarding';
 import {
   ShieldCheck,
   BellRing,
@@ -49,11 +50,19 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [simCount, setSimCount] = useState(0);
+  const [completedScenarios, setCompletedScenarios] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user || !profile) return;
     dbService.getSimulationCount(user.id).then(setSimCount).catch(() => {});
   }, [user, profile]);
+
+  useEffect(() => {
+    if (!user) return;
+    dbService.getHistory(user.id, 50).then(records => {
+      setCompletedScenarios(new Set(records.map(r => r.scenario_id)));
+    }).catch(() => {});
+  }, [user]);
 
   /* User stats — DB 기반 + 폴백 */
   const userStats = {
@@ -162,6 +171,11 @@ const Home: React.FC = () => {
 
   const categoryOptions = ['전체', '요구사항', '갈등', '피드백', '코칭'];
   const gradeOptions = ['전체', 'S', 'A', 'B'];
+
+  // 최초 사용자 온보딩
+  if (profile?.plan === 'free' && simCount === 0) {
+    return <Onboarding />;
+  }
 
   return (
     <motion.div
@@ -501,12 +515,18 @@ const Home: React.FC = () => {
                     initial="hidden"
                     viewport={{ once: true, amount: 0.2 }}
                     whileHover={{ translateY: isLocked ? 0 : -4 }}
-                    className={`bg-[#111B2E]/60 backdrop-blur-md border border-white/5 rounded-3xl p-6 transition-all group relative overflow-hidden ${isLocked ? 'opacity-60 grayscale cursor-pointer' : 'hover:border-primary/20'}`}
+                    className={`bg-[#111B2E]/60 backdrop-blur-md border border-white/5 rounded-3xl p-6 transition-all group relative overflow-hidden ${isLocked ? 'opacity-80 cursor-pointer' : 'hover:border-primary/20'}`}
                     onClick={isLocked ? () => navigate('/pricing') : undefined}
                   >
+                    {/* Completion badge */}
+                    {!isLocked && completedScenarios.has(scenario.id) && (
+                      <span className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-[9px] font-bold">
+                        ✅ 완료
+                      </span>
+                    )}
                     {/* Lock overlay for PRO-only scenarios */}
                     {isLocked && (
-                      <div className="absolute inset-0 z-20 bg-slate-900/40 backdrop-blur-[1px] rounded-3xl flex items-center justify-center">
+                      <div className="absolute inset-0 z-20 bg-slate-900/50 rounded-3xl flex items-end justify-center pb-16 pointer-events-none">
                         <div className="flex flex-col items-center gap-2">
                           <span className="text-2xl">🔒</span>
                           <span className="px-3 py-1 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] font-black tracking-widest">PRO</span>
