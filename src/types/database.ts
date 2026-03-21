@@ -46,6 +46,7 @@ export interface Profile {
   org_id: string | null;
   role: 'owner' | 'admin' | 'member';
   plan: PlanType;
+  plan_expires_at: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   onboarding_completed: boolean;

@@ -2,29 +2,42 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { billingService } from '../services/billingService';
-import { PRICING_OPTIONS } from '../src/types/database';
+import { paymentService, PAYMENT_OPTIONS } from '../services/paymentService';
 
 export default function Pricing() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const currentPlan = profile?.plan || 'free';
   const [loading, setLoading] = useState<string | null>(null);
+  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
-  const handleSelect = async (optionId: string, priceId?: string) => {
-    if (!priceId) return;
+  const remainingDays = paymentService.getRemainingDays(profile?.plan_expires_at || null);
+  const isExpired = profile?.plan !== 'free' && paymentService.isPlanExpired(profile?.plan_expires_at || null);
+
+  const handlePurchase = async (optionId: string) => {
+    if (!user || !profile) return;
+    const option = PAYMENT_OPTIONS.find(o => o.id === optionId);
+    if (!option) return;
+
     setLoading(optionId);
-    try {
-      await billingService.createCheckoutSession(priceId);
-    } catch {
-      alert('결제 준비 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(null);
+    setResult(null);
+
+    const res = await paymentService.requestPayment(option, {
+      id: user.id,
+      email: user.email || profile.email,
+    });
+
+    setLoading(null);
+    setResult({ ok: res.success, msg: res.message });
+
+    if (res.success) {
+      await refreshProfile();
+      setTimeout(() => navigate('/'), 2000);
     }
   };
 
-  const proOptions = PRICING_OPTIONS.filter(o => o.plan === 'pro');
-  const ultraOptions = PRICING_OPTIONS.filter(o => o.plan === 'ultra');
+  const proOptions = PAYMENT_OPTIONS.filter(o => o.plan === 'pro');
+  const ultraOptions = PAYMENT_OPTIONS.filter(o => o.plan === 'ultra');
 
   return (
     <div className="min-h-screen bg-slate-950 pb-24 lg:pb-8">
@@ -32,7 +45,26 @@ export default function Pricing() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
           <h1 className="text-3xl font-bold text-white mb-2">리더십 훈련, 나에게 맞는 플랜으로</h1>
           <p className="text-slate-400 text-sm">기간제로 부담 없이 시작하세요</p>
+          {isExpired && (
+            <p className="text-red-400 text-sm mt-2">현재 플랜이 만료되었습니다. 새 플랜을 구매해주세요.</p>
+          )}
+          {!isExpired && currentPlan !== 'free' && (
+            <p className="text-amber-400 text-sm mt-2">현재 {currentPlan === 'pro' ? '프로' : '울트라'} · 남은 기간: {remainingDays}일</p>
+          )}
         </motion.div>
+
+        {/* 결제 결과 메시지 */}
+        {result && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`mb-6 p-4 rounded-xl text-center text-sm font-semibold ${
+              result.ok ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'
+            }`}
+          >
+            {result.msg}
+          </motion.div>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* 무료 */}
@@ -75,30 +107,23 @@ export default function Pricing() {
               {proOptions.map(opt => (
                 <button
                   key={opt.id}
-                  onClick={() => handleSelect(opt.id, opt.priceId)}
+                  onClick={() => handlePurchase(opt.id)}
                   disabled={loading === opt.id}
                   className="w-full flex items-center justify-between p-3 rounded-xl border border-amber-500/20 hover:border-amber-500/50 bg-slate-800/40 hover:bg-amber-500/5 transition-all group"
                 >
                   <div className="text-left">
-                    <span className="text-white text-sm font-bold">{opt.priceLabel}</span>
+                    <span className="text-white text-sm font-bold">₩{opt.amount.toLocaleString()}</span>
                     <span className="text-slate-400 text-xs ml-2">/ {opt.days}일</span>
                   </div>
                   <span className="text-amber-500 text-xs font-semibold group-hover:translate-x-0.5 transition-transform">
-                    {loading === opt.id ? '처리 중...' : '선택 →'}
+                    {loading === opt.id ? '처리 중...' : '결제하기 →'}
                   </span>
                 </button>
               ))}
             </div>
 
-            <ul className="space-y-2 mb-2">
-              {[
-                '20개 시나리오 사용',
-                '시나리오당 최대 3회 시도',
-                '풀 피드백 리포트',
-                '이전 기록 보관 및 비교',
-                '실시간 즉시 코칭',
-                '음성 시뮬레이션',
-              ].map((f, i) => (
+            <ul className="space-y-2">
+              {['20개 시나리오 · 시나리오당 3회', '풀 피드백 리포트', '이전 기록 보관 및 비교', '실시간 즉시 코칭', '음성 시뮬레이션'].map((f, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
                   <span className="text-amber-500 mt-0.5">✓</span>{f}
                 </li>
@@ -120,31 +145,23 @@ export default function Pricing() {
               {ultraOptions.map(opt => (
                 <button
                   key={opt.id}
-                  onClick={() => handleSelect(opt.id, opt.priceId)}
+                  onClick={() => handlePurchase(opt.id)}
                   disabled={loading === opt.id}
                   className="w-full flex items-center justify-between p-3 rounded-xl border border-cyan-500/20 hover:border-cyan-500/50 bg-slate-800/40 hover:bg-cyan-500/5 transition-all group"
                 >
                   <div className="text-left">
-                    <span className="text-white text-sm font-bold">{opt.priceLabel}</span>
+                    <span className="text-white text-sm font-bold">₩{opt.amount.toLocaleString()}</span>
                     <span className="text-slate-400 text-xs ml-2">/ {opt.days}일</span>
                   </div>
                   <span className="text-cyan-400 text-xs font-semibold group-hover:translate-x-0.5 transition-transform">
-                    {loading === opt.id ? '처리 중...' : '선택 →'}
+                    {loading === opt.id ? '처리 중...' : '결제하기 →'}
                   </span>
                 </button>
               ))}
             </div>
 
-            <ul className="space-y-2 mb-2">
-              {[
-                '40개 전체 시나리오',
-                '시나리오당 최대 5회 시도',
-                '풀 피드백 리포트',
-                '타인과의 결과 비교 리포트',
-                '이전 기록 보관 및 비교',
-                'HR 관리자 대시보드',
-                '커스텀 시나리오 제작',
-              ].map((f, i) => (
+            <ul className="space-y-2">
+              {['40개 전체 시나리오 · 시나리오당 5회', '풀 피드백 리포트', '타인과의 결과 비교 리포트', '이전 기록 비교', 'HR 대시보드', '커스텀 시나리오'].map((f, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
                   <span className="text-cyan-400 mt-0.5">✓</span>{f}
                 </li>
