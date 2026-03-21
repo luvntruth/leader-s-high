@@ -9,7 +9,7 @@ interface AuthGuardProps {
   requiredPlan?: PlanType;
 }
 
-const PLAN_RANK: Record<PlanType, number> = { free: 0, pro: 1, enterprise: 2 };
+const PLAN_RANK: Record<PlanType, number> = { free: 0, pro: 1, ultra: 2 };
 
 export function AuthGuard({ children, requiredRole, requiredPlan }: AuthGuardProps) {
   const { user, profile, loading } = useAuth();

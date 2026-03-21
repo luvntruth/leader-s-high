@@ -100,7 +100,7 @@ function base64UrlDecode(str: string): ArrayBuffer {
 const RATE_LIMITS: Record<string, number> = {
   free: 20,
   pro: 100,
-  enterprise: 1000,
+  ultra: 1000,
 };
 
 // KV 미설정 시 메모리 기반 폴백 (Worker 재시작 시 리셋)

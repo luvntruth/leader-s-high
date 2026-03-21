@@ -27,10 +27,11 @@ const Pricing = React.lazy(() => import('./screens/Pricing'));
 const Privacy = React.lazy(() => import('./screens/Privacy'));
 const Terms = React.lazy(() => import('./screens/Terms'));
 const ResetPassword = React.lazy(() => import('./screens/ResetPassword'));
+const UpgradePrompt = React.lazy(() => import('./screens/UpgradePrompt'));
 
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const noNavPaths = ['/simulation', '/voice', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/reset-password'];
+  const noNavPaths = ['/simulation', '/voice', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/reset-password', '/upgrade'];
   const showNav = !noNavPaths.includes(location.pathname);
 
   return (
@@ -61,6 +62,7 @@ const App: React.FC = () => {
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/upgrade" element={<UpgradePrompt />} />
 
               {/* 보호 라우트 */}
               <Route path="/" element={<AuthGuard><Home /></AuthGuard>} />
@@ -71,7 +73,7 @@ const App: React.FC = () => {
               <Route path="/feedback" element={<AuthGuard><Feedback /></AuthGuard>} />
               <Route path="/insights" element={<AuthGuard><Insights /></AuthGuard>} />
               <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
-              <Route path="/custom-lab" element={<AuthGuard requiredPlan="enterprise"><CustomLab /></AuthGuard>} />
+              <Route path="/custom-lab" element={<AuthGuard requiredPlan="ultra"><CustomLab /></AuthGuard>} />
               <Route path="/team-office" element={<AuthGuard><TeamOffice /></AuthGuard>} />
               <Route path="/streak" element={<AuthGuard><StreakDetail /></AuthGuard>} />
               <Route path="/admin" element={<AuthGuard requiredRole="admin"><AdminDashboard /></AuthGuard>} />

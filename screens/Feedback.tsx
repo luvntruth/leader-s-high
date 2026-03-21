@@ -51,8 +51,9 @@ const getRank = (v: number) => {
 const Feedback: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { transcript, scenario, sosTipHistory } = location.state || {};
+  const isFullReport = profile?.plan !== 'free';
 
   const [isAnalysing, setIsAnalysing] = useState(true);
   const [evaluation, setEvaluation] = useState<EvaluationData | null>(null);
@@ -85,6 +86,19 @@ const Feedback: React.FC = () => {
 
     try {
       const ai = createGeminiClient();
+      const briefPromptSuffix = !isFullReport ? `
+        [간략 리포트 모드]
+        무료 플랜 사용자입니다. 간략 리포트만 생성하세요:
+        - summary: 3문장 이내로 핵심만 요약
+        - strengths: 최대 1개만
+        - improvements: 최대 1개만
+        - modelAnswers: 빈 배열 []
+        - scienceInsight: null 대신 빈 객체 생성 (theoryName, scienceBase, practicalApply 모두 빈 문자열)
+        - coachingSkills: 기본값으로 모두 50
+        - radarChart: 기본값으로 모두 50
+        - 풀 리포트는 프로 플랜에서 이용 가능합니다.
+      ` : '';
+
       const prompt = `
         당신은 대한민국 최고의 리더십 코치입니다. 리더를 위한 시뮬레이션 결과 리포트를 생성하세요.
 
@@ -108,6 +122,7 @@ const Feedback: React.FC = () => {
         10. 모범 스크립트(modelAnswers)의 situation 필드에는 사용자가 실제로 했던 발화를 인용하고, bestResponse에서 그 상황에서의 더 나은 대안을 제시하세요.
         11. summary는 이 리더만의 고유한 대화 패턴을 짚어주세요. "전반적으로 잘했다" 같은 일반적 평가는 금지합니다.
         12. coachingSkills 점수는 대화 기록에서 관찰된 구체적 행동 빈도와 질을 기준으로 0~100 사이로 채점하세요.
+        ${briefPromptSuffix}
       `;
 
       const response = await fetchWithRetry(() => ai.models.generateContent({
@@ -318,6 +333,16 @@ const Feedback: React.FC = () => {
 
   return (
     <div className="h-screen overflow-y-auto bg-[#060B18] command-center-bg text-white font-manrope pb-32 hide-scrollbar">
+
+      {/* ── 무료 플랜 간략 리포트 안내 ── */}
+      {!isFullReport && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-3 flex items-center justify-between">
+          <p className="text-amber-400 text-xs font-semibold">간략 리포트입니다. 프로 플랜에서 풀 리포트를 받아보세요.</p>
+          <button onClick={() => navigate('/pricing')} className="px-3 py-1 rounded-lg bg-amber-500 text-slate-900 text-xs font-bold hover:bg-amber-600 transition-colors">
+            업그레이드
+          </button>
+        </div>
+      )}
 
       {/* ── QUEST CLEAR 배너 ── */}
       <section className="relative py-16 px-6 text-center overflow-hidden">

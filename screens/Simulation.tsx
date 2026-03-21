@@ -502,8 +502,12 @@ const Simulation: React.FC = () => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  // 사용량 제한 화면
+  // 사용량 제한 — 무료 플랜 소진 시 업그레이드 유도
   if (usageDenied) {
+    if (profile?.plan === 'free') {
+      navigate('/upgrade', { replace: true });
+      return null;
+    }
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
         <div className="text-center max-w-sm">

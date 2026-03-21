@@ -9,6 +9,7 @@ const plans: Array<{
   name: string;
   price: string;
   period: string;
+  desc: string;
   features: string[];
   popular?: boolean;
   cta: string;
@@ -16,14 +17,14 @@ const plans: Array<{
 }> = [
   {
     id: 'free',
-    name: '스타터',
+    name: '무료',
     price: '₩0',
     period: '월',
+    desc: '리더십 훈련 첫 경험',
     features: [
-      '월 5회 시뮬레이션',
-      '기본 시나리오 10개',
-      '시뮬레이션 후 AI 피드백',
-      '기본 성장 리포트',
+      '3개 시나리오 체험',
+      '12턴 시뮬레이션',
+      '간략 피드백 리포트',
     ],
     cta: '현재 플랜',
   },
@@ -33,33 +34,35 @@ const plans: Array<{
     price: '₩9,900',
     period: '월',
     popular: true,
+    desc: '본격 리더십 성장',
     features: [
-      '월 30회 시뮬레이션',
-      '전체 40개 시나리오',
+      '20개 시나리오 사용',
+      '풀 피드백 리포트',
+      '이전 기록 보관 및 비교',
       '실시간 즉시 코칭',
       '음성 시뮬레이션',
-      '상세 5차원 성장 분석',
-      '시뮬레이션 히스토리 무제한',
+      '무제한 히스토리',
     ],
     cta: '프로 시작하기',
     priceId: 'price_pro_monthly',
   },
   {
-    id: 'enterprise',
-    name: '엔터프라이즈',
-    price: '₩99,000',
-    period: '인·월',
+    id: 'ultra',
+    name: '울트라',
+    price: '₩29,900',
+    period: '월',
+    desc: '리더십 마스터',
     features: [
-      '무제한 시뮬레이션',
-      '커스텀 시나리오 제작',
+      '40개 전체 시나리오',
+      '풀 피드백 리포트',
+      '타인과의 결과 비교 리포트',
+      '이전 기록 보관 및 비교',
       'HR 관리자 대시보드',
       '조직 리더십 분석',
-      '팀별 성과 비교',
-      '전용 고객 지원',
-      'API 연동',
+      '커스텀 시나리오 제작',
     ],
-    cta: '도입 문의하기',
-    priceId: 'price_ent_monthly',
+    cta: '울트라 시작하기',
+    priceId: 'price_ultra_monthly',
   },
 ];
 
@@ -70,10 +73,6 @@ export default function Pricing() {
 
   const handleSelect = async (plan: typeof plans[number]) => {
     if (plan.id === currentPlan) return;
-    if (plan.id === 'enterprise') {
-      window.open('mailto:contact@leadershigh.app?subject=엔터프라이즈 도입 문의', '_blank');
-      return;
-    }
     if (plan.priceId) {
       await billingService.createCheckoutSession(plan.priceId);
     }
@@ -81,7 +80,7 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-slate-950 pb-24 lg:pb-8">
-      <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="max-w-5xl mx-auto px-4 py-12">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
           <h1 className="text-3xl font-bold text-white mb-2">합리적인 가격, 확실한 성장</h1>
           <p className="text-slate-400">리더십 훈련에 투자하세요</p>
@@ -108,7 +107,8 @@ export default function Pricing() {
                   </div>
                 )}
                 <div className="mb-6">
-                  <h3 className="text-white font-bold text-lg mb-1">{plan.name}</h3>
+                  <h3 className="text-white font-bold text-lg mb-0.5">{plan.name}</h3>
+                  <p className="text-slate-500 text-xs mb-3">{plan.desc}</p>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-black text-white">{plan.price}</span>
                     <span className="text-slate-400 text-sm">/ {plan.period}</span>
@@ -139,6 +139,48 @@ export default function Pricing() {
             );
           })}
         </div>
+
+        {/* 기능 비교 테이블 */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="mt-16"
+        >
+          <h2 className="text-xl font-bold text-white text-center mb-8">기능 비교</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-700/50">
+                  <th className="text-left py-3 px-4 text-slate-400 font-medium">기능</th>
+                  <th className="text-center py-3 px-4 text-slate-400 font-medium">무료</th>
+                  <th className="text-center py-3 px-4 text-amber-500 font-bold">프로</th>
+                  <th className="text-center py-3 px-4 text-slate-400 font-medium">울트라</th>
+                </tr>
+              </thead>
+              <tbody className="text-slate-300">
+                {[
+                  ['시나리오 수', '3개', '20개', '40개'],
+                  ['시뮬레이션 (12턴)', '3회', '월 30회', '무제한'],
+                  ['피드백 리포트', '간략', '풀 리포트', '풀 리포트'],
+                  ['이전 기록 비교', '—', '✓', '✓'],
+                  ['타인 결과 비교', '—', '—', '✓'],
+                  ['즉시 코칭', '—', '✓', '✓'],
+                  ['음성 시뮬레이션', '—', '✓', '✓'],
+                  ['HR 대시보드', '—', '—', '✓'],
+                  ['커스텀 시나리오', '—', '—', '✓'],
+                ].map(([feature, free, pro, ultra], idx) => (
+                  <tr key={idx} className="border-b border-slate-800/50">
+                    <td className="py-3 px-4 text-slate-400">{feature}</td>
+                    <td className="py-3 px-4 text-center">{free}</td>
+                    <td className="py-3 px-4 text-center font-medium">{pro}</td>
+                    <td className="py-3 px-4 text-center">{ultra}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
 
         <div className="text-center mt-8">
           <button onClick={() => navigate(-1)} className="text-slate-500 text-sm hover:text-slate-400">

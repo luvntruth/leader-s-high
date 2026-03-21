@@ -101,40 +101,66 @@ export interface UsageRecord {
 // Plan Types & Limits
 // ================================================================
 
-export type PlanType = 'free' | 'pro' | 'enterprise';
+export type PlanType = 'free' | 'pro' | 'ultra';
 
 export interface PlanLimits {
   dailySim: number;
   monthlySim: number;
+  totalSim: number;       // 총 시뮬레이션 횟수 제한 (free=3)
   coaching: boolean;
   voice: boolean;
   scenarios: number;
   historyLimit: number;
+  fullReport: boolean;     // 풀 리포트 여부
+  historyCompare: boolean; // 이전 기록 비교
+  peerCompare: boolean;    // 타인 비교 리포트
 }
 
 export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   free: {
     dailySim: 1,
-    monthlySim: 5,
+    monthlySim: 3,
+    totalSim: 3,
     coaching: false,
     voice: false,
-    scenarios: 10,
-    historyLimit: 5,
+    scenarios: 3,
+    historyLimit: 3,
+    fullReport: false,
+    historyCompare: false,
+    peerCompare: false,
   },
   pro: {
     dailySim: 5,
     monthlySim: 30,
+    totalSim: Infinity,
     coaching: true,
     voice: true,
-    scenarios: 40,
+    scenarios: 20,
     historyLimit: Infinity,
+    fullReport: true,
+    historyCompare: true,
+    peerCompare: false,
   },
-  enterprise: {
+  ultra: {
     dailySim: Infinity,
     monthlySim: Infinity,
+    totalSim: Infinity,
     coaching: true,
     voice: true,
     scenarios: 40,
     historyLimit: Infinity,
+    fullReport: true,
+    historyCompare: true,
+    peerCompare: true,
   },
+};
+
+// ================================================================
+// Plan Display Info
+// ================================================================
+
+export const PLAN_INFO: Record<PlanType, { name: string; price: string; period: string }> = {
+  free: { name: '무료', price: '₩0', period: '월' },
+  pro: { name: '프로', price: '₩9,900', period: '월' },
+  ultra: { name: '울트라', price: '₩29,900', period: '월' },
 };
