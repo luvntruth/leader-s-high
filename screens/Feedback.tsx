@@ -95,7 +95,7 @@ const Feedback: React.FC = () => {
         - summary: 3문장 이내로 핵심만 요약
         - strengths: 최대 1개만
         - improvements: 최대 1개만
-        - modelAnswers: 빈 배열 []
+        - modelAnswers: 가장 중요한 상황 1개만
         - scienceInsight: null 대신 빈 객체 생성 (theoryName, scienceBase, practicalApply 모두 빈 문자열)
         - coachingSkills: 기본값으로 모두 50
         - radarChart: 기본값으로 모두 50
