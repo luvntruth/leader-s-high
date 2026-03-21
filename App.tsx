@@ -76,7 +76,8 @@ const App: React.FC = () => {
               <Route path="/custom-lab" element={<AuthGuard requiredPlan="ultra"><CustomLab /></AuthGuard>} />
               <Route path="/team-office" element={<AuthGuard><TeamOffice /></AuthGuard>} />
               <Route path="/streak" element={<AuthGuard><StreakDetail /></AuthGuard>} />
-              <Route path="/admin" element={<AuthGuard requiredRole="admin"><AdminDashboard /></AuthGuard>} />
+              {/* B2B: 추후 활성화 */}
+              {/* <Route path="/admin" element={<AuthGuard requiredRole="admin"><AdminDashboard /></AuthGuard>} /> */}
               <Route path="/history" element={<AuthGuard><HistoryList /></AuthGuard>} />
               <Route path="/history/:id" element={<AuthGuard><HistoryDetail /></AuthGuard>} />
             </Routes>

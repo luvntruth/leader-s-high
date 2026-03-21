@@ -9,25 +9,10 @@ const Navigation: React.FC = () => {
   const location = useLocation();
   const { user, profile, signOut } = useAuth();
 
-  const [isAdminVisible, setIsAdminVisible] = React.useState(localStorage.getItem('leadershigh_admin_mode') === 'true');
-  const [clickCount, setClickCount] = React.useState(0);
-  const clickTimerRef = React.useRef<NodeJS.Timeout | null>(null);
-
   const isActive = (path: string) => location.pathname === path;
 
   const handleLogoClick = () => {
     navigate('/');
-
-    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
-    const nextCount = clickCount + 1;
-    if (nextCount >= 5) {
-      setIsAdminVisible(true);
-      localStorage.setItem('leadershigh_admin_mode', 'true');
-      setClickCount(0);
-    } else {
-      setClickCount(nextCount);
-      clickTimerRef.current = setTimeout(() => setClickCount(0), 2000);
-    }
   };
 
   const navItems = [
@@ -35,10 +20,6 @@ const Navigation: React.FC = () => {
     { label: '퀘스트', labelEn: 'QUEST', icon: 'swords', path: '/missions' },
     { label: '프로필', labelEn: 'PROFILE', icon: 'shield_person', path: '/profile' },
   ];
-
-  if (isAdminVisible) {
-    navItems.push({ label: '전략본부', labelEn: 'ADMIN', icon: 'admin_panel_settings', path: '/admin' });
-  }
 
   return (
     <>

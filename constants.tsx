@@ -2,7 +2,7 @@
 import { Scenario, Generation } from './types';
 
 export const CATEGORIES = [
-  '전체', '성과 관리', '갈등 해결', '조직 문화', '피드백', '동기 부여', '변화 관리', '경력 개발'
+  '전체', '성과 관리', '갈등 해결', '팀 문화', '피드백', '동기 부여', '변화 관리', '경력 개발'
 ];
 
 export const SCENARIOS: Scenario[] = [
@@ -10,7 +10,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'late-comer',
     title: '성과 좋은 만성 지각자',
     category: '성과 관리',
-    description: '팀의 핵심 개발자가 매일 30분씩 늦습니다. 실력은 최고라 다른 팀원들이 대놓고 불만을 말하지 못하지만, 조직 기강이 무너지는 게 눈에 보입니다. 오늘 아침 중요 주간 회의에도 20분 늦게 나타나 아무 일 없다는 듯 자리에 앉았습니다.',
+    description: '팀의 핵심 개발자가 매일 30분씩 늦습니다. 실력은 최고라 다른 팀원들이 대놓고 불만을 말하지 못하지만, 팀 분위기이 무너지는 게 눈에 보입니다. 오늘 아침 중요 주간 회의에도 20분 늦게 나타나 아무 일 없다는 듯 자리에 앉았습니다.',
     memberName: '김철수',
     generation: Generation.GEN_Z,
     intensity: 'medium',
@@ -29,7 +29,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'boundaries',
     title: '이기적인 워라밸 사수',
-    category: '조직 문화',
+    category: '팀 문화',
     description: '서비스 장애로 팀 전체가 비상인 상황에서 오후 6시 정각이 되자 "저는 오늘 개인적인 약속이 있어서요"라며 로그아웃하려 합니다. 동료들이 밤샘을 각오하는 상황에서도 자기 권리만 주장하는 그에게 협업의 가치를 일깨워주세요.',
     memberName: '박지민',
     generation: Generation.MILLENNIAL,
@@ -79,7 +79,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'quiet-quitting',
     title: '조용한 퇴사자의 무관심',
-    category: '조직 문화',
+    category: '팀 문화',
     description: '딱 월급 받은 만큼만 일하고, 팀의 비전이나 성장에 대해 말하면 "팀장님은 팀장님이고 저는 저죠"라는 태도로 일관합니다. 개인주의를 넘어 팀 활력을 떨어뜨리는 그에게 일의 의미를 다시 발견하게 하세요.',
     memberName: '임서연',
     generation: Generation.GEN_Z,
@@ -139,7 +139,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'negativity-virus',
     title: '팀 사기를 꺾는 투덜이',
-    category: '조직 문화',
+    category: '팀 문화',
     description: '회사 복지, 점심 메뉴, 동료의 성과까지도 비꼬며 부정적인 에너지를 퍼뜨립니다. "회사 망하는 거 아냐?"라는 식의 농담으로 팀 분위기를 흐리는 그를 불러 엄중히 경고하고 긍정적인 태도 변화를 촉구하세요.',
     memberName: '고진우',
     generation: Generation.GEN_X,
@@ -249,7 +249,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'side-project-overload',
     title: '부업에 진심, 본업은 부업인 팀원',
-    category: '조직 문화',
+    category: '팀 문화',
     description: '근무 시간 중에도 개인 유튜브 채널이나 스마트스토어 관리로 바쁩니다. 업무 시간에 자리를 비우는 일도 잦고, 업무 지시를 하면 "바쁘다"는 핑계부터 댑니다. 회사를 월급 주는 수단으로만 여기는 그를 일에 몰입하게 하세요.',
     memberName: '최재현',
     generation: Generation.GEN_Z,
@@ -279,7 +279,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'selective-honesty',
     title: '사과 없는 "저는 솔직한 것뿐입니다"',
-    category: '조직 문화',
+    category: '팀 문화',
     description: '팀원들에게 무례한 발언을 쏟아낸 후, 지적을 받으면 "저는 뒤끝 없고 솔직한 사람이라 그렇습니다. 그게 나쁜가요?"라고 당당하게 말합니다. 무례함과 솔직함을 구분 못 하는 그에게 직장 내 에티켓을 가르치세요.',
     memberName: '남궁민',
     generation: Generation.GEN_Z,
@@ -289,7 +289,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'tmi-energy-drainer',
     title: '팀 전체를 감정 쓰레기통 삼는 팀원',
-    category: '조직 문화',
+    category: '팀 문화',
     description: '아침부터 밤까지 개인적인 연애 고민, 가정사, 신세 한탄을 팀원들에게 털어놓습니다. 팀원들은 피곤해하고 업무 집중도는 곤두박질칩니다. 정서적 유대감을 넘어서는 과도한 TMI를 차단하고 업무로 복귀시키세요.',
     memberName: '이지혜',
     generation: Generation.MILLENNIAL,
@@ -340,7 +340,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'meeting-rambler',
     title: '회의 시간을 독차지하는 장황함',
-    category: '조직 문화',
+    category: '팀 문화',
     description: '회의 때마다 결론 없이 배경 설명과 개인 경험담으로 20분을 쓰는 팀원이 있습니다. 다른 팀원들은 눈치를 주지만 본인은 인식하지 못합니다. 다음 팀 회의가 내일인데, 이 패턴을 부드럽게 짚어주고 핵심 전달 방식을 코칭해주세요.',
     memberName: '조성민',
     generation: Generation.GEN_X,
@@ -360,7 +360,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'silent-struggle',
     title: '힘들어도 말 못 하는 팀원',
-    category: '조직 문화',
+    category: '팀 문화',
     description: '최근 들어 표정이 어둡고 업무 속도가 눈에 띄게 느려졌습니다. 별일 없냐고 물으면 "괜찮아요"라고만 합니다. 사실 개인적으로 힘든 상황이 있는 것 같지만 팀에 민폐가 될까 봐 말을 못 하고 있는 것 같습니다. 먼저 마음의 문을 두드려주세요.',
     memberName: '오하영',
     generation: Generation.MILLENNIAL,

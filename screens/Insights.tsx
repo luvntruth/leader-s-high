@@ -132,9 +132,6 @@ const Insights: React.FC = () => {
             <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">Org-wide Benchmark</p>
           </div>
         </div>
-        <button onClick={() => navigate('/admin')} className="size-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 active:scale-90 transition-all hover:bg-primary/10 group">
-          <span className="material-symbols-outlined text-slate-500 group-hover:text-primary transition-colors">admin_panel_settings</span>
-        </button>
       </header>
 
       <main className="flex-1 p-6 space-y-8 pb-32 hide-scrollbar lg:px-0 lg:py-12">

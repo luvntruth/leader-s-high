@@ -122,9 +122,9 @@ const TeamOffice: React.FC = () => {
           <div>
             <h1 className="text-xl font-black tracking-tighter flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">hub</span>
-              COMMAND CENTER
+              캐릭터 갤러리
             </h1>
-            <p className="text-[10px] font-black text-primary/60 uppercase tracking-[0.3em]">Personnel Management Unit</p>
+            <p className="text-[10px] font-black text-primary/60 uppercase tracking-[0.3em]">Character Gallery</p>
           </div>
         </div>
         <div className="flex items-center gap-6">

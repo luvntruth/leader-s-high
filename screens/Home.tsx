@@ -627,8 +627,8 @@ const Home: React.FC = () => {
               <Users className="size-7 text-accent-purple" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-black text-base text-white tracking-tight">HQ Operations</p>
-              <p className="text-[12px] text-slate-500 mt-1 font-medium leading-normal">팀원 상태, 업무량, 우선순위를 실시간으로 확인합니다.</p>
+              <p className="font-black text-base text-white tracking-tight">캐릭터 선택</p>
+              <p className="text-[12px] text-slate-500 mt-1 font-medium leading-normal">다양한 성격의 AI 팀원을 만나보세요</p>
             </div>
             <ChevronRight className="size-5 text-slate-600 group-hover:text-accent-purple group-hover:translate-x-1 transition-all" />
           </motion.button>
