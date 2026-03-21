@@ -129,20 +129,20 @@ const Simulation: React.FC = () => {
     nextHint: string;
     trustHistory: number[];
   }>({
-    trust: 30,
+    trust: 45,
     delta: 0,
     dimensions: {
-      psychological_safety: 30,
-      understanding_alignment: 30,
-      autonomy_fairness: 30,
-      integrity_consistency: 30,
-      competence_support: 30
+      psychological_safety: 45,
+      understanding_alignment: 45,
+      autonomy_fairness: 45,
+      integrity_consistency: 45,
+      competence_support: 45
     },
     stage: 'S1',
     recentEvents: [],
     lastEvents: [],
     nextHint: "대화를 시작하여 팀원과의 신뢰를 쌓아보세요.",
-    trustHistory: [30] // 트렌드 차트용 히스토리 추가
+    trustHistory: [45] // 트렌드 차트용 히스토리 추가
   });
 
   // Dramatic UI State

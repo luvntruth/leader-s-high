@@ -411,6 +411,23 @@ const Feedback: React.FC = () => {
           <span className={`text-4xl font-black italic ${overallRank.cls}`}>{overallRank.rank}</span>
           <span className="text-sm font-bold text-slate-400">{avgScore}점</span>
         </div>
+
+        {/* 리더십 유형 */}
+        {(evaluation as any)?.leadershipType && (
+          <div className="relative z-10 mt-4 inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-6 py-3">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">리더십 유형</span>
+            <span className="text-2xl">
+              {(evaluation as any).leadershipType === 'coaching' ? '🎯' :
+               (evaluation as any).leadershipType === 'directing' ? '📋' :
+               (evaluation as any).leadershipType === 'delegating' ? '🤝' : '💬'}
+            </span>
+            <span className="text-sm font-bold text-white">
+              {(evaluation as any).leadershipType === 'coaching' ? '코칭형' :
+               (evaluation as any).leadershipType === 'directing' ? '지시형' :
+               (evaluation as any).leadershipType === 'delegating' ? '위임형' : '참여형'}
+            </span>
+          </div>
+        )}
       </section>
 
       <main className="px-6 space-y-10 lg:max-w-4xl lg:mx-auto">
