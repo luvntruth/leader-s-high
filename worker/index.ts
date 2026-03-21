@@ -37,11 +37,21 @@ async function verifyAuth(request: Request, env: Env): Promise<{
     return { valid: false, error: 'Server misconfigured: JWT secret not set' };
   }
 
+  // Authorization 헤더 또는 x-goog-api-key 헤더에서 JWT 추출
   const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
+  const apiKeyHeader = request.headers.get('x-goog-api-key');
+  let token: string | null = null;
+
+  if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.slice(7);
+  } else if (apiKeyHeader && apiKeyHeader !== 'proxy' && apiKeyHeader.includes('.')) {
+    // SDK가 x-goog-api-key에 JWT를 넣어 보냄
+    token = apiKeyHeader;
+  }
+
+  if (!token) {
     return { valid: false, error: 'Missing Authorization header' };
   }
-  const token = authHeader.slice(7);
 
   try {
     const parts = token.split('.');
