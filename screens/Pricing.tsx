@@ -1,152 +1,160 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { billingService } from '../services/billingService';
-import type { PlanType } from '../src/types/database';
-
-const plans: Array<{
-  id: PlanType;
-  name: string;
-  price: string;
-  period: string;
-  desc: string;
-  features: string[];
-  popular?: boolean;
-  cta: string;
-  priceId?: string;
-}> = [
-  {
-    id: 'free',
-    name: '무료',
-    price: '₩0',
-    period: '월',
-    desc: '리더십 훈련 첫 경험',
-    features: [
-      '3개 시나리오 체험',
-      '12턴 시뮬레이션',
-      '간략 피드백 리포트',
-    ],
-    cta: '현재 플랜',
-  },
-  {
-    id: 'pro',
-    name: '프로',
-    price: '₩9,900',
-    period: '월',
-    popular: true,
-    desc: '본격 리더십 성장',
-    features: [
-      '20개 시나리오 사용',
-      '풀 피드백 리포트',
-      '이전 기록 보관 및 비교',
-      '실시간 즉시 코칭',
-      '음성 시뮬레이션',
-      '무제한 히스토리',
-    ],
-    cta: '프로 시작하기',
-    priceId: 'price_pro_monthly',
-  },
-  {
-    id: 'ultra',
-    name: '울트라',
-    price: '₩29,900',
-    period: '월',
-    desc: '리더십 마스터',
-    features: [
-      '40개 전체 시나리오',
-      '풀 피드백 리포트',
-      '타인과의 결과 비교 리포트',
-      '이전 기록 보관 및 비교',
-      'HR 관리자 대시보드',
-      '조직 리더십 분석',
-      '커스텀 시나리오 제작',
-    ],
-    cta: '울트라 시작하기',
-    priceId: 'price_ultra_monthly',
-  },
-];
+import { PRICING_OPTIONS } from '../src/types/database';
 
 export default function Pricing() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const currentPlan = profile?.plan || 'free';
+  const [loading, setLoading] = useState<string | null>(null);
 
-  const handleSelect = async (plan: typeof plans[number]) => {
-    if (plan.id === currentPlan) return;
-    if (plan.priceId) {
-      await billingService.createCheckoutSession(plan.priceId);
+  const handleSelect = async (optionId: string, priceId?: string) => {
+    if (!priceId) return;
+    setLoading(optionId);
+    try {
+      await billingService.createCheckoutSession(priceId);
+    } catch {
+      alert('결제 준비 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(null);
     }
   };
+
+  const proOptions = PRICING_OPTIONS.filter(o => o.plan === 'pro');
+  const ultraOptions = PRICING_OPTIONS.filter(o => o.plan === 'ultra');
 
   return (
     <div className="min-h-screen bg-slate-950 pb-24 lg:pb-8">
       <div className="max-w-5xl mx-auto px-4 py-12">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-white mb-2">합리적인 가격, 확실한 성장</h1>
-          <p className="text-slate-400">리더십 훈련에 투자하세요</p>
+          <h1 className="text-3xl font-bold text-white mb-2">리더십 훈련, 나에게 맞는 플랜으로</h1>
+          <p className="text-slate-400 text-sm">기간제로 부담 없이 시작하세요</p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {plans.map((plan, i) => {
-            const isCurrent = plan.id === currentPlan;
-            return (
-              <motion.div
-                key={plan.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className={`relative rounded-2xl p-6 border ${
-                  plan.popular
-                    ? 'bg-amber-500/5 border-amber-500/30'
-                    : 'bg-slate-800/40 border-slate-700/30'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-amber-500 text-slate-900 text-xs font-bold">
-                    가장 인기
-                  </div>
-                )}
-                <div className="mb-6">
-                  <h3 className="text-white font-bold text-lg mb-0.5">{plan.name}</h3>
-                  <p className="text-slate-500 text-xs mb-3">{plan.desc}</p>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-black text-white">{plan.price}</span>
-                    <span className="text-slate-400 text-sm">/ {plan.period}</span>
-                  </div>
-                </div>
-                <ul className="space-y-2.5 mb-8">
-                  {plan.features.map((f, j) => (
-                    <li key={j} className="flex items-start gap-2 text-sm text-slate-300">
-                      <span className="text-amber-500 mt-0.5">✓</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* 무료 */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl p-6 border bg-slate-800/40 border-slate-700/30"
+          >
+            <h3 className="text-white font-bold text-lg mb-1">무료 체험</h3>
+            <p className="text-slate-500 text-xs mb-4">리더십 훈련 첫 경험</p>
+            <div className="flex items-baseline gap-1 mb-6">
+              <span className="text-3xl font-black text-white">₩0</span>
+            </div>
+            <ul className="space-y-2.5 mb-8">
+              {['3개 시나리오 체험', '시나리오당 1회 시도', '12턴 시뮬레이션', '간략 피드백 리포트'].map((f, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                  <span className="text-slate-500 mt-0.5">✓</span>{f}
+                </li>
+              ))}
+            </ul>
+            <button disabled className="w-full py-3 rounded-xl bg-slate-700/50 text-slate-500 text-sm font-semibold cursor-not-allowed">
+              {currentPlan === 'free' ? '현재 플랜' : '무료 체험'}
+            </button>
+          </motion.div>
+
+          {/* 프로 */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="relative rounded-2xl p-6 border bg-amber-500/5 border-amber-500/30"
+          >
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-amber-500 text-slate-900 text-xs font-bold">
+              가장 인기
+            </div>
+            <h3 className="text-amber-400 font-bold text-lg mb-1">프로</h3>
+            <p className="text-slate-500 text-xs mb-4">본격 리더십 성장</p>
+
+            <div className="space-y-3 mb-6">
+              {proOptions.map(opt => (
                 <button
-                  onClick={() => handleSelect(plan)}
-                  disabled={isCurrent}
-                  className={`w-full py-3 rounded-xl text-sm font-semibold transition-colors ${
-                    isCurrent
-                      ? 'bg-slate-700/50 text-slate-500 cursor-not-allowed'
-                      : plan.popular
-                        ? 'bg-amber-500 hover:bg-amber-600 text-slate-900'
-                        : 'bg-slate-700/50 hover:bg-slate-700 text-white border border-slate-600/50'
-                  }`}
+                  key={opt.id}
+                  onClick={() => handleSelect(opt.id, opt.priceId)}
+                  disabled={loading === opt.id}
+                  className="w-full flex items-center justify-between p-3 rounded-xl border border-amber-500/20 hover:border-amber-500/50 bg-slate-800/40 hover:bg-amber-500/5 transition-all group"
                 >
-                  {isCurrent ? '현재 플랜' : plan.cta}
+                  <div className="text-left">
+                    <span className="text-white text-sm font-bold">{opt.priceLabel}</span>
+                    <span className="text-slate-400 text-xs ml-2">/ {opt.days}일</span>
+                  </div>
+                  <span className="text-amber-500 text-xs font-semibold group-hover:translate-x-0.5 transition-transform">
+                    {loading === opt.id ? '처리 중...' : '선택 →'}
+                  </span>
                 </button>
-              </motion.div>
-            );
-          })}
+              ))}
+            </div>
+
+            <ul className="space-y-2 mb-2">
+              {[
+                '20개 시나리오 사용',
+                '시나리오당 최대 3회 시도',
+                '풀 피드백 리포트',
+                '이전 기록 보관 및 비교',
+                '실시간 즉시 코칭',
+                '음성 시뮬레이션',
+              ].map((f, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                  <span className="text-amber-500 mt-0.5">✓</span>{f}
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          {/* 울트라 */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="rounded-2xl p-6 border bg-cyan-500/5 border-cyan-500/20"
+          >
+            <h3 className="text-cyan-400 font-bold text-lg mb-1">울트라</h3>
+            <p className="text-slate-500 text-xs mb-4">리더십 마스터</p>
+
+            <div className="space-y-3 mb-6">
+              {ultraOptions.map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => handleSelect(opt.id, opt.priceId)}
+                  disabled={loading === opt.id}
+                  className="w-full flex items-center justify-between p-3 rounded-xl border border-cyan-500/20 hover:border-cyan-500/50 bg-slate-800/40 hover:bg-cyan-500/5 transition-all group"
+                >
+                  <div className="text-left">
+                    <span className="text-white text-sm font-bold">{opt.priceLabel}</span>
+                    <span className="text-slate-400 text-xs ml-2">/ {opt.days}일</span>
+                  </div>
+                  <span className="text-cyan-400 text-xs font-semibold group-hover:translate-x-0.5 transition-transform">
+                    {loading === opt.id ? '처리 중...' : '선택 →'}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <ul className="space-y-2 mb-2">
+              {[
+                '40개 전체 시나리오',
+                '시나리오당 최대 5회 시도',
+                '풀 피드백 리포트',
+                '타인과의 결과 비교 리포트',
+                '이전 기록 보관 및 비교',
+                'HR 관리자 대시보드',
+                '커스텀 시나리오 제작',
+              ].map((f, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                  <span className="text-cyan-400 mt-0.5">✓</span>{f}
+                </li>
+              ))}
+            </ul>
+          </motion.div>
         </div>
 
         {/* 기능 비교 테이블 */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mt-16"
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-16">
           <h2 className="text-xl font-bold text-white text-center mb-8">기능 비교</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -155,20 +163,20 @@ export default function Pricing() {
                   <th className="text-left py-3 px-4 text-slate-400 font-medium">기능</th>
                   <th className="text-center py-3 px-4 text-slate-400 font-medium">무료</th>
                   <th className="text-center py-3 px-4 text-amber-500 font-bold">프로</th>
-                  <th className="text-center py-3 px-4 text-slate-400 font-medium">울트라</th>
+                  <th className="text-center py-3 px-4 text-cyan-400 font-medium">울트라</th>
                 </tr>
               </thead>
               <tbody className="text-slate-300">
                 {[
                   ['시나리오 수', '3개', '20개', '40개'],
-                  ['시뮬레이션 (12턴)', '3회', '월 30회', '무제한'],
+                  ['시나리오당 시도', '1회', '최대 3회', '최대 5회'],
+                  ['사용 기간', '무제한', '10일 / 20일', '15일 / 25일'],
                   ['피드백 리포트', '간략', '풀 리포트', '풀 리포트'],
                   ['이전 기록 비교', '—', '✓', '✓'],
                   ['타인 결과 비교', '—', '—', '✓'],
                   ['즉시 코칭', '—', '✓', '✓'],
                   ['음성 시뮬레이션', '—', '✓', '✓'],
                   ['HR 대시보드', '—', '—', '✓'],
-                  ['커스텀 시나리오', '—', '—', '✓'],
                 ].map(([feature, free, pro, ultra], idx) => (
                   <tr key={idx} className="border-b border-slate-800/50">
                     <td className="py-3 px-4 text-slate-400">{feature}</td>

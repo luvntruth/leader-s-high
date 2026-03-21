@@ -4,7 +4,6 @@ import { PLAN_LIMITS, type PlanType } from '../src/types/database';
 export interface UsageCheckResult {
   allowed: boolean;
   reason?: string;
-  remaining?: { daily: number; monthly: number };
 }
 
 export const usageService = {
@@ -12,38 +11,33 @@ export const usageService = {
   async canStartSimulation(userId: string, plan: PlanType): Promise<UsageCheckResult> {
     const limits = PLAN_LIMITS[plan];
 
-    // 무제한 플랜
-    if (limits.dailySim === Infinity) {
-      return { allowed: true, remaining: { daily: Infinity, monthly: Infinity } };
+    // 무료 플랜: 총 시뮬레이션 횟수 제한
+    if (plan === 'free') {
+      const totalCount = await dbService.getSimulationCount(userId);
+      if (totalCount >= limits.scenarios) {
+        return {
+          allowed: false,
+          reason: `무료 체험 ${limits.scenarios}개 시나리오를 모두 사용했습니다.`,
+        };
+      }
     }
 
-    const todayUsage = await dbService.getTodayUsage(userId);
-    const todayCount = todayUsage?.simulation_count || 0;
+    return { allowed: true };
+  },
 
-    if (todayCount >= limits.dailySim) {
+  /** 특정 시나리오의 시도 횟수 확인 */
+  async canTryScenario(userId: string, scenarioId: string, plan: PlanType): Promise<UsageCheckResult> {
+    const limits = PLAN_LIMITS[plan];
+    const tryCount = await dbService.getScenarioTryCount(userId, scenarioId);
+
+    if (tryCount >= limits.maxTriesPerScenario) {
       return {
         allowed: false,
-        reason: `오늘 시뮬레이션 제한(${limits.dailySim}회)에 도달했습니다.`,
-        remaining: { daily: 0, monthly: 0 },
+        reason: `이 시나리오의 최대 시도 횟수(${limits.maxTriesPerScenario}회)에 도달했습니다.`,
       };
     }
 
-    const monthlyCount = await dbService.getMonthlySimCount(userId);
-    if (monthlyCount >= limits.monthlySim) {
-      return {
-        allowed: false,
-        reason: `이번 달 시뮬레이션 제한(${limits.monthlySim}회)에 도달했습니다.`,
-        remaining: { daily: limits.dailySim - todayCount, monthly: 0 },
-      };
-    }
-
-    return {
-      allowed: true,
-      remaining: {
-        daily: limits.dailySim - todayCount,
-        monthly: limits.monthlySim - monthlyCount,
-      },
-    };
+    return { allowed: true };
   },
 
   /** 즉시 코칭 사용 가능 여부 */
@@ -64,19 +58,5 @@ export const usageService = {
   /** 사용량 기록 */
   async recordUsage(userId: string, type: 'simulation' | 'coaching' | 'sos'): Promise<void> {
     await dbService.incrementUsage(userId, type);
-  },
-
-  /** 남은 사용량 조회 (UI 표시용) */
-  async getRemaining(userId: string, plan: PlanType): Promise<{ daily: number; monthly: number }> {
-    const limits = PLAN_LIMITS[plan];
-    if (limits.dailySim === Infinity) return { daily: Infinity, monthly: Infinity };
-
-    const todayUsage = await dbService.getTodayUsage(userId);
-    const monthlyCount = await dbService.getMonthlySimCount(userId);
-
-    return {
-      daily: Math.max(0, limits.dailySim - (todayUsage?.simulation_count || 0)),
-      monthly: Math.max(0, limits.monthlySim - monthlyCount),
-    };
   },
 };

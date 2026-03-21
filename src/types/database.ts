@@ -104,50 +104,42 @@ export interface UsageRecord {
 export type PlanType = 'free' | 'pro' | 'ultra';
 
 export interface PlanLimits {
-  dailySim: number;
-  monthlySim: number;
-  totalSim: number;       // 총 시뮬레이션 횟수 제한 (free=3)
+  scenarios: number;          // 사용 가능 시나리오 수
+  maxTriesPerScenario: number; // 시나리오당 최대 시도 횟수
   coaching: boolean;
   voice: boolean;
-  scenarios: number;
   historyLimit: number;
-  fullReport: boolean;     // 풀 리포트 여부
-  historyCompare: boolean; // 이전 기록 비교
-  peerCompare: boolean;    // 타인 비교 리포트
+  fullReport: boolean;
+  historyCompare: boolean;
+  peerCompare: boolean;
 }
 
 export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   free: {
-    dailySim: 1,
-    monthlySim: 3,
-    totalSim: 3,
+    scenarios: 3,
+    maxTriesPerScenario: 1,
     coaching: false,
     voice: false,
-    scenarios: 3,
     historyLimit: 3,
     fullReport: false,
     historyCompare: false,
     peerCompare: false,
   },
   pro: {
-    dailySim: 5,
-    monthlySim: 30,
-    totalSim: Infinity,
+    scenarios: 20,
+    maxTriesPerScenario: 3,
     coaching: true,
     voice: true,
-    scenarios: 20,
     historyLimit: Infinity,
     fullReport: true,
     historyCompare: true,
     peerCompare: false,
   },
   ultra: {
-    dailySim: Infinity,
-    monthlySim: Infinity,
-    totalSim: Infinity,
+    scenarios: 40,
+    maxTriesPerScenario: 5,
     coaching: true,
     voice: true,
-    scenarios: 40,
     historyLimit: Infinity,
     fullReport: true,
     historyCompare: true,
@@ -156,11 +148,74 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
 };
 
 // ================================================================
-// Plan Display Info
+// 기간제 요금 옵션
 // ================================================================
 
-export const PLAN_INFO: Record<PlanType, { name: string; price: string; period: string }> = {
-  free: { name: '무료', price: '₩0', period: '월' },
-  pro: { name: '프로', price: '₩9,900', period: '월' },
-  ultra: { name: '울트라', price: '₩29,900', period: '월' },
-};
+export interface PricingOption {
+  id: string;
+  plan: PlanType;
+  name: string;
+  price: number;        // 원
+  priceLabel: string;   // 표시용
+  days: number;         // 사용 기간 (일)
+  scenarios: number;
+  maxTriesPerScenario: number;
+  priceId?: string;     // Stripe Price ID
+}
+
+export const PRICING_OPTIONS: PricingOption[] = [
+  {
+    id: 'free',
+    plan: 'free',
+    name: '무료 체험',
+    price: 0,
+    priceLabel: '₩0',
+    days: Infinity,
+    scenarios: 3,
+    maxTriesPerScenario: 1,
+  },
+  {
+    id: 'pro-10',
+    plan: 'pro',
+    name: '프로 10일',
+    price: 8900,
+    priceLabel: '₩8,900',
+    days: 10,
+    scenarios: 20,
+    maxTriesPerScenario: 3,
+    priceId: 'price_pro_10d',
+  },
+  {
+    id: 'pro-20',
+    plan: 'pro',
+    name: '프로 20일',
+    price: 13500,
+    priceLabel: '₩13,500',
+    days: 20,
+    scenarios: 20,
+    maxTriesPerScenario: 3,
+    priceId: 'price_pro_20d',
+  },
+  {
+    id: 'ultra-15',
+    plan: 'ultra',
+    name: '울트라 15일',
+    price: 17900,
+    priceLabel: '₩17,900',
+    days: 15,
+    scenarios: 40,
+    maxTriesPerScenario: 5,
+    priceId: 'price_ultra_15d',
+  },
+  {
+    id: 'ultra-25',
+    plan: 'ultra',
+    name: '울트라 25일',
+    price: 24500,
+    priceLabel: '₩24,500',
+    days: 25,
+    scenarios: 40,
+    maxTriesPerScenario: 5,
+    priceId: 'price_ultra_25d',
+  },
+];

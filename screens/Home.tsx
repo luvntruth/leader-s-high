@@ -48,13 +48,11 @@ const getCategoryLabel = (cat: string) => {
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const [remaining, setRemaining] = useState<{ daily: number; monthly: number } | null>(null);
   const [simCount, setSimCount] = useState(0);
 
   useEffect(() => {
     if (!user || !profile) return;
-    usageService.getRemaining(user.id, profile.plan).then(setRemaining);
-    dbService.getSimulationCount(user.id).then(setSimCount);
+    dbService.getSimulationCount(user.id).then(setSimCount).catch(() => {});
   }, [user, profile]);
 
   /* User stats — DB 기반 + 폴백 */
@@ -173,11 +171,11 @@ const Home: React.FC = () => {
       className="flex flex-col min-h-screen pb-24 lg:pb-8 bg-[#0B1120] font-manrope text-white"
     >
 
-      {/* 남은 시뮬레이션 횟수 배너 (Free 플랜) */}
-      {remaining && profile?.plan === 'free' && (
+      {/* 무료 플랜 안내 배너 */}
+      {profile?.plan === 'free' && (
         <motion.div variants={itemVariants} className="mx-4 mt-3 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
           <span className="text-amber-400 text-xs">
-            오늘 남은 시뮬레이션: <b>{remaining.daily === Infinity ? '무제한' : `${remaining.daily}회`}</b> · 이번 달: <b>{remaining.monthly === Infinity ? '무제한' : `${remaining.monthly}회`}</b>
+            무료 체험: <b>{simCount}/3</b> 시나리오 사용
           </span>
           <button onClick={() => navigate('/pricing')} className="text-amber-500 text-xs font-semibold hover:text-amber-400">업그레이드</button>
         </motion.div>

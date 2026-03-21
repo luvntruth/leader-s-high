@@ -7,7 +7,7 @@ import { DataService, Badge, UserRank } from '../services/dataService';
 import { createGeminiClient } from '../src/lib/geminiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/authService';
-import { usageService } from '../services/usageService';
+import { dbService } from '../services/dbService';
 
 interface RankDetail {
   lv: string;
@@ -135,11 +135,11 @@ const Profile: React.FC = () => {
   const [showRankInfo, setShowRankInfo] = useState(false);
   const [selectedRankName, setSelectedRankName] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'status' | 'skills' | 'badges' | 'account'>('status');
-  const [remaining, setRemaining] = useState<{ daily: number; monthly: number } | null>(null);
+  const [simCount, setSimCount] = useState(0);
 
   useEffect(() => {
     if (user && profile) {
-      usageService.getRemaining(user.id, profile.plan).then(setRemaining);
+      dbService.getSimulationCount(user.id).then(setSimCount).catch(() => {});
     }
   }, [user, profile]);
 
@@ -846,12 +846,10 @@ const Profile: React.FC = () => {
                 <span className="text-slate-400">플랜</span>
                 <span className="text-amber-500 font-semibold capitalize">{profile?.plan || 'free'}</span>
               </div>
-              {remaining && (
-                <div className="flex justify-between">
-                  <span className="text-slate-400">이번 달 남은 시뮬레이션</span>
-                  <span className="text-white">{remaining.monthly === Infinity ? '무제한' : `${remaining.monthly}회`}</span>
-                </div>
-              )}
+              <div className="flex justify-between">
+                <span className="text-slate-400">시뮬레이션 이용 횟수</span>
+                <span className="text-white">{simCount}회</span>
+              </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">가입일</span>
                 <span className="text-white">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString('ko-KR') : '-'}</span>

@@ -72,6 +72,16 @@ export const dbService = {
     return count || 0;
   },
 
+  async getScenarioTryCount(userId: string, scenarioId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('simulation_history')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('scenario_id', scenarioId);
+    if (error) return 0;
+    return count || 0;
+  },
+
   async getRadarStats(userId: string): Promise<Record<string, number> | null> {
     const { data, error } = await supabase
       .from('simulation_history')
