@@ -14,10 +14,11 @@ const Setup: React.FC = () => {
 
   const avatar = getCharacterAvatar(characterInfo.name, scenario?.id);
   // Scenario 타입에 trustLevel 없음 → intensity에서 도출 (시나리오 난이도에 따라 초기 신뢰도 다름)
-  const trustLevel = scenario?.intensity === 'high' ? 30 : scenario?.intensity === 'low' ? 65 : 50;
+  // 시나리오 난이도에 따라 초기 신뢰도 설정 (S등급=어려움, B등급=쉬움)
+  const trustLevel = scenario?.intensity === 'high' ? 25 : scenario?.intensity === 'low' ? 65 : 45;
 
   const handleStart = () => {
-    navigate('/simulation', { state: { scenario } });
+    navigate('/simulation', { state: { scenario, initialTrust: trustLevel } });
   };
 
   const handleBack = () => {

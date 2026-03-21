@@ -69,8 +69,10 @@ const Simulation: React.FC = () => {
   const state = location.state as any;
   const simulationStartTime = useRef(Date.now());
 
-  // 1. scenario 정보 추출 (Setup.tsx에서 { scenario } 로 전달함)
+  // 1. scenario 정보 추출 (Setup.tsx에서 { scenario, initialTrust } 로 전달함)
   const scenario = state?.scenario || { id: 'late-comer', title: '지각하는 팀원 피드백', description: '출근 시간을 자주 어기는 팀원에게 피드백을 전달하세요.', memberName: '김철수' };
+  // 난이도별 초기 신뢰도: S등급(high)=25, A등급(medium)=45, B등급(low)=65
+  const initialTrust: number = state?.initialTrust ?? 45;
 
   // 2. config 구성 (state 자체에 정보가 있거나, scenario.memberName을 활용)
   const config = useMemo(() => {
@@ -129,20 +131,20 @@ const Simulation: React.FC = () => {
     nextHint: string;
     trustHistory: number[];
   }>({
-    trust: 45,
+    trust: initialTrust,
     delta: 0,
     dimensions: {
-      psychological_safety: 45,
-      understanding_alignment: 45,
-      autonomy_fairness: 45,
-      integrity_consistency: 45,
-      competence_support: 45
+      psychological_safety: initialTrust,
+      understanding_alignment: initialTrust,
+      autonomy_fairness: initialTrust,
+      integrity_consistency: initialTrust,
+      competence_support: initialTrust
     },
     stage: 'S1',
     recentEvents: [],
     lastEvents: [],
     nextHint: "대화를 시작하여 팀원과의 신뢰를 쌓아보세요.",
-    trustHistory: [45] // 트렌드 차트용 히스토리 추가
+    trustHistory: [initialTrust]
   });
 
   // Dramatic UI State
@@ -161,7 +163,7 @@ const Simulation: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const initialized = useRef(false);
-  const emotionMachine = useRef(new EmotionStateMachine(30));
+  const emotionMachine = useRef(new EmotionStateMachine(initialTrust));
   const lastUserMessageRef = useRef<string>('');
 
   // Cleanup on unmount
