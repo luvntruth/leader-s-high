@@ -472,7 +472,7 @@ function corsHeaders(env: Env, request: Request): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, x-goog-api-key, Authorization',
+    'Access-Control-Allow-Headers': request.headers.get('Access-Control-Request-Headers') || 'Content-Type, x-goog-api-key, x-goog-api-client, Authorization',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin',
   };
