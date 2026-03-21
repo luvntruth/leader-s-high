@@ -135,6 +135,11 @@ export default function Login() {
           <Link to="/signup" className="text-amber-500 text-sm hover:text-amber-400 transition-colors">
             계정이 없으신가요? 회원가입
           </Link>
+          <div>
+            <Link to="/reset-password" className="text-slate-400 text-sm hover:text-slate-300 transition-colors">
+              비밀번호를 잊으셨나요?
+            </Link>
+          </div>
         </div>
       </motion.div>
     </div>

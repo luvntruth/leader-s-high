@@ -1,19 +1,11 @@
 /**
  * Leader's High — Gemini API 백엔드 프록시 (Cloudflare Worker)
  *
- * 역할:
- * - 클라이언트 요청을 받아 실제 Gemini API에 전달
- * - API 키를 서버 시크릿(env.GEMINI_API_KEY)으로만 관리
- * - JWT 인증으로 무인증 호출 차단
- * - KV 기반 Rate Limiting으로 플랜별 호출 제한
- * - HTTP REST + WebSocket(Live API) 모두 지원
- * - Stripe Webhook 수신
- *
- * 배포: Cloudflare Workers
- * 명령어:
+ * 배포:
  *   cd worker && npx wrangler deploy
  *   npx wrangler secret put GEMINI_API_KEY
  *   npx wrangler secret put SUPABASE_JWT_SECRET
+ *   npx wrangler secret put SUPABASE_SERVICE_KEY
  *   npx wrangler secret put STRIPE_SECRET_KEY
  *   npx wrangler secret put STRIPE_WEBHOOK_SECRET
  */
@@ -24,7 +16,9 @@ const GOOGLE_AI_WS   = 'wss://generativelanguage.googleapis.com';
 export interface Env {
   GEMINI_API_KEY: string;
   ALLOWED_ORIGIN: string;
-  SUPABASE_JWT_SECRET?: string;
+  SUPABASE_JWT_SECRET: string;
+  SUPABASE_URL?: string;
+  SUPABASE_SERVICE_KEY?: string;
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
   RATE_LIMIT?: KVNamespace;
@@ -39,9 +33,8 @@ async function verifyAuth(request: Request, env: Env): Promise<{
   plan?: string;
   error?: string;
 }> {
-  // JWT 시크릿 미설정 시 인증 우회 (개발 모드)
   if (!env.SUPABASE_JWT_SECRET) {
-    return { valid: true, userId: 'dev-user', plan: 'pro' };
+    return { valid: false, error: 'Server misconfigured: JWT secret not set' };
   }
 
   const authHeader = request.headers.get('Authorization');
@@ -51,7 +44,6 @@ async function verifyAuth(request: Request, env: Env): Promise<{
   const token = authHeader.slice(7);
 
   try {
-    // Supabase JWT: base64url 디코딩 → payload 추출
     const parts = token.split('.');
     if (parts.length !== 3) return { valid: false, error: 'Invalid token format' };
 
@@ -71,12 +63,16 @@ async function verifyAuth(request: Request, env: Env): Promise<{
 
     if (!isValid) return { valid: false, error: 'Invalid token signature' };
 
-    // payload 파싱
     const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
 
     // 만료 확인
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
       return { valid: false, error: 'Token expired' };
+    }
+
+    // issuer/audience 검증
+    if (payload.iss !== 'supabase' && !payload.iss?.includes('supabase')) {
+      return { valid: false, error: 'Invalid token issuer' };
     }
 
     return {
@@ -99,7 +95,7 @@ function base64UrlDecode(str: string): ArrayBuffer {
 }
 
 // ────────────────────────────────────────────────────────────────
-// Rate Limiting (KV)
+// Rate Limiting (KV 또는 메모리 폴백)
 // ────────────────────────────────────────────────────────────────
 const RATE_LIMITS: Record<string, number> = {
   free: 20,
@@ -107,17 +103,89 @@ const RATE_LIMITS: Record<string, number> = {
   enterprise: 1000,
 };
 
-async function checkRateLimit(userId: string, plan: string, env: Env): Promise<boolean> {
-  if (!env.RATE_LIMIT) return true; // KV 미설정 시 제한 없음
+// KV 미설정 시 메모리 기반 폴백 (Worker 재시작 시 리셋)
+const memoryRateStore = new Map<string, number>();
 
+async function checkRateLimit(userId: string, plan: string, env: Env): Promise<boolean> {
   const key = `rate:${userId}:${new Date().toISOString().slice(0, 10)}`;
-  const current = parseInt(await env.RATE_LIMIT.get(key) || '0');
   const limit = RATE_LIMITS[plan] || RATE_LIMITS.free;
 
-  if (current >= limit) return false;
+  if (env.RATE_LIMIT) {
+    const current = parseInt(await env.RATE_LIMIT.get(key) || '0');
+    if (current >= limit) return false;
+    await env.RATE_LIMIT.put(key, String(current + 1), { expirationTtl: 86400 });
+    return true;
+  }
 
-  await env.RATE_LIMIT.put(key, String(current + 1), { expirationTtl: 86400 });
+  // 메모리 폴백
+  const current = memoryRateStore.get(key) || 0;
+  if (current >= limit) return false;
+  memoryRateStore.set(key, current + 1);
   return true;
+}
+
+// ────────────────────────────────────────────────────────────────
+// Stripe Webhook 서명 검증 (HMAC-SHA256)
+// ────────────────────────────────────────────────────────────────
+async function verifyStripeSignature(
+  body: string, sigHeader: string, secret: string
+): Promise<boolean> {
+  const parts = sigHeader.split(',');
+  const timestamp = parts.find(p => p.startsWith('t='))?.slice(2);
+  const v1Sig = parts.find(p => p.startsWith('v1='))?.slice(3);
+
+  if (!timestamp || !v1Sig) return false;
+
+  // 5분 이상 지난 이벤트 거부
+  const age = Math.floor(Date.now() / 1000) - parseInt(timestamp);
+  if (age > 300) return false;
+
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const payload = encoder.encode(`${timestamp}.${body}`);
+  const signatureBytes = await crypto.subtle.sign('HMAC', key, payload);
+  const computedSig = Array.from(new Uint8Array(signatureBytes))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  return computedSig === v1Sig;
+}
+
+// ────────────────────────────────────────────────────────────────
+// Supabase Admin API 호출 헬퍼
+// ────────────────────────────────────────────────────────────────
+async function updateProfilePlan(
+  env: Env, stripeCustomerId: string, plan: string
+): Promise<void> {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) {
+    console.error('Supabase admin credentials not configured');
+    return;
+  }
+
+  const res = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/profiles?stripe_customer_id=eq.${stripeCustomerId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'apikey': env.SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({ plan, updated_at: new Date().toISOString() }),
+    }
+  );
+
+  if (!res.ok) {
+    console.error(`Profile plan update failed: ${res.status} ${await res.text()}`);
+  }
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -131,8 +199,11 @@ async function handleStripeWebhook(request: Request, env: Env): Promise<Response
   const body = await request.text();
   const sig = request.headers.get('stripe-signature') || '';
 
-  // 서명 검증 (간소화 — 프로덕션에서는 Stripe SDK 사용 권장)
-  if (!sig) return new Response('Missing signature', { status: 400 });
+  // 서명 검증 (HMAC-SHA256)
+  const isValid = await verifyStripeSignature(body, sig, env.STRIPE_WEBHOOK_SECRET);
+  if (!isValid) {
+    return new Response('Invalid signature', { status: 400 });
+  }
 
   try {
     const event = JSON.parse(body);
@@ -140,17 +211,20 @@ async function handleStripeWebhook(request: Request, env: Env): Promise<Response
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
-        // TODO: Supabase Admin API로 profiles.plan 업데이트
-        console.log(`Checkout completed: customer=${session.customer}, subscription=${session.subscription}`);
+        if (session.customer && session.metadata?.plan) {
+          await updateProfilePlan(env, session.customer, session.metadata.plan);
+        }
+        break;
+      }
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object;
+        if (subscription.customer) {
+          await updateProfilePlan(env, subscription.customer, 'free');
+        }
         break;
       }
       case 'invoice.payment_failed': {
         console.log('Payment failed:', event.data.object.customer);
-        break;
-      }
-      case 'customer.subscription.deleted': {
-        console.log('Subscription cancelled:', event.data.object.customer);
-        // TODO: profiles.plan → 'free' 다운그레이드
         break;
       }
     }
@@ -164,7 +238,7 @@ async function handleStripeWebhook(request: Request, env: Env): Promise<Response
 // ────────────────────────────────────────────────────────────────
 // Stripe Checkout Session 생성
 // ────────────────────────────────────────────────────────────────
-async function handleCreateCheckout(request: Request, env: Env): Promise<Response> {
+async function handleCreateCheckout(request: Request, env: Env, auth: { userId?: string }): Promise<Response> {
   if (!env.STRIPE_SECRET_KEY) {
     return new Response(JSON.stringify({ error: 'Stripe not configured' }), {
       status: 501,
@@ -172,7 +246,19 @@ async function handleCreateCheckout(request: Request, env: Env): Promise<Respons
     });
   }
 
-  const { priceId, returnUrl } = await request.json() as { priceId: string; returnUrl: string };
+  const { priceId, plan, returnUrl } = await request.json() as {
+    priceId: string; plan: string; returnUrl: string;
+  };
+
+  const params = new URLSearchParams({
+    'mode': 'subscription',
+    'line_items[0][price]': priceId,
+    'line_items[0][quantity]': '1',
+    'success_url': `${returnUrl}/#/profile?checkout=success`,
+    'cancel_url': `${returnUrl}/#/pricing?checkout=cancel`,
+    'metadata[plan]': plan || 'pro',
+    'metadata[user_id]': auth.userId || '',
+  });
 
   const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST',
@@ -180,13 +266,7 @@ async function handleCreateCheckout(request: Request, env: Env): Promise<Respons
       'Authorization': `Bearer ${env.STRIPE_SECRET_KEY}`,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: new URLSearchParams({
-      'mode': 'subscription',
-      'line_items[0][price]': priceId,
-      'line_items[0][quantity]': '1',
-      'success_url': `${returnUrl}/#/profile?checkout=success`,
-      'cancel_url': `${returnUrl}/#/pricing?checkout=cancel`,
-    }),
+    body: params,
   });
 
   const data = await res.json() as { url?: string; error?: unknown };
@@ -197,9 +277,9 @@ async function handleCreateCheckout(request: Request, env: Env): Promise<Respons
 }
 
 // ────────────────────────────────────────────────────────────────
-// Stripe Customer Portal
+// Stripe Customer Portal (JWT 기반 customerId 조회)
 // ────────────────────────────────────────────────────────────────
-async function handleCustomerPortal(request: Request, env: Env): Promise<Response> {
+async function handleCustomerPortal(request: Request, env: Env, auth: { userId?: string }): Promise<Response> {
   if (!env.STRIPE_SECRET_KEY) {
     return new Response(JSON.stringify({ error: 'Stripe not configured' }), {
       status: 501,
@@ -207,12 +287,27 @@ async function handleCustomerPortal(request: Request, env: Env): Promise<Respons
     });
   }
 
-  const { returnUrl, customerId } = await request.json() as { returnUrl: string; customerId?: string };
+  const { returnUrl } = await request.json() as { returnUrl: string };
 
-  // TODO: customerId를 JWT에서 가져온 userId로 Supabase에서 조회하는 방식 권장
+  // JWT userId로 Supabase에서 stripe_customer_id 조회
+  let customerId: string | null = null;
+  if (env.SUPABASE_URL && env.SUPABASE_SERVICE_KEY && auth.userId) {
+    const profileRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/profiles?id=eq.${auth.userId}&select=stripe_customer_id`,
+      {
+        headers: {
+          'apikey': env.SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+        },
+      }
+    );
+    const profiles = await profileRes.json() as Array<{ stripe_customer_id?: string }>;
+    customerId = profiles?.[0]?.stripe_customer_id || null;
+  }
+
   if (!customerId) {
-    return new Response(JSON.stringify({ error: 'Customer ID required' }), {
-      status: 400,
+    return new Response(JSON.stringify({ error: 'No Stripe customer found' }), {
+      status: 404,
       headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
     });
   }
@@ -248,19 +343,9 @@ export default {
 
     const url = new URL(request.url);
 
-    // Stripe Webhook (인증 우회, Stripe 서명으로 검증)
+    // Stripe Webhook (Stripe 서명으로 자체 검증, JWT 불필요)
     if (url.pathname === '/api/stripe-webhook' && request.method === 'POST') {
       return handleStripeWebhook(request, env);
-    }
-
-    // Stripe Checkout Session 생성
-    if (url.pathname === '/api/create-checkout' && request.method === 'POST') {
-      return handleCreateCheckout(request, env);
-    }
-
-    // Stripe Customer Portal
-    if (url.pathname === '/api/customer-portal' && request.method === 'POST') {
-      return handleCustomerPortal(request, env);
     }
 
     // Origin 검증
@@ -270,13 +355,23 @@ export default {
       return new Response('Forbidden: origin not allowed', { status: 403 });
     }
 
-    // JWT 인증
+    // JWT 인증 (Stripe Webhook 외 모든 요청)
     const auth = await verifyAuth(request, env);
     if (!auth.valid) {
       return new Response(JSON.stringify({ error: auth.error }), {
         status: 401,
         headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
       });
+    }
+
+    // Stripe Checkout (인증 후)
+    if (url.pathname === '/api/create-checkout' && request.method === 'POST') {
+      return handleCreateCheckout(request, env, auth);
+    }
+
+    // Stripe Customer Portal (인증 후)
+    if (url.pathname === '/api/customer-portal' && request.method === 'POST') {
+      return handleCustomerPortal(request, env, auth);
     }
 
     // Rate Limiting
@@ -302,9 +397,7 @@ export default {
 // HTTP 프록시
 // ────────────────────────────────────────────────────────────────
 async function handleHTTP(request: Request, env: Env, url: URL): Promise<Response> {
-  // GoogleGenAI SDK는 baseUrl 뒤에 /v1beta/... 를 직접 붙여서 요청함
   const path = url.pathname.replace(/^\/?api\/gemini/, '') || url.pathname;
-  // 쿼리에 key 파라미터 추가 (일부 Gemini 엔드포인트에서 필요)
   const separator = url.search ? '&' : '?';
   const targetUrl = `${GOOGLE_AI_BASE}${path}${url.search}${separator}key=${env.GEMINI_API_KEY}`;
 

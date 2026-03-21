@@ -105,9 +105,10 @@ const Simulation: React.FC = () => {
       if (!result.allowed) {
         setUsageDenied(result.reason || '사용 제한에 도달했습니다.');
       } else {
-        // 시뮬레이션 시작 사용량 기록
-        usageService.recordUsage(user.id, 'simulation');
+        usageService.recordUsage(user.id, 'simulation').catch(() => {});
       }
+    }).catch(() => {
+      // DB 접근 실패 시에도 시뮬레이션은 허용 (graceful degradation)
     });
   }, [user, profile]);
 

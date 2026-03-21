@@ -15,7 +15,7 @@ enabled = true
 [vars]
 # 프론트엔드 배포 URL로 변경하세요 (CORS 허용 오리진)
 # 개발 테스트용: "*"  |  프로덕션: "https://your-app.vercel.app"
-ALLOWED_ORIGIN = "*"
+ALLOWED_ORIGIN = "https://leader-s-high.vercel.app"
 
 # ─── 프로덕션 환경 설정 ─────────────────────────────────────────
 [env.production.vars]
