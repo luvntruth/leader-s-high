@@ -13,8 +13,18 @@ export const SCENARIOS: Scenario[] = [
     description: '팀의 핵심 개발자가 매일 30분씩 늦습니다. 실력은 최고라 다른 팀원들이 대놓고 불만을 말하지 못하지만, 팀 분위기이 무너지는 게 눈에 보입니다. 오늘 아침 중요 주간 회의에도 20분 늦게 나타나 아무 일 없다는 듯 자리에 앉았습니다.',
     memberName: '김철수',
     generation: Generation.GEN_Z,
-    intensity: 'medium',
+    intensity: 'low',
     traits: { context: 20, driver: 40 }
+  },
+  {
+    id: 'boundaries',
+    title: '이기적인 워라밸 사수',
+    category: '팀 문화',
+    description: '서비스 장애로 팀 전체가 비상인 상황에서 오후 6시 정각이 되자 "저는 오늘 개인적인 약속이 있어서요"라며 로그아웃하려 합니다. 동료들이 밤샘을 각오하는 상황에서도 자기 권리만 주장하는 그에게 협업의 가치를 일깨워주세요.',
+    memberName: '박지민',
+    generation: Generation.MILLENNIAL,
+    intensity: 'medium',
+    traits: { context: 40, driver: 30 }
   },
   {
     id: 'team-clash',
@@ -25,16 +35,6 @@ export const SCENARIOS: Scenario[] = [
     generation: Generation.BOOMER,
     intensity: 'high',
     traits: { context: 80, driver: 20 }
-  },
-  {
-    id: 'boundaries',
-    title: '이기적인 워라밸 사수',
-    category: '팀 문화',
-    description: '서비스 장애로 팀 전체가 비상인 상황에서 오후 6시 정각이 되자 "저는 오늘 개인적인 약속이 있어서요"라며 로그아웃하려 합니다. 동료들이 밤샘을 각오하는 상황에서도 자기 권리만 주장하는 그에게 협업의 가치를 일깨워주세요.',
-    memberName: '박지민',
-    generation: Generation.MILLENNIAL,
-    intensity: 'high',
-    traits: { context: 40, driver: 30 }
   },
   {
     id: 'feedback-defense',
