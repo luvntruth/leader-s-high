@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 const Navigation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
 
   const [isAdminVisible, setIsAdminVisible] = React.useState(localStorage.getItem('leadershigh_admin_mode') === 'true');
   const [clickCount, setClickCount] = React.useState(0);
@@ -90,6 +90,33 @@ const Navigation: React.FC = () => {
             </button>
           ))}
         </nav>
+
+        {/* 플랜 상태 */}
+        {user && (
+          <div className="px-4 mb-2">
+            {profile?.plan === 'free' ? (
+              <button
+                onClick={() => navigate('/pricing')}
+                className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/40 transition-colors group"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-amber-500 bg-amber-500/20 px-1.5 py-0.5 rounded">FREE</span>
+                  <span className="text-slate-400 text-xs">업그레이드</span>
+                </div>
+                <span className="text-amber-500 text-xs group-hover:translate-x-0.5 transition-transform">→</span>
+              </button>
+            ) : (
+              <div className="px-4 py-2.5 rounded-xl bg-slate-800/40 border border-slate-700/30">
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                    profile?.plan === 'ultra' ? 'text-cyan-400 bg-cyan-500/20' : 'text-amber-500 bg-amber-500/20'
+                  }`}>{profile?.plan === 'ultra' ? 'ULTRA' : 'PRO'}</span>
+                  <span className="text-slate-400 text-xs">이용 중</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 하단: 로그아웃 + 시스템 정보 */}
         <div className="p-6 pt-4">

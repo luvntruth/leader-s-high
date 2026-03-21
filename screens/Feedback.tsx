@@ -626,6 +626,47 @@ const Feedback: React.FC = () => {
           </section>
         )}
 
+        {/* ── 무료 플랜: 블러 처리된 풀 리포트 프리뷰 ── */}
+        {!isFullReport && evaluation && (
+          <section className="px-6 py-8">
+            <div className="relative rounded-2xl border border-amber-500/20 overflow-hidden">
+              {/* 블러 처리된 프리뷰 콘텐츠 */}
+              <div className="p-6 filter blur-sm select-none pointer-events-none">
+                <h3 className="text-lg font-bold text-white mb-4">모범 스크립트</h3>
+                <div className="space-y-3">
+                  <div className="p-3 rounded-xl bg-slate-800/40">
+                    <p className="text-slate-400 text-sm">상황: "팀원이 방어적으로 반응할 때..."</p>
+                    <p className="text-white text-sm mt-1">모범 답변: "그 부분이 걱정되셨을 수 있겠네요. 제가 이해한 게 맞는지..."</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-800/40">
+                    <p className="text-slate-400 text-sm">상황: "팀원이 침묵할 때..."</p>
+                    <p className="text-white text-sm mt-1">모범 답변: "혹시 더 말씀하고 싶은 부분이 있으시면..."</p>
+                  </div>
+                </div>
+                <h3 className="text-lg font-bold text-white mt-6 mb-4">5차원 역량 레이더 차트</h3>
+                <div className="h-48 bg-slate-800/40 rounded-xl flex items-center justify-center">
+                  <span className="text-slate-500">레이더 차트 영역</span>
+                </div>
+                <h3 className="text-lg font-bold text-white mt-6 mb-4">과학적 근거 분석</h3>
+                <div className="p-3 rounded-xl bg-slate-800/40">
+                  <p className="text-amber-400 text-sm font-semibold">심리적 안전감 이론</p>
+                  <p className="text-slate-400 text-sm mt-1">에이미 에드먼드슨의 연구에 따르면...</p>
+                </div>
+              </div>
+
+              {/* 오버레이 */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-[2px]">
+                <div className="text-4xl mb-3">🔒</div>
+                <h4 className="text-white font-bold text-lg mb-1">풀 리포트로 더 깊이 분석하세요</h4>
+                <p className="text-slate-400 text-xs mb-4 text-center max-w-xs">모범 스크립트, 5차원 역량 분석, 과학적 근거까지<br/>프로 플랜에서 확인하세요</p>
+                <button onClick={() => navigate('/pricing')} className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors">
+                  프로 플랜 보기 →
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* ── RETURN TO BASE 버튼 ── */}
         <div className="pt-6">
           <button

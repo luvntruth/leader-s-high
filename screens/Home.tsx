@@ -173,11 +173,18 @@ const Home: React.FC = () => {
 
       {/* 무료 플랜 안내 배너 */}
       {profile?.plan === 'free' && (
-        <motion.div variants={itemVariants} className="mx-4 mt-3 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
-          <span className="text-amber-400 text-xs">
-            무료 체험: <b>{simCount}/3</b> 시나리오 사용
-          </span>
-          <button onClick={() => navigate('/pricing')} className="text-amber-500 text-xs font-semibold hover:text-amber-400">업그레이드</button>
+        <motion.div variants={itemVariants} className="mx-4 mt-3 px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-500/5 border border-amber-500/20">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-amber-400 text-xs font-semibold">무료 체험</span>
+            <button onClick={() => navigate('/pricing')} className="text-amber-500 text-xs font-bold hover:text-amber-400">업그레이드 →</button>
+          </div>
+          <div className="w-full h-2 bg-slate-700/50 rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-500" style={{
+              width: `${Math.min(100, (simCount / 3) * 100)}%`,
+              background: simCount >= 3 ? '#ef4444' : simCount >= 2 ? '#f59e0b' : '#22c55e'
+            }} />
+          </div>
+          <p className="text-slate-400 text-[10px] mt-1.5">{simCount}/3 시나리오 사용 · {simCount >= 3 ? '프로로 업그레이드하세요' : `${3 - simCount}개 남음`}</p>
         </motion.div>
       )}
 
@@ -484,6 +491,8 @@ const Home: React.FC = () => {
               {questScenarios.map((scenario, idx) => {
                 const meta = getQuestMeta(scenario.intensity);
                 const isFirst = idx === 0;
+                const originalIndex = SCENARIOS.findIndex(s => s.id === scenario.id);
+                const isLocked = !usageService.canAccessScenario(originalIndex, profile?.plan || 'free');
                 return (
                   <motion.div
                     key={scenario.id}
@@ -491,9 +500,19 @@ const Home: React.FC = () => {
                     whileInView="visible"
                     initial="hidden"
                     viewport={{ once: true, amount: 0.2 }}
-                    whileHover={{ translateY: -4 }}
-                    className="bg-[#111B2E]/60 backdrop-blur-md border border-white/5 rounded-3xl p-6 hover:border-primary/20 transition-all group relative overflow-hidden"
+                    whileHover={{ translateY: isLocked ? 0 : -4 }}
+                    className={`bg-[#111B2E]/60 backdrop-blur-md border border-white/5 rounded-3xl p-6 transition-all group relative overflow-hidden ${isLocked ? 'opacity-60 grayscale cursor-pointer' : 'hover:border-primary/20'}`}
+                    onClick={isLocked ? () => navigate('/pricing') : undefined}
                   >
+                    {/* Lock overlay for PRO-only scenarios */}
+                    {isLocked && (
+                      <div className="absolute inset-0 z-20 bg-slate-900/40 backdrop-blur-[1px] rounded-3xl flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-2">
+                          <span className="text-2xl">🔒</span>
+                          <span className="px-3 py-1 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] font-black tracking-widest">PRO</span>
+                        </div>
+                      </div>
+                    )}
                     <motion.div
                       initial={{ x: '-100%', opacity: 0 }}
                       whileInView={{ x: '140%', opacity: 0.35 }}
@@ -566,15 +585,21 @@ const Home: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate('/setup', { state: { scenario } });
+                          if (isLocked) {
+                            navigate('/pricing');
+                          } else {
+                            navigate('/setup', { state: { scenario } });
+                          }
                         }}
                         className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95
-                          ${isFirst
-                            ? 'bg-primary text-[#0B1120] hover:shadow-primary/20'
-                            : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'
+                          ${isLocked
+                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                            : isFirst
+                              ? 'bg-primary text-[#0B1120] hover:shadow-primary/20'
+                              : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'
                           }`}
                       >
-                        {isFirst ? '미션 시작' : '상세 보기'}
+                        {isLocked ? '🔒 PRO' : isFirst ? '미션 시작' : '상세 보기'}
                       </button>
                     </div>
                   </motion.div>
