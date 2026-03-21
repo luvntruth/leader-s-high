@@ -5,6 +5,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { GoogleGenAI, Type } from "@google/genai";
 import { createGeminiClient } from '../src/lib/geminiClient';
 import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor } from '../services/characterAvatars';
+import { useAuth } from '../contexts/AuthContext';
+import { dbService } from '../services/dbService';
 
 interface EvaluationData {
   summary: string;
@@ -49,6 +51,7 @@ const getRank = (v: number) => {
 const Feedback: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const { transcript, scenario, sosTipHistory } = location.state || {};
 
   const [isAnalysing, setIsAnalysing] = useState(true);
@@ -216,6 +219,22 @@ const Feedback: React.FC = () => {
         memo: '',
         tags: [] as string[]
       };
+
+      // DB 저장 (인증된 사용자) — 최신 피드백으로 가장 최근 레코드 업데이트
+      if (user) {
+        const recentHistory = await dbService.getHistory(user.id, 1);
+        if (recentHistory.length > 0) {
+          const latest = recentHistory[0];
+          await dbService.saveSimulation({
+            ...latest,
+            feedback: evalResult as unknown as Record<string, unknown>,
+            coaching_skills: evalResult.coachingSkills as unknown as Record<string, number>,
+            radar_chart: evalResult.radarChart as unknown as Record<string, number>,
+          }).catch(() => {});
+        }
+      }
+
+      // localStorage 폴백 (비인증 또는 백업)
       const existing = JSON.parse(localStorage.getItem('leadershigh_history') || '[]');
       localStorage.setItem('leadershigh_history', JSON.stringify([historyItem, ...existing]));
 

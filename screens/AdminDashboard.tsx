@@ -1,10 +1,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { DataService, LeaderData, RadarStats } from '../services/dataService';
+import { useAuth } from '../contexts/AuthContext';
+import { dbService } from '../services/dbService';
 
 type TabType = 'STRATEGY' | 'INTELLIGENCE' | 'LOGS';
 
 const AdminDashboard: React.FC = () => {
+  const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('STRATEGY');
   const [stats, setStats] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
@@ -12,6 +15,26 @@ const AdminDashboard: React.FC = () => {
   const [deptRanking, setDeptRanking] = useState<any[]>([]);
 
   useEffect(() => {
+    // 조직 데이터 초기화 (DB 우선, localStorage 폴백)
+    if (profile?.org_id) {
+      dbService.getOrgMembers(profile.org_id).then(members => {
+        if (members.length > 0) {
+          console.log(`조직 멤버 ${members.length}명 로드 (DB)`);
+        }
+      });
+      dbService.getOrgHistory(profile.org_id).then(history => {
+        if (history.length > 0) {
+          setLogs(history.map((h, i) => ({
+            id: `log-${i}`,
+            timestamp: h.created_at,
+            leaderName: h.user_id,
+            scenarioTitle: h.scenario_title,
+            score: h.final_trust || 0,
+            category: h.scenario_category || '기타',
+          })));
+        }
+      });
+    }
     DataService.initOrgData();
     const adminStats = DataService.getAdminStats();
     const feedbackLogs = DataService.getFeedbackLogs();

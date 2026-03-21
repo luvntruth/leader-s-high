@@ -1,3 +1,5 @@
+import { supabase } from '../src/lib/supabase';
+import { dbService } from './dbService';
 
 export interface LeaderData {
   id: string;
@@ -65,7 +67,20 @@ export const DataService = {
   },
 
   getUserHistory(): any[] {
+    // 동기 폴백: localStorage (비인증 상태 또는 마이그레이션 전)
     return JSON.parse(localStorage.getItem('leadershigh_history') || '[]');
+  },
+
+  /** DB에서 히스토리 조회 (인증 사용자용 비동기) */
+  async getUserHistoryAsync(userId?: string): Promise<any[]> {
+    if (!userId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return this.getUserHistory(); // 폴백
+      userId = user.id;
+    }
+    const records = await dbService.getHistory(userId);
+    if (records.length > 0) return records;
+    return this.getUserHistory(); // DB에 없으면 localStorage 폴백
   },
 
   getAverageRadarStats(): RadarStats {

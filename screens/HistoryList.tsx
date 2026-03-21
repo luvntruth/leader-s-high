@@ -2,15 +2,20 @@
 import React, { useState, useEffect } from 'react';
 // @ts-ignore
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { DataService } from '../services/dataService';
 
 const HistoryList: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [history, setHistory] = useState<any[]>([]);
 
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem('leadershigh_history') || '[]');
-    setHistory(data);
-  }, []);
+    DataService.getUserHistoryAsync(user?.id).then(setHistory).catch(() => {
+      const data = JSON.parse(localStorage.getItem('leadershigh_history') || '[]');
+      setHistory(data);
+    });
+  }, [user]);
 
   return (
     <div className="h-screen bg-background-dark text-white flex flex-col font-manrope overflow-hidden">

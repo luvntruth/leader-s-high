@@ -12,6 +12,35 @@
 
 /// <reference types="vite/client" />
 import { GoogleGenAI } from '@google/genai';
+import { supabase } from './supabase';
+
+/**
+ * Supabase 세션 토큰을 자동 주입하는 fetch 래퍼를 설정합니다.
+ * 프로덕션에서 Worker가 JWT를 검증할 수 있도록 Authorization 헤더를 추가합니다.
+ */
+let authFetchInstalled = false;
+function installAuthFetch() {
+  if (authFetchInstalled) return;
+  authFetchInstalled = true;
+
+  const originalFetch = window.fetch.bind(window);
+  const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL as string | undefined;
+
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+
+    // 프록시 URL로의 요청에만 Authorization 헤더 추가
+    if (proxyUrl && url.startsWith(proxyUrl)) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const headers = new Headers(init?.headers);
+        headers.set('Authorization', `Bearer ${session.access_token}`);
+        return originalFetch(input, { ...init, headers });
+      }
+    }
+    return originalFetch(input, init);
+  };
+}
 
 export function createGeminiClient(): GoogleGenAI {
   const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL as string | undefined;
@@ -19,6 +48,7 @@ export function createGeminiClient(): GoogleGenAI {
   if (proxyUrl) {
     // ── 프로덕션 경로 ────────────────────────────────────────────
     // 클라이언트에는 API 키가 없다. Worker가 키를 주입한다.
+    installAuthFetch();
     return new GoogleGenAI({
       apiKey: 'proxy',
       httpOptions: { baseUrl: proxyUrl },

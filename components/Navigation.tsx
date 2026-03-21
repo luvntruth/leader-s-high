@@ -2,10 +2,12 @@
 import React from 'react';
 // @ts-ignore
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const Navigation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   const [isAdminVisible, setIsAdminVisible] = React.useState(localStorage.getItem('leadershigh_admin_mode') === 'true');
   const [clickCount, setClickCount] = React.useState(0);
@@ -89,9 +91,21 @@ const Navigation: React.FC = () => {
           ))}
         </nav>
 
-        {/* 하단 시스템 정보 */}
+        {/* 하단: 로그아웃 + 시스템 정보 */}
         <div className="p-6 pt-4">
           <div className="h-px bg-gradient-to-r from-transparent via-white/5 to-transparent mb-4" />
+          {user && (
+            <button
+              onClick={async () => {
+                await signOut();
+                navigate('/login');
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-500/5 transition-all duration-200 mb-3 group"
+            >
+              <span className="material-symbols-outlined text-lg group-hover:text-red-400">logout</span>
+              <span className="text-xs font-semibold tracking-tight">로그아웃</span>
+            </button>
+          )}
           <div className="flex items-center gap-2 text-[8px] text-slate-700 font-bold uppercase tracking-widest">
             <div className="size-1.5 bg-accent-neon rounded-full pulse-cyan" />
             <span>System Online</span>

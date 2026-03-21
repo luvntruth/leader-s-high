@@ -5,6 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import CompetencyRadar from '../components/CompetencyRadar';
 import { DataService, Badge, UserRank } from '../services/dataService';
 import { createGeminiClient } from '../src/lib/geminiClient';
+import { useAuth } from '../contexts/AuthContext';
+import { authService } from '../services/authService';
+import { usageService } from '../services/usageService';
 
 interface RankDetail {
   lv: string;
@@ -124,13 +127,21 @@ function getRankIcon(title: string): string {
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
   const [recentHistory, setRecentHistory] = useState<any[]>([]);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
   const [rank, setRank] = useState<UserRank | null>(null);
   const [showRankInfo, setShowRankInfo] = useState(false);
   const [selectedRankName, setSelectedRankName] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'status' | 'skills' | 'badges'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'skills' | 'badges' | 'account'>('status');
+  const [remaining, setRemaining] = useState<{ daily: number; monthly: number } | null>(null);
+
+  useEffect(() => {
+    if (user && profile) {
+      usageService.getRemaining(user.id, profile.plan).then(setRemaining);
+    }
+  }, [user, profile]);
 
   // ── 리더십 리포트 상태 (LeadershipReport.tsx에서 이관) ──
   const [reportProfile, setReportProfile] = useState<any>(null);
@@ -280,6 +291,7 @@ const Profile: React.FC = () => {
             { key: 'status' as const, label: '리더 프로필', icon: 'person' },
             { key: 'skills' as const, label: '스킬 트리', icon: 'auto_awesome' },
             { key: 'badges' as const, label: '배지', icon: 'workspace_premium' },
+            { key: 'account' as const, label: '계정', icon: 'settings' },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -810,6 +822,88 @@ const Profile: React.FC = () => {
               className="w-full py-4 text-navy-deep font-black text-xs uppercase tracking-widest rounded-xl"
               style={{ backgroundColor: theme.accent }}>닫기</button>
           </div>
+        </div>
+      )}
+
+      {/* ── 계정 관리 탭 ── */}
+      {activeTab === 'account' && (
+        <div className="space-y-4 px-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-slate-800/40 rounded-2xl p-5 border border-white/5 space-y-4">
+            <h3 className="text-white font-bold text-sm flex items-center gap-2">
+              <span className="material-icons text-amber-500 text-lg">manage_accounts</span>
+              계정 정보
+            </h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-400">이메일</span>
+                <span className="text-white">{profile?.email || user?.email || '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">이름</span>
+                <span className="text-white">{profile?.display_name || '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">플랜</span>
+                <span className="text-amber-500 font-semibold capitalize">{profile?.plan || 'free'}</span>
+              </div>
+              {remaining && (
+                <div className="flex justify-between">
+                  <span className="text-slate-400">이번 달 남은 시뮬레이션</span>
+                  <span className="text-white">{remaining.monthly === Infinity ? '무제한' : `${remaining.monthly}회`}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-slate-400">가입일</span>
+                <span className="text-white">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString('ko-KR') : '-'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => navigate('/pricing')}
+              className="py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs font-semibold"
+            >
+              플랜 관리
+            </button>
+            <button
+              onClick={async () => {
+                if (!user) return;
+                const json = await authService.exportData(user.id);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `leadershigh-data-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="py-3 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-300 text-xs font-semibold"
+            >
+              데이터 내보내기
+            </button>
+          </div>
+
+          <button
+            onClick={async () => {
+              await signOut();
+              navigate('/login');
+            }}
+            className="w-full py-3 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-400 text-xs font-semibold"
+          >
+            로그아웃
+          </button>
+
+          <button
+            onClick={() => {
+              if (confirm('정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                if (user) authService.deleteAccount(user.id);
+              }
+            }}
+            className="w-full py-2 text-red-500/60 text-xs hover:text-red-400 transition-colors"
+          >
+            계정 삭제
+          </button>
         </div>
       )}
     </div>

@@ -19,5 +19,5 @@ ALLOWED_ORIGIN = "*"
 
 # ─── 프로덕션 환경 설정 ─────────────────────────────────────────
 [env.production.vars]
-ALLOWED_ORIGIN = "https://your-leadershigh-domain.com"
+ALLOWED_ORIGIN = "https://leader-s-high.vercel.app"
 # GEMINI_API_KEY는 절대 여기에 기재하지 말고 시크릿으로 등록할 것

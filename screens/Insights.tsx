@@ -4,6 +4,8 @@ import { DataService, RadarStats } from '../services/dataService';
 import React, { useState, useEffect, useMemo } from 'react';
 // @ts-ignore
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { dbService } from '../services/dbService';
 
 const COMPETENCY_DETAILS = [
   {

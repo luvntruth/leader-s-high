@@ -9,6 +9,9 @@ import { EmotionStateMachine } from '../services/emotionStateMachine';
 import { createGeminiClient } from '../src/lib/geminiClient';
 import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor, getEmotionEmoji, DEFAULT_CHARACTERS } from '../services/characterAvatars';
 import { HPBar, TacticalCircularTimer, StatInline, TacticalTrendChart } from '../components/GameUIComponents';
+import { useAuth } from '../contexts/AuthContext';
+import { usageService } from '../services/usageService';
+import { dbService } from '../services/dbService';
 
 interface Message {
   role: 'user' | 'model';
@@ -61,8 +64,10 @@ ${emotion.description}
 const Simulation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, profile } = useAuth();
   // Setup.tsx에서 { name, generation, contextStyle, driverStyle, scenario } 형태로 전달됨
   const state = location.state as any;
+  const simulationStartTime = useRef(Date.now());
 
   // 1. scenario 정보 추출 (Setup.tsx에서 { scenario } 로 전달함)
   const scenario = state?.scenario || { id: 'late-comer', title: '지각하는 팀원 피드백', description: '출근 시간을 자주 어기는 팀원에게 피드백을 전달하세요.', memberName: '김철수' };
@@ -91,6 +96,20 @@ const Simulation: React.FC = () => {
   const [sosTip, setSosTip] = useState<SOSTip | null>(null);
   const [sosTipHistory, setSosTipHistory] = useState<{ tip: SOSTip; turnIndex: number; timestamp: string }[]>([]);
   const [initError, setInitError] = useState(false);
+  const [usageDenied, setUsageDenied] = useState<string | null>(null);
+
+  // 사용량 확인 가드
+  useEffect(() => {
+    if (!user || !profile) return;
+    usageService.canStartSimulation(user.id, profile.plan).then(result => {
+      if (!result.allowed) {
+        setUsageDenied(result.reason || '사용 제한에 도달했습니다.');
+      } else {
+        // 시뮬레이션 시작 사용량 기록
+        usageService.recordUsage(user.id, 'simulation');
+      }
+    });
+  }, [user, profile]);
 
   // Instant Coaching State
   const [instantCoaching, setInstantCoaching] = useState<InstantCoachingResult | null>(null);
@@ -482,6 +501,23 @@ const Simulation: React.FC = () => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
+  // 사용량 제한 화면
+  if (usageDenied) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="text-4xl mb-4">🔒</div>
+          <h2 className="text-xl font-bold text-white mb-2">사용 제한</h2>
+          <p className="text-slate-400 text-sm mb-6">{usageDenied}</p>
+          <div className="flex gap-3 justify-center">
+            <button onClick={() => navigate('/')} className="px-5 py-2.5 rounded-xl bg-slate-800 text-white text-sm">홈으로</button>
+            <button onClick={() => navigate('/pricing')} className="px-5 py-2.5 rounded-xl bg-amber-500 text-slate-900 font-semibold text-sm">플랜 업그레이드</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Dramatic UI Overlays */}
@@ -665,7 +701,33 @@ const Simulation: React.FC = () => {
             <TacticalCircularTimer value={messages.filter(m => m.role === 'user').length * (100 / ANALYSIS_COMPLETE_THRESHOLD)} label={`${messages.filter(m => m.role === 'user').length}/${ANALYSIS_COMPLETE_THRESHOLD}`} subLabel="Turns" />
             <div className="flex-1">
               <button
-                onClick={() => navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory } })}
+                onClick={async () => {
+                  // DB에 시뮬레이션 결과 저장 (인증된 사용자)
+                  if (user) {
+                    const durationSec = Math.round((Date.now() - simulationStartTime.current) / 1000);
+                    await dbService.saveSimulation({
+                      user_id: user.id,
+                      org_id: profile?.org_id || null,
+                      scenario_id: scenario?.id || 'unknown',
+                      scenario_title: scenario?.title || '',
+                      scenario_category: scenario?.category || null,
+                      character_name: config.name,
+                      character_generation: config.generation || null,
+                      transcript: messages.map(m => ({ role: m.role, text: m.text })),
+                      message_count: messages.length,
+                      duration_seconds: durationSec,
+                      final_trust: trustState.trust,
+                      trust_history: trustState.trustHistory,
+                      trust_dimensions: trustState.dimensions || null,
+                      feedback: null,
+                      coaching_skills: null,
+                      radar_chart: null,
+                      memo: '',
+                      tags: [],
+                    }).catch(err => console.error('시뮬레이션 DB 저장 실패:', err));
+                  }
+                  navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory } });
+                }}
                 disabled={!isAnalysisComplete}
                 className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isAnalysisComplete
                   ? 'bg-primary text-black shadow-neon-cyan hover:scale-[1.05] active:scale-[0.95]'
