@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef, ty
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../src/lib/supabase';
 import { authService } from '../services/authService';
+import { setAuthToken, clearAuthToken } from '../src/lib/geminiClient';
 import type { Profile } from '../src/types/database';
 
 interface AuthState {
@@ -127,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, name: string) => {
     const data = await authService.signUp(email, password, name);
     if (data.access_token && data.user) {
+      setAuthToken(data.access_token);
       setUser(data.user);
       setSession({ access_token: data.access_token, refresh_token: data.refresh_token, user: data.user } as Session);
       fetchProfile(data.user.id).catch(() => {});
@@ -137,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signingOut.current = false;
     const data = await authService.signIn(email, password);
     if (data.access_token && data.user) {
+      setAuthToken(data.access_token);
       setUser(data.user);
       setSession({ access_token: data.access_token, refresh_token: data.refresh_token, user: data.user } as Session);
       fetchProfile(data.user.id).catch(() => {});
@@ -153,6 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 플래그 설정 → onAuthStateChange 리스너가 상태를 복원하지 않도록
     signingOut.current = true;
     // 즉시 상태 클리어
+    clearAuthToken();
     setUser(null);
     setProfile(null);
     setSession(null);
