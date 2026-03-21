@@ -398,8 +398,10 @@ export default {
 // ────────────────────────────────────────────────────────────────
 async function handleHTTP(request: Request, env: Env, url: URL): Promise<Response> {
   const path = url.pathname.replace(/^\/?api\/gemini/, '') || url.pathname;
-  const separator = url.search ? '&' : '?';
-  const targetUrl = `${GOOGLE_AI_BASE}${path}${url.search}${separator}key=${env.GEMINI_API_KEY}`;
+  // SDK가 보내는 key=proxy 파라미터 제거 후 실제 API 키로 교체
+  const cleanSearch = url.search.replace(/[?&]key=[^&]*/g, '');
+  const separator = cleanSearch ? '&' : '?';
+  const targetUrl = `${GOOGLE_AI_BASE}${path}${cleanSearch || '?'}${cleanSearch ? separator : ''}key=${env.GEMINI_API_KEY}`;
 
   const headers = new Headers(request.headers);
   headers.set('x-goog-api-key', env.GEMINI_API_KEY);
@@ -432,8 +434,9 @@ async function handleHTTP(request: Request, env: Env, url: URL): Promise<Respons
 // ────────────────────────────────────────────────────────────────
 async function handleWebSocket(request: Request, env: Env, url: URL): Promise<Response> {
   const path = url.pathname.replace(/^\/?api\/gemini/, '');
-  const separator = url.search ? '&' : '?';
-  const targetUrl = `${GOOGLE_AI_WS}${path}${url.search}${separator}key=${env.GEMINI_API_KEY}`;
+  const cleanSearch = url.search.replace(/[?&]key=[^&]*/g, '');
+  const separator = cleanSearch ? '&' : '?';
+  const targetUrl = `${GOOGLE_AI_WS}${path}${cleanSearch || '?'}${cleanSearch ? separator : ''}key=${env.GEMINI_API_KEY}`;
 
   const { 0: clientSocket, 1: serverSocket } = new WebSocketPair();
   (serverSocket as any).accept();
