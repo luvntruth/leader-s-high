@@ -6,6 +6,8 @@ import { SCENARIOS } from '../constants';
 import { getCharacterAvatar, getCharacterInfo } from '../services/characterAvatars';
 import { Scenario } from '../types';
 import { AvatarWithGrade } from '../components/GameUIComponents';
+import { useAuth } from '../contexts/AuthContext';
+import { usageService } from '../services/usageService';
 
 /* ── 시나리오별 감정 말풍선 ── */
 const THOUGHT_MAP: Record<string, { emoji: string; thought: string; color: string }> = {
@@ -60,6 +62,7 @@ function getIntensityMeta(intensity: string) {
 
 const TeamOffice: React.FC = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(true);
@@ -140,13 +143,16 @@ const TeamOffice: React.FC = () => {
 
       <main className="flex-1 overflow-y-auto p-6 relative z-10 hide-scrollbar">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {members.map(({ scenario, info, thought, avatarUrl, intensity }) => (
+          {members.map(({ scenario, info, thought, avatarUrl, intensity }, idx) => {
+            const originalIndex = SCENARIOS.findIndex(s => s.id === scenario.id);
+            const isLocked = !usageService.canAccessScenario(originalIndex, profile?.plan || 'free');
+            return (
             <button
               key={scenario.id}
-              onClick={() => setSelectedMember(scenario.id)}
+              onClick={() => isLocked ? navigate('/pricing') : setSelectedMember(scenario.id)}
               onMouseEnter={() => setHoveredId(scenario.id)}
               onMouseLeave={() => setHoveredId(null)}
-              className="group relative bg-[#0F1729]/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-6 text-left transition-all duration-500 hover:border-primary/30 hover:shadow-[0_0_30px_rgba(0,242,255,0.1)] hover:-translate-y-1 overflow-hidden"
+              className={`group relative bg-[#0F1729]/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-6 text-left transition-all duration-500 overflow-hidden ${isLocked ? 'opacity-60' : 'hover:border-primary/30 hover:shadow-[0_0_30px_rgba(0,242,255,0.1)] hover:-translate-y-1'}`}
             >
               <div className="flex items-start justify-between mb-4">
                 <AvatarWithGrade
@@ -189,8 +195,17 @@ const TeamOffice: React.FC = () => {
                 </div>
                 <span className="material-symbols-outlined text-lg text-slate-700 group-hover:text-primary group-hover:translate-x-1 transition-all">arrow_forward</span>
               </div>
+
+              {/* 잠금 오버레이 */}
+              {isLocked && (
+                <div className="absolute inset-0 bg-slate-900/50 z-10 flex flex-col items-center justify-center rounded-[2rem]">
+                  <span className="text-2xl mb-1">🔒</span>
+                  <span className="text-[10px] font-black text-amber-500 bg-amber-500/20 px-2 py-0.5 rounded-full">PRO</span>
+                </div>
+              )}
             </button>
-          ))}
+            );
+          })}
         </div>
       </main>
 
@@ -268,7 +283,11 @@ const TeamOffice: React.FC = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => navigate('/setup', { state: { scenario: selected.scenario } })}
+                  onClick={() => {
+                    const selIndex = SCENARIOS.findIndex(s => s.id === selected.scenario.id);
+                    const selLocked = !usageService.canAccessScenario(selIndex, profile?.plan || 'free');
+                    if (selLocked) { navigate('/pricing'); } else { navigate('/setup', { state: { scenario: selected.scenario } }); }
+                  }}
                   className="flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-sm transition-all active:scale-95"
                   style={{
                     backgroundColor: selected.intensity.color,
