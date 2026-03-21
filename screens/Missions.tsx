@@ -7,6 +7,8 @@ import { DataService } from '../services/dataService';
 import { Scenario } from '../types';
 import { getCharacterAvatar } from '../services/characterAvatars';
 import { createGeminiClient } from '../src/lib/geminiClient';
+import { useAuth } from '../contexts/AuthContext';
+import { usageService } from '../services/usageService';
 import { QuestHexBadge, AvatarWithGrade } from '../components/GameUIComponents';
 
 /* ── 강도 → 퀘스트 메타데이터 ── */
@@ -55,6 +57,7 @@ function calcStreak(history: any[]): number {
 
 const Missions: React.FC = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [isAnalysing, setIsAnalysing] = useState(false);
   const [recommendation, setRecommendation] = useState<{ scenario: Scenario, reason: string } | null>(null);
@@ -314,16 +317,18 @@ const Missions: React.FC = () => {
 
           {/* 퀘스트 그리드 */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
-            {filteredScenarios.map(scenario => {
+            {filteredScenarios.map((scenario, idx) => {
               const meta = getQuestMeta(scenario.intensity);
               const isCleared = completedIds.has(scenario.id);
               const catIcon = getCategoryIcon(scenario.category);
+              const originalIndex = SCENARIOS.findIndex(s => s.id === scenario.id);
+              const isLocked = !usageService.canAccessScenario(originalIndex, profile?.plan || 'free');
 
               return (
                 <div
                   key={scenario.id}
-                  onClick={() => navigate('/setup', { state: { scenario } })}
-                  className="relative group cursor-pointer transition-all duration-500"
+                  onClick={() => isLocked ? navigate('/pricing') : navigate('/setup', { state: { scenario } })}
+                  className={`relative group cursor-pointer transition-all duration-500 ${isLocked ? 'opacity-70' : ''}`}
                 >
                   <div className={`absolute -inset-[1px] bg-gradient-to-br from-white/10 to-transparent rounded-[2.5rem] transition-opacity duration-500 opacity-0 group-hover:opacity-100`} />
 
@@ -332,11 +337,19 @@ const Missions: React.FC = () => {
                     <div className="absolute right-[-20%] top-[-10%] size-40 bg-white/2 blur-[40px] rounded-full group-hover:bg-white/5 transition-all" />
 
                     {/* CLEARED 스탬프 */}
-                    {isCleared && (
+                    {isCleared && !isLocked && (
                       <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center pointer-events-none rounded-[2.5rem] backdrop-blur-[1px]">
                         <div className="rotate-[-12deg] border-[3px] border-emerald-500/80 rounded-2xl px-6 py-3 animate-in zoom-in-125 duration-300">
                           <p className="text-emerald-500 font-black text-2xl tracking-[0.4em] uppercase" style={{ textShadow: '0 0 15px rgba(16,185,129,0.5)' }}>Cleared</p>
                         </div>
+                      </div>
+                    )}
+
+                    {/* 잠금 오버레이 */}
+                    {isLocked && (
+                      <div className="absolute inset-0 bg-slate-900/60 z-20 flex flex-col items-center justify-center pointer-events-none rounded-[2.5rem]">
+                        <span className="text-3xl mb-2">🔒</span>
+                        <span className="text-xs font-black text-amber-500 bg-amber-500/20 px-3 py-1 rounded-full">PRO</span>
                       </div>
                     )}
 
