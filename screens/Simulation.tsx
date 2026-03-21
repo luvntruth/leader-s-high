@@ -315,13 +315,14 @@ const Simulation: React.FC = () => {
 
     } catch (error: any) {
       console.error('[Simulation] sendMessage failed:', error);
+      const detail = error?.message || error?.statusText || String(error);
       const errMsg = error?.status === 401 || error?.status === 403
-        ? 'API 키가 설정되지 않았습니다. 관리자에게 문의하세요.'
+        ? `인증 오류: ${detail}`
         : error?.status === 404
           ? '모델을 찾을 수 없습니다. 설정을 확인해주세요.'
           : error?.status === 429
             ? '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'
-            : '시스템 연결이 원활하지 않습니다.';
+            : `연결 오류: ${detail}`;
       setMessages(prev => [...prev, {
         role: 'model',
         text: errMsg,
