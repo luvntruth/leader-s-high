@@ -8,6 +8,7 @@ import { createGeminiClient } from '../src/lib/geminiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/authService';
 import { dbService } from '../services/dbService';
+import { LEADERSHIP_TYPE_INFO, CommunicationPattern, LeadershipType } from '../src/types/database';
 
 interface RankDetail {
   lv: string;
@@ -134,12 +135,21 @@ const Profile: React.FC = () => {
   const [rank, setRank] = useState<UserRank | null>(null);
   const [showRankInfo, setShowRankInfo] = useState(false);
   const [selectedRankName, setSelectedRankName] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'status' | 'skills' | 'badges' | 'account'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'leadership' | 'skills' | 'badges' | 'account'>('status');
   const [simCount, setSimCount] = useState(0);
+  const [leadershipData, setLeadershipData] = useState<{type: string; pattern: any} | null>(null);
 
   useEffect(() => {
     if (user && profile) {
       dbService.getSimulationCount(user.id).then(setSimCount).catch(() => {});
+      dbService.getHistory(user.id, 1).then(records => {
+        if (records.length > 0 && records[0].leadership_type) {
+          setLeadershipData({
+            type: records[0].leadership_type,
+            pattern: records[0].communication_pattern,
+          });
+        }
+      }).catch(() => {});
     }
   }, [user, profile]);
 
@@ -289,6 +299,7 @@ const Profile: React.FC = () => {
         <div className="flex gap-1 bg-white/5 rounded-2xl p-1">
           {[
             { key: 'status' as const, label: '리더 프로필', icon: 'person' },
+            { key: 'leadership' as const, label: '리더십 분석', icon: 'insights' },
             { key: 'skills' as const, label: '스킬 트리', icon: 'auto_awesome' },
             { key: 'badges' as const, label: '배지', icon: 'workspace_premium' },
             { key: 'account' as const, label: '계정', icon: 'settings' },
@@ -518,6 +529,163 @@ const Profile: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ════════ 리더십 분석 탭 ════════ */}
+        {activeTab === 'leadership' && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+            {/* Section 1: 리더십 유형 (무료에서 보임) */}
+            <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl p-5 mb-4">
+              <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-3">나의 리더십 유형</h3>
+              {leadershipData && LEADERSHIP_TYPE_INFO[leadershipData.type as LeadershipType] ? (() => {
+                const typeInfo = LEADERSHIP_TYPE_INFO[leadershipData.type as LeadershipType];
+                return (
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{typeInfo.emoji}</span>
+                    <div>
+                      <p className="text-white font-bold text-lg">{typeInfo.name}</p>
+                      <p className="text-slate-400 text-xs">{typeInfo.desc}</p>
+                    </div>
+                  </div>
+                );
+              })() : (
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">📊</span>
+                  <div>
+                    <p className="text-white font-bold text-lg">데이터 수집 중</p>
+                    <p className="text-slate-400 text-xs">시뮬레이션을 완료하면 리더십 유형이 분석됩니다</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Section 2: 대화 패턴 분석 (PRO) */}
+            {profile?.plan === 'free' ? (
+              <div className="relative rounded-2xl border border-amber-500/20 overflow-hidden">
+                <div className="p-5 filter blur-sm select-none pointer-events-none">
+                  <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-3">대화 패턴 분석</h3>
+                  <div className="space-y-3">
+                    {[
+                      { label: '질문', value: 45, color: '#10B981' },
+                      { label: '공감', value: 30, color: '#3B82F6' },
+                      { label: '지시', value: 15, color: '#F59E0B' },
+                      { label: '경청', value: 10, color: '#8B5CF6' },
+                    ].map(item => (
+                      <div key={item.label}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-slate-400">{item.label}</span>
+                          <span className="text-white font-bold">{item.value}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-700/50 rounded-full">
+                          <div className="h-full rounded-full" style={{ width: `${item.value}%`, backgroundColor: item.color }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60">
+                  <span className="text-2xl mb-2">🔒</span>
+                  <p className="text-white font-bold text-sm mb-1">프로 플랜에서 확인</p>
+                  <button onClick={() => navigate('/pricing')} className="px-4 py-1.5 rounded-lg bg-amber-500 text-slate-900 text-xs font-bold">업그레이드</button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl p-5 mb-4">
+                <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-3">대화 패턴 분석</h3>
+                <div className="space-y-3">
+                  {[
+                    { label: '질문', value: leadershipData?.pattern?.questionRatio ?? 0, color: '#10B981' },
+                    { label: '공감', value: leadershipData?.pattern?.empathyRatio ?? 0, color: '#3B82F6' },
+                    { label: '지시', value: leadershipData?.pattern?.directiveRatio ?? 0, color: '#F59E0B' },
+                    { label: '경청', value: leadershipData?.pattern?.listeningRatio ?? 0, color: '#8B5CF6' },
+                  ].map(item => (
+                    <div key={item.label}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-400">{item.label}</span>
+                        <span className="text-white font-bold">{item.value}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-700/50 rounded-full">
+                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${item.value}%`, backgroundColor: item.color }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Section 3: 성장 추이 (PRO) */}
+            {profile?.plan === 'free' ? (
+              <div className="relative rounded-2xl border border-amber-500/20 overflow-hidden">
+                <div className="p-5 filter blur-sm select-none pointer-events-none">
+                  <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-3">성장 추이</h3>
+                  <div className="flex items-center gap-6">
+                    <div className="text-center">
+                      <p className="text-2xl font-black text-white">12</p>
+                      <p className="text-[10px] text-slate-500 mt-1">총 시뮬레이션</p>
+                    </div>
+                    <div className="w-px h-10 bg-slate-700" />
+                    <div className="text-center">
+                      <p className="text-2xl font-black text-emerald-400">78</p>
+                      <p className="text-[10px] text-slate-500 mt-1">평균 신뢰 점수</p>
+                    </div>
+                    <div className="w-px h-10 bg-slate-700" />
+                    <div className="text-center">
+                      <p className="text-2xl font-black text-amber-400">+12%</p>
+                      <p className="text-[10px] text-slate-500 mt-1">성장률</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60">
+                  <span className="text-2xl mb-2">🔒</span>
+                  <p className="text-white font-bold text-sm mb-1">프로 플랜에서 확인</p>
+                  <button onClick={() => navigate('/pricing')} className="px-4 py-1.5 rounded-lg bg-amber-500 text-slate-900 text-xs font-bold">업그레이드</button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl p-5 mb-4">
+                <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-3">성장 추이</h3>
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <p className="text-2xl font-black text-white">{simCount}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">총 시뮬레이션</p>
+                  </div>
+                  <div className="w-px h-10 bg-slate-700" />
+                  <div className="text-center">
+                    <p className="text-2xl font-black text-emerald-400">{leadershipData?.pattern ? Math.round((leadershipData.pattern.questionRatio + leadershipData.pattern.empathyRatio + leadershipData.pattern.listeningRatio) / 3) : '-'}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">평균 신뢰 점수</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Section 4: 전체 사용자 비교 (ULTRA - always locked) */}
+            <div className="relative rounded-2xl border border-purple-500/20 overflow-hidden">
+              <div className="p-5 filter blur-sm select-none pointer-events-none">
+                <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-3">전체 사용자 비교</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 text-xs">상위 퍼센트</span>
+                    <span className="text-white font-bold text-lg">15%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 text-xs">평균 대비 점수</span>
+                    <span className="text-emerald-400 font-bold text-lg">+22점</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 text-xs">리더십 유형 분포</span>
+                    <span className="text-amber-400 font-bold text-lg">코칭형 32%</span>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60">
+                <span className="text-2xl mb-2">🔒</span>
+                <p className="text-white font-bold text-sm mb-1">울트라 플랜에서 확인</p>
+                <button onClick={() => navigate('/pricing')} className="px-4 py-1.5 rounded-lg bg-purple-500 text-white text-xs font-bold">업그레이드</button>
+              </div>
+            </div>
+
           </div>
         )}
 

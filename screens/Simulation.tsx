@@ -728,6 +728,8 @@ const Simulation: React.FC = () => {
                       feedback: null,
                       coaching_skills: null,
                       radar_chart: null,
+                      leadership_type: null,
+                      communication_pattern: null,
                       memo: '',
                       tags: [],
                     }).catch(err => console.error('시뮬레이션 DB 저장 실패:', err));

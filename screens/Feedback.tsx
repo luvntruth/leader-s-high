@@ -122,6 +122,16 @@ const Feedback: React.FC = () => {
         10. 모범 스크립트(modelAnswers)의 situation 필드에는 사용자가 실제로 했던 발화를 인용하고, bestResponse에서 그 상황에서의 더 나은 대안을 제시하세요.
         11. summary는 이 리더만의 고유한 대화 패턴을 짚어주세요. "전반적으로 잘했다" 같은 일반적 평가는 금지합니다.
         12. coachingSkills 점수는 대화 기록에서 관찰된 구체적 행동 빈도와 질을 기준으로 0~100 사이로 채점하세요.
+        13. leadershipType은 대화 패턴을 분석하여 다음 4가지 중 하나를 정확히 선택하세요:
+            - "coaching": 질문과 경청 중심으로 팀원의 생각을 이끌어내는 스타일
+            - "directing": 명확한 지시와 기준 제시 중심 스타일
+            - "delegating": 팀원에게 자율성을 부여하고 신뢰하는 스타일
+            - "participating": 함께 논의하고 의견을 구하는 스타일
+        14. communicationPattern은 사용자의 전체 발화를 분석하여 각 비율을 0~100으로 채점하세요 (합계 100):
+            - questionRatio: 질문형 발화의 비율
+            - empathyRatio: 공감/이해 표현의 비율
+            - directiveRatio: 지시/명령/요청의 비율
+            - listeningRatio: 반영/요약/확인의 비율
         ${briefPromptSuffix}
       `;
 
@@ -206,9 +216,20 @@ const Feedback: React.FC = () => {
                   decision: { type: Type.INTEGER },
                   strategy: { type: Type.INTEGER }
                 }
+              },
+              leadershipType: { type: Type.STRING },
+              communicationPattern: {
+                type: Type.OBJECT,
+                properties: {
+                  questionRatio: { type: Type.NUMBER },
+                  empathyRatio: { type: Type.NUMBER },
+                  directiveRatio: { type: Type.NUMBER },
+                  listeningRatio: { type: Type.NUMBER },
+                },
+                required: ['questionRatio', 'empathyRatio', 'directiveRatio', 'listeningRatio']
               }
             },
-            required: ['summary', 'strengths', 'improvements', 'modelAnswers', 'theoryInsight', 'actionItems', 'coachingSkills', 'metrics', 'radarChart']
+            required: ['summary', 'strengths', 'improvements', 'modelAnswers', 'theoryInsight', 'actionItems', 'coachingSkills', 'metrics', 'radarChart', 'leadershipType', 'communicationPattern']
           }
         }
       }));
@@ -245,6 +266,8 @@ const Feedback: React.FC = () => {
             feedback: evalResult as unknown as Record<string, unknown>,
             coaching_skills: evalResult.coachingSkills as unknown as Record<string, number>,
             radar_chart: evalResult.radarChart as unknown as Record<string, number>,
+            leadership_type: (evalResult as any).leadershipType || null,
+            communication_pattern: (evalResult as any).communicationPattern || null,
           }).catch(() => {});
         }
       }

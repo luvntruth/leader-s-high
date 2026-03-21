@@ -83,10 +83,32 @@ export interface SimulationRecord {
   feedback: Record<string, unknown> | null;
   coaching_skills: Record<string, number> | null;
   radar_chart: Record<string, number> | null;
+  leadership_type: LeadershipType | null;
+  communication_pattern: CommunicationPattern | null;
   memo: string;
   tags: string[];
   created_at: string;
 }
+
+// ================================================================
+// 리더십 분석 타입
+// ================================================================
+
+export type LeadershipType = 'coaching' | 'directing' | 'delegating' | 'participating';
+
+export interface CommunicationPattern {
+  questionRatio: number;    // 질문 비율 (0~100)
+  empathyRatio: number;     // 공감 표현 비율
+  directiveRatio: number;   // 지시/명령 비율
+  listeningRatio: number;   // 경청/반영 비율
+}
+
+export const LEADERSHIP_TYPE_INFO: Record<LeadershipType, { name: string; emoji: string; desc: string; color: string }> = {
+  coaching: { name: '코칭형', emoji: '🎯', desc: '질문과 경청으로 팀원의 잠재력을 끌어내는 리더', color: '#10B981' },
+  directing: { name: '지시형', emoji: '📋', desc: '명확한 방향과 기준을 제시하는 리더', color: '#3B82F6' },
+  delegating: { name: '위임형', emoji: '🤝', desc: '팀원을 신뢰하고 자율성을 부여하는 리더', color: '#8B5CF6' },
+  participating: { name: '참여형', emoji: '💬', desc: '함께 논의하고 합의를 이끄는 리더', color: '#F59E0B' },
+};
 
 export interface UsageRecord {
   id: string;
