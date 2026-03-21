@@ -35,9 +35,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = useCallback(async (userId: string) => {
     try {
       const p = await authService.getProfile(userId);
-      if (!signingOut.current) setProfile(p);
+      if (!signingOut.current) {
+        if (p) {
+          setProfile(p);
+        } else {
+          // 프로필 조회 실패 시 기본 free 프로필 설정
+          setProfile({
+            id: userId,
+            email: '',
+            display_name: '',
+            avatar_url: null,
+            org_id: null,
+            role: 'member',
+            plan: 'free',
+            plan_expires_at: null,
+            stripe_customer_id: null,
+            stripe_subscription_id: null,
+            onboarding_completed: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+        }
+      }
     } catch {
-      // 프로필 조회 실패 무시
+      // 프로필 조회 실패 시에도 기본 free 프로필
+      if (!signingOut.current) {
+        setProfile({
+          id: userId,
+          email: '',
+          display_name: '',
+          avatar_url: null,
+          org_id: null,
+          role: 'member',
+          plan: 'free',
+          plan_expires_at: null,
+          stripe_customer_id: null,
+          stripe_subscription_id: null,
+          onboarding_completed: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      }
     }
   }, []);
 
