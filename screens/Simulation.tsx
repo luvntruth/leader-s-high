@@ -12,6 +12,7 @@ import { HPBar, TacticalCircularTimer, StatInline, TacticalTrendChart } from '..
 import { useAuth } from '../contexts/AuthContext';
 import { usageService } from '../services/usageService';
 import { dbService } from '../services/dbService';
+import { analyticsService } from '../services/analyticsService';
 
 interface Message {
   role: 'user' | 'model';
@@ -67,6 +68,7 @@ const Simulation: React.FC = () => {
   const { user, profile } = useAuth();
   // Setup.tsx에서 { name, generation, contextStyle, driverStyle, scenario } 형태로 전달됨
   const state = location.state as any;
+  const isGuest = !user && state?.guest === true;
   const simulationStartTime = useRef(Date.now());
 
   // 1. scenario 정보 추출 (Setup.tsx에서 { scenario, initialTrust } 로 전달함)
@@ -108,6 +110,7 @@ const Simulation: React.FC = () => {
         setUsageDenied(result.reason || '사용 제한에 도달했습니다.');
       } else {
         usageService.recordUsage(user.id, 'simulation').catch(() => {});
+        analyticsService.track('sim_start', { scenario_id: scenario?.id, plan: profile.plan }, user.id);
       }
     }).catch(() => {
       // DB 접근 실패 시에도 시뮬레이션은 허용 (graceful degradation)
@@ -560,6 +563,13 @@ const Simulation: React.FC = () => {
         </>
       )}
 
+      {/* 게스트 모드 배지 */}
+      {isGuest && (
+        <div className="fixed top-3 right-3 z-50 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] font-bold tracking-wide">
+          체험 모드
+        </div>
+      )}
+
       {/* Floating Combat Texts */}
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[70]">
         {combatTexts.map(ct => (
@@ -754,7 +764,26 @@ const Simulation: React.FC = () => {
                       tags: [],
                     }).catch(err => console.error('시뮬레이션 DB 저장 실패:', err));
                   }
-                  navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory } });
+                  const durationMs = Date.now() - simulationStartTime.current;
+                  analyticsService.track('sim_complete', {
+                    scenario_id: scenario?.id,
+                    duration: Math.round(durationMs / 1000),
+                    final_trust: trustState.trust,
+                    message_count: messages.length,
+                    guest: isGuest,
+                  }, user?.id);
+
+                  if (isGuest) {
+                    // 게스트: transcript를 localStorage에 저장 후 가입 유도
+                    localStorage.setItem('leadershigh_guest_transcript', JSON.stringify({
+                      transcript: messages,
+                      scenario,
+                      sosTipHistory,
+                    }));
+                    navigate('/signup', { state: { from: '/feedback', guest: true } });
+                  } else {
+                    navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory } });
+                  }
                 }}
                 disabled={!isAnalysisComplete}
                 className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isAnalysisComplete

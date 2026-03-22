@@ -12,6 +12,7 @@
     "@google/genai": "^1.38.0",
     "@sentry/react": "^10.45.0",
     "@supabase/supabase-js": "^2.99.3",
+    "dom-to-image-more": "^3.7.2",
     "framer-motion": "^12.34.3",
     "lucide-react": "^0.575.0",
     "react": "^19.2.3",

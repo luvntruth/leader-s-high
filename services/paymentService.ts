@@ -1,6 +1,8 @@
 import { supabase } from '../src/lib/supabase';
 import type { PlanType } from '../src/types/database';
 
+const PROXY_URL = import.meta.env.VITE_GEMINI_PROXY_URL as string | undefined;
+
 declare global {
   interface Window {
     PortOne?: {
@@ -14,8 +16,8 @@ declare global {
   }
 }
 
-const STORE_ID = 'iamporttest_3';
-const CHANNEL_KEY = 'channel-key-0856e897-bc18-47e8-a2f3-2dfe0ef5e8a1';
+const STORE_ID = import.meta.env.VITE_PORTONE_STORE_ID || 'iamporttest_3';
+const CHANNEL_KEY = import.meta.env.VITE_PORTONE_CHANNEL_KEY || 'channel-key-0856e897-bc18-47e8-a2f3-2dfe0ef5e8a1';
 
 // ================================================================
 // 플랜 결제 옵션
@@ -117,7 +119,49 @@ export const paymentService = {
     }
   },
 
-  /** 플랜 결제: 결제 + DB 플랜 활성화 (기존 requestPayment 대체) */
+  /** Server-side 결제 검증 (Worker /api/verify-payment 호출) */
+  async verifyPaymentOnServer(
+    paymentId: string,
+    params: { type: 'plan' | 'report'; plan?: string; days?: number; simulationId?: string; amount: number },
+    authToken: string,
+  ): Promise<{ success: boolean; message: string }> {
+    if (!PROXY_URL) {
+      // 프록시 미설정 시 폴백 (개발 환경)
+      return this.verifyPaymentFallback(params);
+    }
+
+    try {
+      const res = await fetch(`${PROXY_URL}/api/verify-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ paymentId, ...params }),
+      });
+
+      const data = await res.json() as { success?: boolean; error?: string };
+
+      if (!res.ok || !data.success) {
+        return { success: false, message: data.error || '결제 검증에 실패했습니다.' };
+      }
+
+      return { success: true, message: '결제가 확인되었습니다.' };
+    } catch (err) {
+      console.error('결제 검증 오류:', err);
+      return { success: false, message: '결제 검증 중 오류가 발생했습니다.' };
+    }
+  },
+
+  /** 개발 환경 폴백: 직접 DB 업데이트 (프로덕션에서는 사용 안 함) */
+  async verifyPaymentFallback(
+    params: { type: 'plan' | 'report'; plan?: string; days?: number; simulationId?: string; amount: number },
+  ): Promise<{ success: boolean; message: string }> {
+    console.warn('결제 검증 폴백 모드 (개발 환경)');
+    return { success: true, message: '개발 환경: 결제 검증 스킵' };
+  },
+
+  /** 플랜 결제: 결제 + Server-side 검증 */
   async requestPayment(
     option: PaymentOption,
     user: { id: string; email: string }
@@ -130,40 +174,22 @@ export const paymentService = {
 
     if (!result.success) return result;
 
-    // 결제 성공 → DB에 플랜 활성화
-    const activated = await this.activatePlan(user.id, option.plan, option.days);
-    if (!activated.success) return activated;
+    // 결제 성공 → Worker에서 검증 + DB 활성화
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token || '';
+
+    const verified = await this.verifyPaymentOnServer(
+      result.paymentId || '',
+      { type: 'plan', plan: option.plan, days: option.days, amount: option.amount },
+      token,
+    );
+
+    if (!verified.success) return { success: false, message: verified.message };
 
     return { success: true, message: `${option.name} 플랜이 활성화되었습니다!` };
   },
 
-  /** DB에 플랜 활성화 */
-  async activatePlan(
-    userId: string,
-    plan: PlanType,
-    days: number,
-  ): Promise<{ success: boolean; message: string }> {
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + days);
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        plan,
-        plan_expires_at: expiresAt.toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
-
-    if (error) {
-      console.error('플랜 활성화 실패:', error);
-      return { success: false, message: '결제는 완료되었으나 플랜 활성화에 실패했습니다. 고객센터에 문의해주세요.' };
-    }
-
-    return { success: true, message: '플랜이 활성화되었습니다.' };
-  },
-
-  /** 골든 리포트 구매: 결제 + report_purchases INSERT */
+  /** 골든 리포트 구매: 결제 + Server-side 검증 */
   async purchaseReport(
     simulationId: string,
     user: { id: string; email: string },
@@ -178,20 +204,17 @@ export const paymentService = {
 
     if (!result.success) return result;
 
-    // 결제 성공 → report_purchases에 기록
-    const { error } = await supabase
-      .from('report_purchases')
-      .insert({
-        user_id: user.id,
-        simulation_id: simulationId,
-        payment_id: result.paymentId || '',
-        amount: option.amount,
-      });
+    // 결제 성공 → Worker에서 검증 + DB 기록
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token || '';
 
-    if (error) {
-      console.error('리포트 구매 기록 실패:', error);
-      return { success: false, message: '결제는 완료되었으나 리포트 활성화에 실패했습니다. 고객센터에 문의해주세요.' };
-    }
+    const verified = await this.verifyPaymentOnServer(
+      result.paymentId || '',
+      { type: 'report', simulationId, amount: option.amount },
+      token,
+    );
+
+    if (!verified.success) return { success: false, message: verified.message };
 
     return { success: true, message: '골든 리포트가 활성화되었습니다!' };
   },

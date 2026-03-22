@@ -28,10 +28,11 @@ const Privacy = React.lazy(() => import('./screens/Privacy'));
 const Terms = React.lazy(() => import('./screens/Terms'));
 const ResetPassword = React.lazy(() => import('./screens/ResetPassword'));
 const UpgradePrompt = React.lazy(() => import('./screens/UpgradePrompt'));
+const Landing = React.lazy(() => import('./screens/Landing'));
 
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const noNavPaths = ['/simulation', '/voice', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/reset-password', '/upgrade'];
+  const noNavPaths = ['/simulation', '/voice', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/reset-password', '/upgrade', '/landing'];
   const showNav = !noNavPaths.includes(location.pathname);
 
   return (
@@ -63,12 +64,13 @@ const App: React.FC = () => {
               <Route path="/terms" element={<Terms />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/upgrade" element={<UpgradePrompt />} />
+              <Route path="/landing" element={<Landing />} />
 
               {/* 보호 라우트 */}
               <Route path="/" element={<AuthGuard><Home /></AuthGuard>} />
               <Route path="/missions" element={<AuthGuard><Missions /></AuthGuard>} />
-              <Route path="/setup" element={<AuthGuard><Setup /></AuthGuard>} />
-              <Route path="/simulation" element={<AuthGuard><Simulation /></AuthGuard>} />
+              <Route path="/setup" element={<Setup />} />
+              <Route path="/simulation" element={<Simulation />} />
               <Route path="/voice" element={<AuthGuard requiredPlan="pro"><VoiceSimulation /></AuthGuard>} />
               <Route path="/feedback" element={<AuthGuard><Feedback /></AuthGuard>} />
               <Route path="/insights" element={<AuthGuard><Insights /></AuthGuard>} />

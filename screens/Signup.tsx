@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { analyticsService } from '../services/analyticsService';
 
 export default function Signup() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isGuestConversion = location.state?.guest === true;
   const { signUp, signInWithGoogle } = useAuth();
 
   const [name, setName] = useState('');
@@ -27,9 +30,17 @@ export default function Signup() {
       console.log('[Signup] 회원가입 시작...');
       await signUp(email, password, name);
       console.log('[Signup] 회원가입 성공');
-      // Confirm email OFF 시 → 바로 홈으로 이동
-      // Confirm email ON 시 → 이메일 확인 안내
-      navigate('/', { replace: true });
+      analyticsService.track('signup_complete', { source: isGuestConversion ? 'guest' : 'direct' });
+
+      // 게스트 전환: 저장된 transcript로 피드백 화면 이동
+      const guestData = localStorage.getItem('leadershigh_guest_transcript');
+      if (isGuestConversion && guestData) {
+        const { transcript, scenario, sosTipHistory } = JSON.parse(guestData);
+        localStorage.removeItem('leadershigh_guest_transcript');
+        navigate('/feedback', { state: { transcript, scenario, sosTipHistory }, replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     } catch (err: unknown) {
       console.error('[Signup] 실패:', err);
       const msg = err instanceof Error ? err.message : String(err);

@@ -8,6 +8,7 @@
  *   npx wrangler secret put SUPABASE_SERVICE_KEY
  *   npx wrangler secret put STRIPE_SECRET_KEY
  *   npx wrangler secret put STRIPE_WEBHOOK_SECRET
+ *   npx wrangler secret put PORTONE_API_SECRET
  */
 
 const GOOGLE_AI_BASE = 'https://generativelanguage.googleapis.com';
@@ -21,6 +22,7 @@ export interface Env {
   SUPABASE_SERVICE_KEY?: string;
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  PORTONE_API_SECRET?: string;
   RATE_LIMIT?: KVNamespace;
 }
 
@@ -352,6 +354,142 @@ async function handleCustomerPortal(request: Request, env: Env, auth: { userId?:
 }
 
 // ────────────────────────────────────────────────────────────────
+// 포트원 결제 검증 + 플랜/리포트 활성화
+// ────────────────────────────────────────────────────────────────
+async function handleVerifyPayment(
+  request: Request, env: Env, auth: { userId?: string }
+): Promise<Response> {
+  if (!env.PORTONE_API_SECRET || !env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) {
+    return new Response(JSON.stringify({ error: 'Payment verification not configured' }), {
+      status: 501,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
+    });
+  }
+
+  const { paymentId, type, plan, days, simulationId, amount } = await request.json() as {
+    paymentId: string;
+    type: 'plan' | 'report';
+    plan?: string;
+    days?: number;
+    simulationId?: string;
+    amount: number;
+  };
+
+  // 1. 포트원 API로 결제 상태 검증
+  const verifyRes = await fetch(`https://api.portone.io/payments/${encodeURIComponent(paymentId)}`, {
+    headers: { 'Authorization': `PortOne ${env.PORTONE_API_SECRET}` },
+  });
+
+  if (!verifyRes.ok) {
+    return new Response(JSON.stringify({ error: '결제 정보를 확인할 수 없습니다.' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
+    });
+  }
+
+  const payment = await verifyRes.json() as {
+    status: string;
+    amount?: { total?: number };
+  };
+
+  // 결제 상태 확인
+  if (payment.status !== 'PAID') {
+    return new Response(JSON.stringify({ error: '결제가 완료되지 않았습니다.' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
+    });
+  }
+
+  // 금액 검증
+  if (payment.amount?.total !== amount) {
+    return new Response(JSON.stringify({ error: '결제 금액이 일치하지 않습니다.' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
+    });
+  }
+
+  // 2. 검증 성공 → DB 업데이트 (3회 재시도)
+  let dbSuccess = false;
+  let lastError = '';
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      if (type === 'plan' && plan && days) {
+        // 플랜 활성화
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + days);
+
+        const res = await fetch(
+          `${env.SUPABASE_URL}/rest/v1/profiles?id=eq.${auth.userId}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'apikey': env.SUPABASE_SERVICE_KEY,
+              'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              plan,
+              plan_expires_at: expiresAt.toISOString(),
+              updated_at: new Date().toISOString(),
+            }),
+          }
+        );
+        if (res.ok) { dbSuccess = true; break; }
+        lastError = `Profile update failed: ${res.status}`;
+      } else if (type === 'report' && simulationId) {
+        // 리포트 구매 기록
+        const res = await fetch(
+          `${env.SUPABASE_URL}/rest/v1/report_purchases`,
+          {
+            method: 'POST',
+            headers: {
+              'apikey': env.SUPABASE_SERVICE_KEY,
+              'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              user_id: auth.userId,
+              simulation_id: simulationId,
+              payment_id: paymentId,
+              amount,
+            }),
+          }
+        );
+        if (res.ok) { dbSuccess = true; break; }
+        lastError = `Report purchase insert failed: ${res.status}`;
+      }
+    } catch (e: any) {
+      lastError = e.message || 'DB write failed';
+    }
+
+    // 재시도 전 대기 (지수 백오프)
+    if (attempt < 2) {
+      await new Promise(r => setTimeout(r, Math.pow(2, attempt + 1) * 500));
+    }
+  }
+
+  if (!dbSuccess) {
+    // 결제 성공했지만 DB 쓰기 실패 → 로그 + 사용자 안내
+    console.error(`PAYMENT_DB_FAILURE: userId=${auth.userId}, paymentId=${paymentId}, type=${type}, error=${lastError}`);
+    return new Response(JSON.stringify({
+      error: '결제는 완료되었으나 활성화에 실패했습니다. 고객센터에 문의해주세요.',
+      paymentId,
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
+    });
+  }
+
+  return new Response(JSON.stringify({ success: true }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
+  });
+}
+
+// ────────────────────────────────────────────────────────────────
 // 메인 핸들러
 // ────────────────────────────────────────────────────────────────
 export default {
@@ -382,6 +520,11 @@ export default {
         status: 401,
         headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
       });
+    }
+
+    // 포트원 결제 검증 (인증 후)
+    if (url.pathname === '/api/verify-payment' && request.method === 'POST') {
+      return handleVerifyPayment(request, env, auth);
     }
 
     // Stripe Checkout (인증 후)

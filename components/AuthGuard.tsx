@@ -27,8 +27,11 @@ export function AuthGuard({ children, requiredRole, requiredPlan }: AuthGuardPro
     );
   }
 
-  // 비인증 → 로그인으로
+  // 비인증 → 홈이면 랜딩, 그 외는 로그인으로
   if (!user) {
+    if (location.pathname === '/') {
+      return <Navigate to="/landing" replace />;
+    }
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 

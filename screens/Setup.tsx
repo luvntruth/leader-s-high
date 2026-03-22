@@ -1,13 +1,31 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 // @ts-ignore
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getCharacterAvatar, getCharacterInfo } from '../services/characterAvatars';
 import { getMissionBriefing } from '../services/missionBriefings';
+import { SCENARIOS } from '../constants';
+import { analyticsService } from '../services/analyticsService';
 import CompetencyRadar from '../components/CompetencyRadar';
 
 const Setup: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const isGuest = location.state?.guest === true;
+
+  // 게스트 모드: late-comer 시나리오 자동 배정 → 바로 시뮬레이션으로
+  useEffect(() => {
+    if (isGuest) {
+      const guestScenario = SCENARIOS.find(s => s.id === 'late-comer');
+      if (guestScenario) {
+        analyticsService.track('guest_sim_start', { scenario_id: 'late-comer' });
+        navigate('/simulation', {
+          state: { scenario: guestScenario, initialTrust: 65, guest: true },
+          replace: true,
+        });
+      }
+    }
+  }, [isGuest, navigate]);
+
   const scenario = location.state?.scenario;
   const briefing = useMemo(() => getMissionBriefing(scenario?.id), [scenario?.id]);
   const characterInfo = useMemo(() => getCharacterInfo(scenario?.id, scenario?.memberName), [scenario?.id, scenario?.memberName]);

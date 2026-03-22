@@ -8,6 +8,8 @@ import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor } from '../ser
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 import { paymentService, REPORT_PAYMENT_OPTION } from '../services/paymentService';
+import { analyticsService } from '../services/analyticsService';
+import ShareCard from '../components/ShareCard';
 import { SCENARIOS } from '../constants';
 
 interface EvaluationData {
@@ -249,6 +251,7 @@ const Feedback: React.FC = () => {
       const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
       const evalResult: EvaluationData = JSON.parse(cleanJson);
       setEvaluation(evalResult);
+      analyticsService.track('report_view', { scenario_id: scenario?.id, is_full: isFullReport }, user?.id);
 
       const historyItem = {
         id: Date.now().toString(),
@@ -314,6 +317,7 @@ const Feedback: React.FC = () => {
     }
 
     // 결제 성공 → 풀 리포트 모드로 전환 후 재생성
+    analyticsService.track('report_purchase', { amount: REPORT_PAYMENT_OPTION.amount }, user.id);
     setIsFullReport(true);
     setIsPurchasing(false);
     // performEvaluation은 isFullReport state를 참조하므로 다음 렌더에서 풀 모드로 실행됨
@@ -829,6 +833,23 @@ const Feedback: React.FC = () => {
 
             return null;
           })()}
+
+          {/* SNS 공유 카드 */}
+          {evaluation?.radarChart && (
+            <div className="mb-6">
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">리더십 카드 공유</h3>
+              <ShareCard
+                radarChart={evaluation.radarChart}
+                leadershipType={(evaluation as any).leadershipType || null}
+                finalScore={Math.round(
+                  ((evaluation.radarChart.trust || 50) + (evaluation.radarChart.motivation || 50) +
+                   (evaluation.radarChart.conflict || 50) + (evaluation.radarChart.decision || 50) +
+                   (evaluation.radarChart.strategy || 50)) / 5
+                )}
+                userId={user?.id}
+              />
+            </div>
+          )}
 
           <button
             onClick={() => navigate('/')}
