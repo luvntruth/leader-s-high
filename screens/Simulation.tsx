@@ -169,9 +169,20 @@ const Simulation: React.FC = () => {
   const emotionMachine = useRef(new EmotionStateMachine(initialTrust));
   const lastUserMessageRef = useRef<string>('');
 
-  // Cleanup on unmount
+  // Cleanup on unmount — 시뮬레이션 이탈 트래킹
+  const isCompleteRef = useRef(false);
   useEffect(() => {
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+      if (!isCompleteRef.current) {
+        analyticsService.track('sim_abandon', {
+          scenario_id: scenario?.id,
+          message_count: messages.length,
+          last_trust: trustState.trust,
+          guest: isGuest,
+        }, user?.id);
+      }
+    };
   }, []);
 
   // 캐릭터 정보 & 아바타
@@ -764,6 +775,7 @@ const Simulation: React.FC = () => {
                       tags: [],
                     }).catch(err => console.error('시뮬레이션 DB 저장 실패:', err));
                   }
+                  isCompleteRef.current = true;
                   const durationMs = Date.now() - simulationStartTime.current;
                   analyticsService.track('sim_complete', {
                     scenario_id: scenario?.id,

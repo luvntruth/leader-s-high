@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,6 +17,11 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // 가입 페이지 진입 이벤트
+  useEffect(() => {
+    analyticsService.track('signup_start', { source: isGuestConversion ? 'guest' : 'direct' });
+  }, [isGuestConversion]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
