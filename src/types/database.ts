@@ -27,6 +27,11 @@ export interface Database {
         Insert: Partial<UsageRecord> & { user_id: string };
         Update: Partial<UsageRecord>;
       };
+      report_purchases: {
+        Row: ReportPurchase;
+        Insert: Omit<ReportPurchase, 'id' | 'created_at'>;
+        Update: Partial<ReportPurchase>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -87,6 +92,19 @@ export interface SimulationRecord {
   communication_pattern: CommunicationPattern | null;
   memo: string;
   tags: string[];
+  created_at: string;
+}
+
+// ================================================================
+// 골든 리포트 구매 이력
+// ================================================================
+
+export interface ReportPurchase {
+  id: string;
+  user_id: string;
+  simulation_id: string;
+  payment_id: string;
+  amount: number;
   created_at: string;
 }
 

@@ -7,6 +7,7 @@ import { createGeminiClient } from '../src/lib/geminiClient';
 import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor } from '../services/characterAvatars';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
+import { paymentService, REPORT_PAYMENT_OPTION } from '../services/paymentService';
 import { SCENARIOS } from '../constants';
 
 interface EvaluationData {
@@ -56,11 +57,14 @@ const Feedback: React.FC = () => {
   const location = useLocation();
   const { user, profile } = useAuth();
   const { transcript, scenario, sosTipHistory } = location.state || {};
-  const isFullReport = profile?.plan !== 'free';
+  const isPaidPlan = profile?.plan !== 'free';
 
+  const [isFullReport, setIsFullReport] = useState(isPaidPlan);
   const [isAnalysing, setIsAnalysing] = useState(true);
   const [evaluation, setEvaluation] = useState<EvaluationData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
   const charInfo = getCharacterInfo(scenario?.id, scenario?.memberName);
   const avatarUrl = getCharacterAvatar(scenario?.memberName || '팀원', scenario?.id);
@@ -287,6 +291,57 @@ const Feedback: React.FC = () => {
     }
   };
 
+  /** 골든 리포트 구매 → 풀 리포트 재생성 */
+  const handlePurchaseReport = async () => {
+    if (!user || !profile) return;
+
+    // 가장 최근 시뮬레이션 ID 가져오기
+    const recentHistory = await dbService.getHistory(user.id, 1);
+    const simulationId = recentHistory[0]?.id || Date.now().toString();
+
+    setIsPurchasing(true);
+    setPurchaseError(null);
+
+    const result = await paymentService.purchaseReport(simulationId, {
+      id: user.id,
+      email: user.email || profile.email,
+    });
+
+    if (!result.success) {
+      setIsPurchasing(false);
+      setPurchaseError(result.message);
+      return;
+    }
+
+    // 결제 성공 → 풀 리포트 모드로 전환 후 재생성
+    setIsFullReport(true);
+    setIsPurchasing(false);
+    // performEvaluation은 isFullReport state를 참조하므로 다음 렌더에서 풀 모드로 실행됨
+    // 직접 재생성 호출
+    setIsAnalysing(true);
+    setEvaluation(null);
+  };
+
+  // 마운트 시 기존 구매 이력 확인 → 이미 구매했으면 풀 리포트 모드
+  useEffect(() => {
+    const checkPurchase = async () => {
+      if (isPaidPlan || !user) return;
+      const recentHistory = await dbService.getHistory(user.id, 1);
+      const simId = recentHistory[0]?.id;
+      if (simId && await paymentService.hasReportPurchase(user.id, simId)) {
+        setIsFullReport(true);
+      }
+    };
+    checkPurchase();
+  }, [user]);
+
+  // 풀 리포트 모드 전환 시 재생성
+  useEffect(() => {
+    if (isFullReport && !isPaidPlan && !evaluation && transcript?.length > 0) {
+      performEvaluation();
+    }
+  }, [isFullReport]);
+
   useEffect(() => {
     performEvaluation();
   }, [transcript]);
@@ -360,13 +415,35 @@ const Feedback: React.FC = () => {
   return (
     <div className="h-screen overflow-y-auto bg-[#060B18] command-center-bg text-white font-manrope pb-32 hide-scrollbar">
 
-      {/* ── 무료 플랜 간략 리포트 안내 ── */}
+      {/* ── 무료 플랜 간략 리포트 안내 + 골든 리포트 구매 ── */}
       {!isFullReport && (
-        <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-3 flex items-center justify-between">
-          <p className="text-amber-400 text-xs font-semibold">간략 리포트입니다. 프로 플랜에서 풀 리포트를 받아보세요.</p>
-          <button onClick={() => navigate('/pricing')} className="px-3 py-1 rounded-lg bg-amber-500 text-slate-900 text-xs font-bold hover:bg-amber-600 transition-colors">
-            업그레이드
+        <div className="bg-gradient-to-r from-amber-500/10 to-primary/10 border-b border-amber-500/20 px-6 py-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-amber-400 text-xs font-semibold">간략 리포트입니다</p>
+            <button onClick={() => navigate('/pricing')} className="px-3 py-1 rounded-lg bg-white/5 text-slate-400 text-[10px] font-bold hover:bg-white/10 transition-colors">
+              전체 플랜 보기
+            </button>
+          </div>
+          <button
+            onClick={handlePurchaseReport}
+            disabled={isPurchasing}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 text-sm font-black hover:from-amber-400 hover:to-amber-500 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isPurchasing ? (
+              <>
+                <div className="size-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
+                결제 진행 중...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-base">auto_awesome</span>
+                골든 리포트 열기 · ₩{REPORT_PAYMENT_OPTION.amount.toLocaleString()}
+              </>
+            )}
           </button>
+          {purchaseError && (
+            <p className="text-red-400 text-xs text-center">{purchaseError}</p>
+          )}
         </div>
       )}
 

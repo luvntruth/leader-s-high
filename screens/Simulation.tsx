@@ -265,6 +265,24 @@ const Simulation: React.FC = () => {
           trustHistory: [...prev.trustHistory, score.trust].slice(-10) // 최근 10개 유지
         }));
 
+        // HOSTILE 도달 시 시뮬레이션 강제 종료 (신뢰도 15 이하)
+        if (score.trust <= 15) {
+          setMessages(prev => {
+            const failMessages = [...prev, {
+              role: 'model' as const,
+              text: '(팀원이 자리에서 일어나며) 더 이상 대화할 의미가 없는 것 같습니다. 실례하겠습니다.',
+              timestamp: new Date(),
+            }];
+            setTimeout(() => {
+              navigate('/feedback', {
+                state: { transcript: failMessages, scenario, sosTipHistory },
+              });
+            }, 1500);
+            return failMessages;
+          });
+          return;
+        }
+
         // Dramatic UI Trigger
         if (score.delta !== 0) {
           // 1. Floating Text
