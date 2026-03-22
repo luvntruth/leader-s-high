@@ -69,8 +69,8 @@ const App: React.FC = () => {
               {/* 보호 라우트 */}
               <Route path="/" element={<AuthGuard><Home /></AuthGuard>} />
               <Route path="/missions" element={<AuthGuard><Missions /></AuthGuard>} />
-              <Route path="/setup" element={<Setup />} />
-              <Route path="/simulation" element={<Simulation />} />
+              <Route path="/setup" element={<AuthGuard allowGuest><Setup /></AuthGuard>} />
+              <Route path="/simulation" element={<AuthGuard allowGuest><Simulation /></AuthGuard>} />
               <Route path="/voice" element={<AuthGuard requiredPlan="pro"><VoiceSimulation /></AuthGuard>} />
               <Route path="/feedback" element={<AuthGuard><Feedback /></AuthGuard>} />
               <Route path="/insights" element={<AuthGuard><Insights /></AuthGuard>} />

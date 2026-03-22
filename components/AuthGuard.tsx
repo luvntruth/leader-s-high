@@ -7,11 +7,12 @@ interface AuthGuardProps {
   children: ReactNode;
   requiredRole?: 'admin' | 'owner';
   requiredPlan?: PlanType;
+  allowGuest?: boolean;
 }
 
 const PLAN_RANK: Record<PlanType, number> = { free: 0, pro: 1, ultra: 2 };
 
-export function AuthGuard({ children, requiredRole, requiredPlan }: AuthGuardProps) {
+export function AuthGuard({ children, requiredRole, requiredPlan, allowGuest }: AuthGuardProps) {
   const { user, profile, loading } = useAuth();
   const location = useLocation();
 
@@ -27,8 +28,13 @@ export function AuthGuard({ children, requiredRole, requiredPlan }: AuthGuardPro
     );
   }
 
-  // 비인증 → 홈이면 랜딩, 그 외는 로그인으로
+  // 비인증 처리
   if (!user) {
+    // 게스트 허용 라우트: location.state에 guest=true가 있으면 통과
+    if (allowGuest && (location.state as any)?.guest === true) {
+      return <>{children}</>;
+    }
+    // 홈이면 랜딩, 그 외는 로그인으로
     if (location.pathname === '/') {
       return <Navigate to="/landing" replace />;
     }

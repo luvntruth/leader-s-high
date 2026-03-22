@@ -841,11 +841,6 @@ const Feedback: React.FC = () => {
               <ShareCard
                 radarChart={evaluation.radarChart}
                 leadershipType={(evaluation as any).leadershipType || null}
-                finalScore={Math.round(
-                  ((evaluation.radarChart.trust || 50) + (evaluation.radarChart.motivation || 50) +
-                   (evaluation.radarChart.conflict || 50) + (evaluation.radarChart.decision || 50) +
-                   (evaluation.radarChart.strategy || 50)) / 5
-                )}
                 userId={user?.id}
               />
             </div>

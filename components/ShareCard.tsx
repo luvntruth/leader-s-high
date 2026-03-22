@@ -6,7 +6,6 @@ import { LEADERSHIP_TYPE_INFO, type LeadershipType } from '../src/types/database
 interface ShareCardProps {
   radarChart: { trust: number; motivation: number; conflict: number; decision: number; strategy: number };
   leadershipType: LeadershipType | null;
-  finalScore: number;
   userId?: string;
 }
 
@@ -55,7 +54,7 @@ function MiniRadar({ data }: { data: Record<string, number> }) {
   );
 }
 
-export default function ShareCard({ radarChart, leadershipType, finalScore, userId }: ShareCardProps) {
+export default function ShareCard({ radarChart, leadershipType, userId }: ShareCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
