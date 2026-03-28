@@ -112,6 +112,7 @@ function base64UrlDecode(str: string): ArrayBuffer {
 // Rate Limiting (KV 또는 메모리 폴백)
 // ────────────────────────────────────────────────────────────────
 const RATE_LIMITS: Record<string, number> = {
+  guest: 30,   // 게스트: IP당 일 30회 (3개 시나리오 체험용)
   free: 20,
   pro: 100,
   ultra: 1000,
@@ -531,9 +532,12 @@ export default {
       return new Response('Forbidden: origin not allowed', { status: 403 });
     }
 
-    // JWT 인증 (Stripe Webhook 외 모든 요청)
+    // JWT 인증
     const auth = await verifyAuth(request, env);
-    if (!auth.valid) {
+
+    // 결제 API는 JWT 필수
+    const paymentRoutes = ['/api/verify-payment', '/api/create-checkout', '/api/customer-portal'];
+    if (!auth.valid && paymentRoutes.includes(url.pathname)) {
       return new Response(JSON.stringify({ error: auth.error }), {
         status: 401,
         headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
@@ -555,8 +559,12 @@ export default {
       return handleCustomerPortal(request, env, auth);
     }
 
-    // Rate Limiting
-    const withinLimit = await checkRateLimit(auth.userId!, auth.plan!, env);
+    // Rate Limiting: 인증 사용자는 userId, 게스트는 IP 기반
+    const rateLimitId = auth.valid
+      ? auth.userId!
+      : `ip:${request.headers.get('CF-Connecting-IP') || 'unknown'}`;
+    const rateLimitPlan = auth.valid ? auth.plan! : 'guest';
+    const withinLimit = await checkRateLimit(rateLimitId, rateLimitPlan, env);
     if (!withinLimit) {
       return new Response(JSON.stringify({ error: 'Rate limit exceeded', upgrade: '/pricing' }), {
         status: 429,
