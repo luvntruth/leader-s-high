@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 // @ts-ignore
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform, type Variants } from 'framer-motion';
 import { SCENARIOS } from '../constants';
 import { getCharacterAvatar } from '../services/characterAvatars';
@@ -172,8 +172,13 @@ const Home: React.FC = () => {
   const categoryOptions = ['전체', '요구사항', '갈등', '피드백', '코칭'];
   const gradeOptions = ['전체', 'S', 'A', 'B'];
 
-  // 게스트 또는 최초 사용자 온보딩
-  if (!user || (profile?.plan === 'free' && simCount === 0)) {
+  // 게스트 → 랜딩 페이지로
+  if (!user) {
+    return <Navigate to="/landing" replace />;
+  }
+
+  // 최초 사용자 온보딩
+  if (profile?.plan === 'free' && simCount === 0) {
     return <Onboarding />;
   }
 

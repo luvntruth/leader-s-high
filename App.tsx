@@ -29,10 +29,11 @@ const Terms = React.lazy(() => import('./screens/Terms'));
 const ResetPassword = React.lazy(() => import('./screens/ResetPassword'));
 const UpgradePrompt = React.lazy(() => import('./screens/UpgradePrompt'));
 const Landing = React.lazy(() => import('./screens/Landing'));
+const Onboarding = React.lazy(() => import('./screens/Onboarding'));
 
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const noNavPaths = ['/simulation', '/voice', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/reset-password', '/upgrade', '/landing'];
+  const noNavPaths = ['/simulation', '/voice', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/reset-password', '/upgrade', '/landing', '/onboarding'];
   const showNav = !noNavPaths.includes(location.pathname);
 
   return (
@@ -65,6 +66,7 @@ const App: React.FC = () => {
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/upgrade" element={<UpgradePrompt />} />
               <Route path="/landing" element={<Landing />} />
+              <Route path="/onboarding" element={<Onboarding />} />
 
               {/* 보호 라우트 */}
               <Route path="/" element={<Home />} />

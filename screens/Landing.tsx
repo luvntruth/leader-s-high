@@ -144,7 +144,7 @@ export default function Landing() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <button
-                onClick={() => navigate('/setup', { state: { guest: true } })}
+                onClick={() => navigate('/onboarding')}
                 className="px-8 py-4 bg-amber-500 text-slate-900 font-black rounded-xl text-sm hover:bg-amber-400 active:scale-95 transition-all min-h-[44px]"
               >
                 지금 바로 연습해보기 →
@@ -222,7 +222,7 @@ export default function Landing() {
           <h2 className="text-xl font-bold text-white mb-2">이번 주 성과 면담이 있으신가요?</h2>
           <p className="text-slate-400 text-sm mb-6">10분이면 충분합니다. AI 팀원과 먼저 연습해보세요.</p>
           <button
-            onClick={() => navigate('/setup', { state: { guest: true } })}
+            onClick={() => navigate('/onboarding')}
             className="px-8 py-4 bg-amber-500 text-slate-900 font-black rounded-xl text-sm hover:bg-amber-400 active:scale-95 transition-all min-h-[44px]"
           >
             무료로 시작하기 →
