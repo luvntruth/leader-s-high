@@ -34,7 +34,7 @@ const itemVariants = {
 
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const displayName = profile?.display_name || '리더';
 
   const firstScenario = SCENARIOS.find(s => s.id === 'late-comer');
@@ -84,7 +84,7 @@ const Onboarding: React.FC = () => {
               variants={itemVariants}
               whileHover={{ translateY: -3 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => navigate('/setup', { state: { scenario } })}
+              onClick={() => navigate('/setup', { state: { scenario, ...(!user && { guest: true }) } })}
               className="relative bg-[#111B2E]/60 backdrop-blur-md border border-white/5 rounded-2xl p-5 cursor-pointer hover:border-amber-500/20 transition-all group overflow-hidden"
             >
               {/* Shimmer */}
@@ -154,7 +154,7 @@ const Onboarding: React.FC = () => {
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => firstScenario && navigate('/setup', { state: { scenario: firstScenario } })}
+          onClick={() => firstScenario && navigate('/setup', { state: { scenario: firstScenario, ...(!user && { guest: true }) } })}
           className="w-full py-5 rounded-2xl bg-amber-500 text-slate-900 font-black text-sm uppercase tracking-widest shadow-lg shadow-amber-500/20 hover:bg-amber-400 transition-all flex items-center justify-center gap-2"
         >
           첫 번째 도전 시작하기

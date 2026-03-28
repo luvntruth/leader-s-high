@@ -172,8 +172,8 @@ const Home: React.FC = () => {
   const categoryOptions = ['전체', '요구사항', '갈등', '피드백', '코칭'];
   const gradeOptions = ['전체', 'S', 'A', 'B'];
 
-  // 최초 사용자 온보딩
-  if (profile?.plan === 'free' && simCount === 0) {
+  // 게스트 또는 최초 사용자 온보딩
+  if (!user || (profile?.plan === 'free' && simCount === 0)) {
     return <Onboarding />;
   }
 
