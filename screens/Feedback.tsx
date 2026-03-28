@@ -419,34 +419,50 @@ const Feedback: React.FC = () => {
   return (
     <div className="h-screen overflow-y-auto bg-[#060B18] command-center-bg text-white font-manrope pb-32 hide-scrollbar">
 
-      {/* ── 무료 플랜 간략 리포트 안내 + 골든 리포트 구매 ── */}
+      {/* ── 무료 플랜 간략 리포트 안내 + 골든 리포트 구매 / 게스트 회원가입 유도 ── */}
       {!isFullReport && (
         <div className="bg-gradient-to-r from-amber-500/10 to-primary/10 border-b border-amber-500/20 px-6 py-4 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-amber-400 text-xs font-semibold">간략 리포트입니다</p>
-            <button onClick={() => navigate('/pricing')} className="px-3 py-1 rounded-lg bg-white/5 text-slate-400 text-[10px] font-bold hover:bg-white/10 transition-colors">
-              전체 플랜 보기
-            </button>
-          </div>
-          <button
-            onClick={handlePurchaseReport}
-            disabled={isPurchasing}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 text-sm font-black hover:from-amber-400 hover:to-amber-500 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isPurchasing ? (
-              <>
-                <div className="size-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
-                결제 진행 중...
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-base">auto_awesome</span>
-                골든 리포트 열기 · ₩{REPORT_PAYMENT_OPTION.amount.toLocaleString()}
-              </>
+            <p className="text-amber-400 text-xs font-semibold">
+              {user ? '간략 리포트입니다' : '체험 리포트입니다 — 전체 결과를 보려면 가입하세요'}
+            </p>
+            {user && (
+              <button onClick={() => navigate('/pricing')} className="px-3 py-1 rounded-lg bg-white/5 text-slate-400 text-[10px] font-bold hover:bg-white/10 transition-colors">
+                전체 플랜 보기
+              </button>
             )}
-          </button>
-          {purchaseError && (
-            <p className="text-red-400 text-xs text-center">{purchaseError}</p>
+          </div>
+          {user ? (
+            <>
+              <button
+                onClick={handlePurchaseReport}
+                disabled={isPurchasing}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 text-sm font-black hover:from-amber-400 hover:to-amber-500 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isPurchasing ? (
+                  <>
+                    <div className="size-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
+                    결제 진행 중...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-base">auto_awesome</span>
+                    골든 리포트 열기 · ₩{REPORT_PAYMENT_OPTION.amount.toLocaleString()}
+                  </>
+                )}
+              </button>
+              {purchaseError && (
+                <p className="text-red-400 text-xs text-center">{purchaseError}</p>
+              )}
+            </>
+          ) : (
+            <button
+              onClick={() => navigate('/signup', { state: { from: '/feedback' } })}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 text-sm font-black hover:from-amber-400 hover:to-amber-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-base">person_add</span>
+              무료 회원가입 후 전체 리포트 보기 →
+            </button>
           )}
         </div>
       )}
@@ -781,11 +797,22 @@ const Feedback: React.FC = () => {
               {/* 오버레이 */}
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-[2px]">
                 <div className="text-4xl mb-3">🔒</div>
-                <h4 className="text-white font-bold text-lg mb-1">풀 리포트로 더 깊이 분석하세요</h4>
-                <p className="text-slate-400 text-xs mb-4 text-center max-w-xs">모범 스크립트, 5차원 역량 분석, 과학적 근거까지<br/>프로 플랜에서 확인하세요</p>
-                <button onClick={() => navigate('/pricing')} className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors">
-                  프로 플랜 보기 →
-                </button>
+                <h4 className="text-white font-bold text-lg mb-1">
+                  {user ? '풀 리포트로 더 깊이 분석하세요' : '가입하면 전체 결과를 확인할 수 있어요'}
+                </h4>
+                <p className="text-slate-400 text-xs mb-4 text-center max-w-xs">
+                  모범 스크립트, 5차원 역량 분석, 과학적 근거까지<br/>
+                  {user ? '프로 플랜에서 확인하세요' : '무료 가입 후 바로 확인하세요'}
+                </p>
+                {user ? (
+                  <button onClick={() => navigate('/pricing')} className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors">
+                    프로 플랜 보기 →
+                  </button>
+                ) : (
+                  <button onClick={() => navigate('/signup', { state: { from: '/feedback' } })} className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors">
+                    무료 회원가입 →
+                  </button>
+                )}
               </div>
             </div>
           </section>
@@ -822,7 +849,7 @@ const Feedback: React.FC = () => {
             if (hasNext && nextScenario) {
               return (
                 <button
-                  onClick={() => navigate('/setup', { state: { scenario: nextScenario } })}
+                  onClick={() => navigate('/setup', { state: { scenario: nextScenario, ...(!user && { guest: true }) } })}
                   className="w-full bg-amber-500 text-slate-900 py-5 rounded-[2rem] font-black active:scale-[0.98] transition-all text-sm tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
                 >
                   다음 도전: {nextScenario.title}
