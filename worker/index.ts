@@ -112,7 +112,7 @@ function base64UrlDecode(str: string): ArrayBuffer {
 // Rate Limiting (KV 또는 메모리 폴백)
 // ────────────────────────────────────────────────────────────────
 const RATE_LIMITS: Record<string, number> = {
-  guest: 30,   // 게스트: IP당 일 30회 (3개 시나리오 체험용)
+  guest: 200,  // 게스트: IP당 일 200회 (3개 시나리오 체험 + 신뢰도/코칭 API 포함)
   free: 20,
   pro: 100,
   ultra: 1000,
