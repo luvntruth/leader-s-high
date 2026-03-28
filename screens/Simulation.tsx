@@ -28,7 +28,7 @@ interface SOSTip {
 }
 
 const ANALYSIS_COMPLETE_THRESHOLD = 12; // user turns required (보스 지시사항)
-const TRUST_SCORING_INTERVAL = 4; // user turns between scoring (비용 최적화: 3→4)
+const TRUST_SCORING_INTERVAL = 2; // user turns between scoring
 
 // 감정 상태를 Trust Level에 따라 결정하는 함수
 function getEmotionState(trust: number): { state: string; description: string } {
@@ -444,6 +444,15 @@ const Simulation: React.FC = () => {
       if (result && mountedRef.current) {
         setInstantCoaching(result);
         coachingCacheRef.current.set(cacheKey, result);
+        // 예상 신뢰 변화를 즉시 신뢰도 바에 반영
+        if (result.estimatedTrustDelta !== 0) {
+          setTrustState(prev => ({
+            ...prev,
+            trust: Math.max(0, Math.min(100, prev.trust + result.estimatedTrustDelta)),
+            delta: result.estimatedTrustDelta,
+            trustHistory: [...prev.trustHistory, Math.max(0, Math.min(100, prev.trust + result.estimatedTrustDelta))].slice(-10),
+          }));
+        }
       }
     } catch (err) {
       console.error('Instant coaching failed:', err);
