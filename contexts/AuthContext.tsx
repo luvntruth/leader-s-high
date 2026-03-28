@@ -134,7 +134,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) {
+      if (s?.user && s.access_token) {
+        setAuthToken(s.access_token);
         fetchProfile(s.user.id).catch(() => {});
         migrateLocalStorage(s.user.id).catch(() => {});
       }
@@ -151,10 +152,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setSession(s);
         setUser(s?.user ?? null);
-        if (s?.user) {
+        if (s?.user && s.access_token) {
+          setAuthToken(s.access_token);
           fetchProfile(s.user.id).catch(() => {});
           migrateLocalStorage(s.user.id).catch(() => {});
         } else {
+          clearAuthToken();
           setProfile(null);
         }
       }

@@ -36,7 +36,7 @@ export function createGeminiClient(): GoogleGenAI {
   // 개발: 직접 API 키 사용
   const devKey = import.meta.env.VITE_API_KEY as string | undefined;
   if (!devKey) {
-    console.error('[geminiClient] API 키 설정 없음!');
+    throw new Error('[geminiClient] VITE_API_KEY가 설정되지 않았습니다. .env.local을 확인하세요.');
   }
-  return new GoogleGenAI({ apiKey: devKey ?? '' });
+  return new GoogleGenAI({ apiKey: devKey });
 }

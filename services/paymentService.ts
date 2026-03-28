@@ -16,8 +16,12 @@ declare global {
   }
 }
 
-const STORE_ID = import.meta.env.VITE_PORTONE_STORE_ID || 'iamporttest_3';
-const CHANNEL_KEY = import.meta.env.VITE_PORTONE_CHANNEL_KEY || 'channel-key-0856e897-bc18-47e8-a2f3-2dfe0ef5e8a1';
+const STORE_ID = import.meta.env.VITE_PORTONE_STORE_ID as string | undefined;
+const CHANNEL_KEY = import.meta.env.VITE_PORTONE_CHANNEL_KEY as string | undefined;
+
+if (!STORE_ID || !CHANNEL_KEY) {
+  console.error('PortOne credentials not configured. Set VITE_PORTONE_STORE_ID and VITE_PORTONE_CHANNEL_KEY.');
+}
 
 // ================================================================
 // 플랜 결제 옵션
@@ -89,6 +93,9 @@ export const paymentService = {
     if (!window.PortOne) {
       return { success: false, message: '결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.' };
     }
+    if (!STORE_ID || !CHANNEL_KEY) {
+      return { success: false, message: '결제 시스템이 설정되지 않았습니다. 관리자에게 문의하세요.' };
+    }
 
     const paymentId = `payment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -155,8 +162,11 @@ export const paymentService = {
 
   /** 개발 환경 폴백: 직접 DB 업데이트 (프로덕션에서는 사용 안 함) */
   async verifyPaymentFallback(
-    params: { type: 'plan' | 'report'; plan?: string; days?: number; simulationId?: string; amount: number },
+    _params: { type: 'plan' | 'report'; plan?: string; days?: number; simulationId?: string; amount: number },
   ): Promise<{ success: boolean; message: string }> {
+    if (import.meta.env.PROD) {
+      return { success: false, message: '결제 검증 서버가 설정되지 않았습니다. 관리자에게 문의하세요.' };
+    }
     console.warn('결제 검증 폴백 모드 (개발 환경)');
     return { success: true, message: '개발 환경: 결제 검증 스킵' };
   },

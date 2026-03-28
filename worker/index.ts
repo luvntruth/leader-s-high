@@ -50,14 +50,9 @@ async function verifyAuth(request: Request, env: Env): Promise<{
     return { valid: false, error: 'Missing Authorization header' };
   }
 
-  // JWT Secret 미설정 시 토큰 존재만 확인 (CORS로 오리진 보호)
+  // JWT Secret 미설정 시 서버 설정 오류로 거부
   if (!env.SUPABASE_JWT_SECRET) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      return { valid: true, userId: payload.sub || 'unknown', plan: payload.user_metadata?.plan || 'free' };
-    } catch {
-      return { valid: false, error: 'Invalid token' };
-    }
+    return { valid: false, error: 'Server misconfiguration: JWT secret not set' };
   }
 
   try {
@@ -79,10 +74,7 @@ async function verifyAuth(request: Request, env: Env): Promise<{
     const isValid = await crypto.subtle.verify('HMAC', key, signature, signatureInput);
 
     if (!isValid) {
-      // 서명 검증 실패해도 CORS가 오리진을 보호하므로 payload에서 정보 추출
-      console.warn('JWT signature verification failed, falling back to payload');
-      const fb = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-      return { valid: true, userId: fb.sub || 'unknown', plan: fb.user_metadata?.plan || 'free' };
+      return { valid: false, error: 'Invalid token signature' };
     }
 
     const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
@@ -192,7 +184,7 @@ async function updateProfilePlan(
   }
 
   const res = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/profiles?stripe_customer_id=eq.${stripeCustomerId}`,
+    `${env.SUPABASE_URL}/rest/v1/profiles?stripe_customer_id=eq.${encodeURIComponent(stripeCustomerId)}`,
     {
       method: 'PATCH',
       headers: {
@@ -272,6 +264,19 @@ async function handleCreateCheckout(request: Request, env: Env, auth: { userId?:
     priceId: string; plan: string; returnUrl: string;
   };
 
+  // returnUrl 화이트리스트 검증 (오픈 리다이렉트 방지)
+  const allowedOrigin = env.ALLOWED_ORIGIN;
+  try {
+    if (!allowedOrigin || !returnUrl || new URL(returnUrl).origin !== allowedOrigin) {
+      throw new Error('origin mismatch');
+    }
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid return URL' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
+    });
+  }
+
   const params = new URLSearchParams({
     'mode': 'subscription',
     'line_items[0][price]': priceId,
@@ -311,11 +316,24 @@ async function handleCustomerPortal(request: Request, env: Env, auth: { userId?:
 
   const { returnUrl } = await request.json() as { returnUrl: string };
 
+  // returnUrl 화이트리스트 검증 (오픈 리다이렉트 방지)
+  const allowedOrigin = env.ALLOWED_ORIGIN;
+  try {
+    if (!allowedOrigin || !returnUrl || new URL(returnUrl).origin !== allowedOrigin) {
+      throw new Error('origin mismatch');
+    }
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid return URL' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
+    });
+  }
+
   // JWT userId로 Supabase에서 stripe_customer_id 조회
   let customerId: string | null = null;
   if (env.SUPABASE_URL && env.SUPABASE_SERVICE_KEY && auth.userId) {
     const profileRes = await fetch(
-      `${env.SUPABASE_URL}/rest/v1/profiles?id=eq.${auth.userId}&select=stripe_customer_id`,
+      `${env.SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(auth.userId ?? '')}&select=stripe_customer_id`,
       {
         headers: {
           'apikey': env.SUPABASE_SERVICE_KEY,
@@ -420,7 +438,7 @@ async function handleVerifyPayment(
         expiresAt.setDate(expiresAt.getDate() + days);
 
         const res = await fetch(
-          `${env.SUPABASE_URL}/rest/v1/profiles?id=eq.${auth.userId}`,
+          `${env.SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(auth.userId ?? '')}`,
           {
             method: 'PATCH',
             headers: {

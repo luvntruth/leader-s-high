@@ -67,7 +67,7 @@ const App: React.FC = () => {
               <Route path="/landing" element={<Landing />} />
 
               {/* 보호 라우트 */}
-              <Route path="/" element={<AuthGuard><Home /></AuthGuard>} />
+              <Route path="/" element={<Home />} />
               <Route path="/missions" element={<AuthGuard><Missions /></AuthGuard>} />
               <Route path="/setup" element={<AuthGuard allowGuest><Setup /></AuthGuard>} />
               <Route path="/simulation" element={<AuthGuard allowGuest><Simulation /></AuthGuard>} />

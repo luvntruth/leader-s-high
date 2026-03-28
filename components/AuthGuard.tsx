@@ -34,9 +34,9 @@ export function AuthGuard({ children, requiredRole, requiredPlan, allowGuest }: 
     if (allowGuest && (location.state as any)?.guest === true) {
       return <>{children}</>;
     }
-    // 홈이면 랜딩, 그 외는 로그인으로
+    // 홈이면 회원가입, 그 외는 로그인으로
     if (location.pathname === '/') {
-      return <Navigate to="/landing" replace />;
+      return <Navigate to="/signup" replace />;
     }
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }

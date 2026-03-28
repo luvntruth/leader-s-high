@@ -608,7 +608,7 @@ const Home: React.FC = () => {
                           if (isLocked) {
                             navigate('/pricing');
                           } else {
-                            navigate('/setup', { state: { scenario } });
+                            navigate('/setup', { state: { scenario, ...(!user && { guest: true }) } });
                           }
                         }}
                         className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95

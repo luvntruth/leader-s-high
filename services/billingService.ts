@@ -1,3 +1,5 @@
+import { supabase } from '../src/lib/supabase';
+
 const PROXY_URL = import.meta.env.VITE_GEMINI_PROXY_URL as string | undefined;
 
 export const billingService = {
@@ -7,11 +9,14 @@ export const billingService = {
       alert('결제 시스템이 설정되지 않았습니다.');
       return;
     }
-    // Worker의 /api/create-checkout 엔드포인트 호출
-    // TODO: Worker에 Stripe Checkout Session 생성 엔드포인트 추가
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token || '';
     const res = await fetch(`${PROXY_URL}/api/create-checkout`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
       body: JSON.stringify({ priceId, returnUrl: window.location.origin }),
     });
     const data = await res.json();
@@ -37,9 +42,14 @@ export const billingService = {
   /** Stripe Customer Portal (구독 관리/취소) */
   async createPortalSession(): Promise<void> {
     if (!PROXY_URL) return;
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token || '';
     const res = await fetch(`${PROXY_URL}/api/customer-portal`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
       body: JSON.stringify({ returnUrl: window.location.origin }),
     });
     const data = await res.json();
