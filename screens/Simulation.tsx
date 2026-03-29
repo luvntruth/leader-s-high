@@ -19,6 +19,7 @@ interface Message {
   text: string;
   timestamp: Date;
   isError?: boolean;
+  isStreaming?: boolean;
 }
 
 interface SOSTip {
@@ -58,8 +59,9 @@ ${emotion.description}
 2. 팀장이 공감하고 경청하면 점차 마음을 열어가세요. 하지만 급격한 태도 변화는 하지 마세요.
 3. 팀장이 일방적으로 지시하거나 무시하면 더 방어적으로 변하세요.
 4. 한국 직장 문화의 뉘앙스를 반영하세요 (예: 직접 반박보다는 한숨, 침묵, 돌려 말하기 등).
-5. 1~3문장으로 짧고 현실적으로 대답하세요.
-6. 가끔 침묵하거나 "…네, 뭐…" 같은 모호한 반응도 자연스럽습니다.`;
+5. 2~4문장으로 현실적으로 대답하되, 상대방이 더 이야기할 수 있도록 자연스럽게 여지를 남기거나 되묻는 표현을 포함하세요. (예: "…그런데 솔직히 말씀드리면", "팀장님은 어떻게 생각하세요?" 등)
+6. 가끔 침묵하거나 "…네, 뭐…" 같은 모호한 반응도 자연스럽습니다.
+7. 상황에 맞는 구체적인 배경(야근, 업무량, 동료 관계 등)을 언급하며 대화를 풍성하게 만드세요.`;
 }
 
 const Simulation: React.FC = () => {
@@ -339,6 +341,7 @@ const Simulation: React.FC = () => {
       // EmotionStateMachine의 상세 컨텍스트를 메시지에 주입
       const emotionContext = emotionMachine.current.buildEmotionContext(trustStateRef.current.trust);
       const contextPrefix = `[시스템 참고 - 사용자에게 보여주지 말 것]\n${emotionContext}\n[사용자 발화]\n`;
+
       const response = await fetchWithRetry(() => chatRef.current!.sendMessage({ message: contextPrefix + text }));
       const responseText = response.text || '';
 
@@ -384,7 +387,7 @@ const Simulation: React.FC = () => {
 
       chatRef.current = ai.chats.create({
         model: 'gemini-2.5-flash',
-        config: { systemInstruction, temperature: 0.8 },
+        config: { systemInstruction, temperature: 0.8, thinkingConfig: { thinkingBudget: 0 } },
         history: [
           { role: 'user', parts: [{ text: openingUserText }] },
           { role: 'model', parts: [{ text: openingModelText }] }
@@ -493,6 +496,7 @@ const Simulation: React.FC = () => {
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
+          thinkingConfig: { thinkingBudget: 0 },
           responseSchema: {
             type: Type.OBJECT,
             properties: {
@@ -795,13 +799,8 @@ const Simulation: React.FC = () => {
                   }, user?.id);
 
                   if (isGuest) {
-                    // 게스트: transcript를 localStorage에 저장 후 가입 유도
-                    localStorage.setItem('leadershigh_guest_transcript', JSON.stringify({
-                      transcript: messages,
-                      scenario,
-                      sosTipHistory,
-                    }));
-                    navigate('/signup', { state: { from: '/feedback', guest: true } });
+                    // 게스트: 결과 리포트 → 골든 스크립트 → 요금제 업그레이드 퍼널
+                    navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory, isGuest: true } });
                   } else {
                     navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory } });
                   }
@@ -855,7 +854,7 @@ const Simulation: React.FC = () => {
                       : 'bg-white/5 border-white/10 rounded-tl-sm'}
                   ${msg.isError ? 'bg-red-500/10 border-red-500/30 text-red-400' : ''}
                 `}>
-                    <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    <p className="text-base leading-relaxed whitespace-pre-wrap">{msg.text}</p>
 
                     {/* Corner Accents */}
                     <div className={`absolute top-0 ${msg.role === 'user' ? 'right-0' : 'left-0'} p-1.5 opacity-40`}>
@@ -968,20 +967,21 @@ const Simulation: React.FC = () => {
               <button
                 onClick={handleSOS}
                 disabled={isGeneratingSOS}
-                className={`size-12 rounded-2xl shrink-0 flex items-center justify-center transition-all ${isGeneratingSOS ? 'bg-primary/20 animate-pulse' : 'bg-primary text-navy-deep shadow-neon-cyan active:scale-90'
+                className={`px-3 h-12 rounded-2xl shrink-0 flex items-center gap-1.5 transition-all ${isGeneratingSOS ? 'bg-primary/20 animate-pulse' : 'bg-primary text-navy-deep shadow-neon-cyan active:scale-90'
                   }`}
               >
-                <span className="material-symbols-outlined text-xl font-black">
+                <span className="material-symbols-outlined text-lg font-black">
                   {isGeneratingSOS ? 'sync' : 'psychology'}
                 </span>
+                <span className="text-xs font-black whitespace-nowrap">SOS 힌트</span>
               </button>
 
               <div className="flex-1 bg-black/40 rounded-2xl border border-white/5 px-2 py-1 flex items-center focus-within:border-primary/40 transition-all">
                 <textarea
                   ref={textareaRef}
                   rows={1}
-                  className="w-full bg-transparent border-none px-4 py-2 text-sm text-white placeholder-slate-600 outline-none resize-none hide-scrollbar max-h-[80px] leading-relaxed"
-                  placeholder="입력 장치 활성화 중..."
+                  className="w-full bg-transparent border-none px-4 py-2 text-base text-white placeholder-slate-600 outline-none resize-none hide-scrollbar max-h-[80px] leading-relaxed"
+                  placeholder="여기에 입력하세요..."
                   value={inputText}
                   disabled={isLoading}
                   onChange={e => setInputText(e.target.value)}
@@ -1000,16 +1000,16 @@ const Simulation: React.FC = () => {
               <button
                 onClick={handleInstantCoaching}
                 disabled={isCoachingLoading || messages.filter(m => m.role === 'user').length === 0 || isLoading}
-                className={`size-12 rounded-2xl shrink-0 flex items-center justify-center transition-all ${
+                className={`px-3 h-12 rounded-2xl shrink-0 flex items-center gap-1.5 transition-all ${
                   isCoachingLoading
                     ? 'bg-amber-500/20 animate-pulse'
                     : 'bg-amber-500 text-navy-deep shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:shadow-[0_0_25px_rgba(245,158,11,0.5)] active:scale-90 disabled:opacity-30 disabled:shadow-none'
                 }`}
-                title="즉시 코칭"
               >
-                <span className="material-symbols-outlined text-xl font-black">
+                <span className="material-symbols-outlined text-lg font-black">
                   {isCoachingLoading ? 'sync' : 'tips_and_updates'}
                 </span>
+                <span className="text-xs font-black whitespace-nowrap">즉시 코칭</span>
               </button>
 
             </div>

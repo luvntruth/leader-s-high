@@ -8,7 +8,12 @@ export default function Signup() {
   const navigate = useNavigate();
   const location = useLocation();
   const isGuestConversion = location.state?.guest === true;
-  const { signUp, signInWithGoogle } = useAuth();
+  const intent = (location.state as any)?.intent as string | undefined;
+  const pendingTranscript = (location.state as any)?.transcript;
+  const pendingScenario = (location.state as any)?.scenario;
+  const pendingSosTipHistory = (location.state as any)?.sosTipHistory;
+  const pendingEvaluation = (location.state as any)?.evaluation;
+  const { signUp, signInWithGoogle, user } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -17,6 +22,13 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // intent 없이 직접 접근 시 온보딩으로 리다이렉트 (회원가입은 퍼널 통해서만)
+  useEffect(() => {
+    if (!intent && !isGuestConversion) {
+      navigate('/onboarding', { replace: true });
+    }
+  }, []);
 
   // 가입 페이지 진입 이벤트
   useEffect(() => {
@@ -36,6 +48,18 @@ export default function Signup() {
       await signUp(email, password, name);
       console.log('[Signup] 회원가입 성공');
       analyticsService.track('signup_complete', { source: isGuestConversion ? 'guest' : 'direct' });
+
+      // 전문가 코칭 플레이북 구매 intent
+      if (intent === 'golden-script') {
+        sessionStorage.setItem('leadershigh_pending_purchase', JSON.stringify({
+          transcript: pendingTranscript,
+          scenario: pendingScenario,
+          sosTipHistory: pendingSosTipHistory,
+          evaluation: pendingEvaluation,
+        }));
+        navigate('/purchase/playbook', { replace: true });
+        return;
+      }
 
       // 게스트 전환: 저장된 transcript로 피드백 화면 이동
       const guestData = localStorage.getItem('leadershigh_guest_transcript');
@@ -61,12 +85,58 @@ export default function Signup() {
 
   const handleGoogle = async () => {
     setError('');
+    // Google OAuth 리다이렉트 전에 pending 구매 데이터 sessionStorage에 보존
+    if (intent === 'golden-script' && pendingTranscript) {
+      sessionStorage.setItem('leadershigh_pending_purchase', JSON.stringify({
+        transcript: pendingTranscript,
+        scenario: pendingScenario,
+        sosTipHistory: pendingSosTipHistory,
+        evaluation: pendingEvaluation,
+      }));
+    }
     try {
       await signInWithGoogle();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Google 로그인에 실패했습니다.');
     }
   };
+
+  // 이미 로그인된 상태에서 golden-script intent로 접근 → 구매 진행 안내
+  if (user && intent === 'golden-script') {
+    const goToPurchase = () => {
+      sessionStorage.setItem('leadershigh_pending_purchase', JSON.stringify({
+        transcript: pendingTranscript,
+        scenario: pendingScenario,
+        sosTipHistory: pendingSosTipHistory,
+        evaluation: pendingEvaluation,
+      }));
+      navigate('/purchase/playbook', { replace: true });
+    };
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-sm text-center"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto mb-5">
+            <span className="material-symbols-outlined text-amber-400 text-2xl">auto_awesome</span>
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">이미 로그인되어 있어요</h2>
+          <p className="text-slate-400 text-sm mb-6">
+            바로 전문가 코칭 플레이북 구매를 진행할 수 있습니다.
+          </p>
+          <button
+            onClick={goToPurchase}
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-black text-sm flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-base">credit_card</span>
+            ₩3,900 구매 진행하기
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (success) {
     return (
@@ -105,7 +175,14 @@ export default function Signup() {
           <div className="text-3xl font-bold text-white mb-1">
             <span className="text-amber-500">Leader's</span> High
           </div>
-          <p className="text-slate-400 text-sm">무료로 리더십 훈련을 시작하세요</p>
+          {intent === 'golden-script' ? (
+            <div className="mt-3 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25">
+              <p className="text-amber-400 text-sm font-bold">전문가 코칭 플레이북 구매</p>
+              <p className="text-slate-400 text-xs mt-0.5">회원가입 후 ₩3,900에 플레이북을 구매할 수 있어요</p>
+            </div>
+          ) : (
+            <p className="text-slate-400 text-sm">무료로 리더십 훈련을 시작하세요</p>
+          )}
         </div>
 
         {/* 에러 메시지 */}

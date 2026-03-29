@@ -8,6 +8,7 @@ import { createGeminiClient } from '../src/lib/geminiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/authService';
 import { dbService } from '../services/dbService';
+import { paymentService } from '../services/paymentService';
 import { LEADERSHIP_TYPE_INFO, CommunicationPattern, LeadershipType } from '../src/types/database';
 
 interface RankDetail {
@@ -137,7 +138,14 @@ const Profile: React.FC = () => {
   const [selectedRankName, setSelectedRankName] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'status' | 'leadership' | 'skills' | 'badges' | 'account'>('status');
   const [simCount, setSimCount] = useState(0);
+  const [purchasedPlaybooks, setPurchasedPlaybooks] = useState<Array<{ id: string; simulation_id: string; created_at: string; scenario_title?: string }>>([]);
   const [leadershipData, setLeadershipData] = useState<{type: string; pattern: any} | null>(null);
+
+  useEffect(() => {
+    if (user && activeTab === 'account') {
+      paymentService.getPurchasedPlaybooks(user.id).then(setPurchasedPlaybooks).catch(() => {});
+    }
+  }, [user, activeTab]);
 
   useEffect(() => {
     if (user && profile) {
@@ -1048,6 +1056,34 @@ const Profile: React.FC = () => {
             >
               데이터 내보내기
             </button>
+          </div>
+
+          {/* ── 구매한 플레이북 목록 ── */}
+          <div className="bg-slate-800/40 rounded-2xl p-5 border border-white/5 space-y-3">
+            <h3 className="text-white font-bold text-sm flex items-center gap-2">
+              <span className="material-symbols-outlined text-amber-500 text-lg">menu_book</span>
+              구매한 플레이북
+            </h3>
+            {purchasedPlaybooks.length === 0 ? (
+              <p className="text-slate-500 text-xs">구매한 플레이북이 없습니다.</p>
+            ) : (
+              <ul className="space-y-2">
+                {purchasedPlaybooks.map(p => (
+                  <li key={p.id} className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-white text-xs font-semibold">{p.scenario_title || '시뮬레이션'}</p>
+                      <p className="text-slate-500 text-[10px]">{new Date(p.created_at).toLocaleDateString('ko-KR')}</p>
+                    </div>
+                    <button
+                      onClick={() => navigate(`/history/${p.simulation_id}`)}
+                      className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-bold hover:bg-amber-500/20 transition-colors shrink-0"
+                    >
+                      보기
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <button

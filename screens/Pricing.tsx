@@ -123,7 +123,7 @@ export default function Pricing() {
             </div>
 
             <ul className="space-y-2">
-              {['20개 시나리오 · 시나리오당 3회', '풀 피드백 리포트', '이전 기록 보관 및 비교', '실시간 즉시 코칭', '음성 시뮬레이션'].map((f, i) => (
+              {['20개 시나리오 · 시나리오당 3회까지 도전 가능', '풀 피드백 리포트', '이전 기록 보관 및 비교', '실시간 즉시 코칭'].map((f, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
                   <span className="text-amber-500 mt-0.5">✓</span>{f}
                 </li>
@@ -161,7 +161,7 @@ export default function Pricing() {
             </div>
 
             <ul className="space-y-2">
-              {['40개 전체 시나리오 · 시나리오당 5회', '풀 피드백 리포트', '타인과의 결과 비교 리포트', '이전 기록 비교', 'HR 대시보드', '커스텀 시나리오'].map((f, i) => (
+              {['40개 전체 시나리오 · 시나리오당 5회까지 도전 가능', '풀 피드백 리포트', '타인과의 결과 비교 리포트', '이전 기록 비교', '커스텀 시나리오'].map((f, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
                   <span className="text-cyan-400 mt-0.5">✓</span>{f}
                 </li>
@@ -192,8 +192,7 @@ export default function Pricing() {
                   ['이전 기록 비교', '—', '✓', '✓'],
                   ['타인 결과 비교', '—', '—', '✓'],
                   ['즉시 코칭', '—', '✓', '✓'],
-                  ['음성 시뮬레이션', '—', '✓', '✓'],
-                  ['HR 대시보드', '—', '—', '✓'],
+                  ['커스텀 시나리오', '—', '—', '✓'],
                 ].map(([feature, free, pro, ultra], idx) => (
                   <tr key={idx} className="border-b border-slate-800/50">
                     <td className="py-3 px-4 text-slate-400">{feature}</td>

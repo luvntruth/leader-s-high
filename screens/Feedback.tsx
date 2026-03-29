@@ -7,7 +7,6 @@ import { createGeminiClient } from '../src/lib/geminiClient';
 import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor } from '../services/characterAvatars';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
-import { paymentService, REPORT_PAYMENT_OPTION } from '../services/paymentService';
 import { analyticsService } from '../services/analyticsService';
 import ShareCard from '../components/ShareCard';
 import { SCENARIOS } from '../constants';
@@ -65,8 +64,6 @@ const Feedback: React.FC = () => {
   const [isAnalysing, setIsAnalysing] = useState(true);
   const [evaluation, setEvaluation] = useState<EvaluationData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isPurchasing, setIsPurchasing] = useState(false);
-  const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
   const charInfo = getCharacterInfo(scenario?.id, scenario?.memberName);
   const avatarUrl = getCharacterAvatar(scenario?.memberName || '팀원', scenario?.id);
@@ -294,58 +291,6 @@ const Feedback: React.FC = () => {
     }
   };
 
-  /** 골든 리포트 구매 → 풀 리포트 재생성 */
-  const handlePurchaseReport = async () => {
-    if (!user || !profile) return;
-
-    // 가장 최근 시뮬레이션 ID 가져오기
-    const recentHistory = await dbService.getHistory(user.id, 1);
-    const simulationId = recentHistory[0]?.id || Date.now().toString();
-
-    setIsPurchasing(true);
-    setPurchaseError(null);
-
-    const result = await paymentService.purchaseReport(simulationId, {
-      id: user.id,
-      email: user.email || profile.email,
-    });
-
-    if (!result.success) {
-      setIsPurchasing(false);
-      setPurchaseError(result.message);
-      return;
-    }
-
-    // 결제 성공 → 풀 리포트 모드로 전환 후 재생성
-    analyticsService.track('report_purchase', { amount: REPORT_PAYMENT_OPTION.amount }, user.id);
-    setIsFullReport(true);
-    setIsPurchasing(false);
-    // performEvaluation은 isFullReport state를 참조하므로 다음 렌더에서 풀 모드로 실행됨
-    // 직접 재생성 호출
-    setIsAnalysing(true);
-    setEvaluation(null);
-  };
-
-  // 마운트 시 기존 구매 이력 확인 → 이미 구매했으면 풀 리포트 모드
-  useEffect(() => {
-    const checkPurchase = async () => {
-      if (isPaidPlan || !user) return;
-      const recentHistory = await dbService.getHistory(user.id, 1);
-      const simId = recentHistory[0]?.id;
-      if (simId && await paymentService.hasReportPurchase(user.id, simId)) {
-        setIsFullReport(true);
-      }
-    };
-    checkPurchase();
-  }, [user]);
-
-  // 풀 리포트 모드 전환 시 재생성
-  useEffect(() => {
-    if (isFullReport && !isPaidPlan && !evaluation && transcript?.length > 0) {
-      performEvaluation();
-    }
-  }, [isFullReport]);
-
   useEffect(() => {
     performEvaluation();
   }, [transcript]);
@@ -419,51 +364,30 @@ const Feedback: React.FC = () => {
   return (
     <div className="h-screen overflow-y-auto bg-[#060B18] command-center-bg text-white font-manrope pb-32 hide-scrollbar">
 
-      {/* ── 무료 플랜 간략 리포트 안내 + 골든 리포트 구매 / 게스트 회원가입 유도 ── */}
-      {!isFullReport && (
+      {/* ── 무료 플랜 간략 리포트 안내 + 플레이북 구매 유도 ── */}
+      {!isFullReport && user && (
         <div className="bg-gradient-to-r from-amber-500/10 to-primary/10 border-b border-amber-500/20 px-6 py-4 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-amber-400 text-xs font-semibold">
-              {user ? '간략 리포트입니다' : '체험 리포트입니다 — 전체 결과를 보려면 가입하세요'}
-            </p>
-            {user && (
-              <button onClick={() => navigate('/pricing')} className="px-3 py-1 rounded-lg bg-white/5 text-slate-400 text-[10px] font-bold hover:bg-white/10 transition-colors">
-                전체 플랜 보기
-              </button>
-            )}
-          </div>
-          {user ? (
-            <>
-              <button
-                onClick={handlePurchaseReport}
-                disabled={isPurchasing}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 text-sm font-black hover:from-amber-400 hover:to-amber-500 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isPurchasing ? (
-                  <>
-                    <div className="size-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
-                    결제 진행 중...
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-base">auto_awesome</span>
-                    골든 리포트 열기 · ₩{REPORT_PAYMENT_OPTION.amount.toLocaleString()}
-                  </>
-                )}
-              </button>
-              {purchaseError && (
-                <p className="text-red-400 text-xs text-center">{purchaseError}</p>
-              )}
-            </>
-          ) : (
-            <button
-              onClick={() => navigate('/signup', { state: { from: '/feedback' } })}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 text-sm font-black hover:from-amber-400 hover:to-amber-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined text-base">person_add</span>
-              무료 회원가입 후 전체 리포트 보기 →
+            <p className="text-amber-400 text-xs font-semibold">간략 리포트입니다</p>
+            <button onClick={() => navigate('/pricing')} className="px-3 py-1 rounded-lg bg-white/5 text-slate-400 text-[10px] font-bold hover:bg-white/10 transition-colors">
+              전체 플랜 보기
             </button>
-          )}
+          </div>
+          <button
+            onClick={() => navigate('/signup', { state: { intent: 'golden-script', transcript, scenario, sosTipHistory, evaluation } })}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 text-sm font-black hover:from-amber-400 hover:to-amber-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-base">auto_awesome</span>
+            회원가입 후 전문가 코칭 플레이북 구매하기
+          </button>
+        </div>
+      )}
+
+      {/* ── 게스트: 체험 리포트 안내 배너 ── */}
+      {!user && (
+        <div className="bg-gradient-to-r from-amber-500/10 to-primary/10 border-b border-amber-500/20 px-6 py-3 flex items-center justify-between">
+          <p className="text-amber-400 text-xs font-semibold">체험 리포트 · 간략 버전</p>
+          <span className="text-slate-500 text-[10px]">풀 리포트는 회원 전용</span>
         </div>
       )}
 
@@ -658,13 +582,13 @@ const Feedback: React.FC = () => {
           </section>
         )}
 
-        {/* ── 골든 스크립트 (모범 답변 비교) ── */}
+        {/* ── 전문가 코칭 플레이북 (모범 답변 비교) ── */}
         <section className="space-y-5">
           <h3 className="text-lg font-black tracking-tight px-2 flex items-center gap-3">
             <span className="size-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
               <span className="material-symbols-outlined text-lg">auto_awesome</span>
             </span>
-            골든 스크립트
+            전문가 코칭 플레이북
           </h3>
           <div className="space-y-5">
             {evaluation.modelAnswers.map((item, idx) => (
@@ -809,8 +733,8 @@ const Feedback: React.FC = () => {
                     프로 플랜 보기 →
                   </button>
                 ) : (
-                  <button onClick={() => navigate('/signup', { state: { from: '/feedback' } })} className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors">
-                    무료 회원가입 →
+                  <button onClick={() => navigate('/onboarding')} className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors">
+                    무료 체험하기 →
                   </button>
                 )}
               </div>
@@ -873,13 +797,63 @@ const Feedback: React.FC = () => {
             </div>
           )}
 
-          <button
-            onClick={() => navigate('/')}
-            className="w-full bg-primary text-navy-deep py-6 rounded-[2rem] font-black shadow-neon-cyan active:scale-[0.98] transition-all text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-2"
-          >
-            <span className="material-symbols-outlined text-lg">home</span>
-            기지 복귀
-          </button>
+          {/* ── 게스트 전환 유도: 전문가 코칭 플레이북 + 요금제 업그레이드 ── */}
+          {!user ? (
+            <div className="space-y-4">
+              {/* 전문가 코칭 플레이북 구매 */}
+              <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/30 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="material-symbols-outlined text-amber-400 text-lg">auto_awesome</span>
+                  <h3 className="text-amber-400 font-black text-sm">전문가 코칭 플레이북</h3>
+                  <span className="ml-auto text-amber-400 font-black text-sm">₩3,900</span>
+                </div>
+                <ul className="text-slate-400 text-xs mb-4 space-y-1.5">
+                  <li className="flex items-start gap-1.5"><span className="text-amber-500 mt-0.5">✦</span>단계별 대화 전략 — 어떤 말을, 어떤 순서로 해야 하는지</li>
+                  <li className="flex items-start gap-1.5"><span className="text-amber-500 mt-0.5">✦</span>상황별 핵심 문장 — 그대로 쓸 수 있는 실전 스크립트</li>
+                  <li className="flex items-start gap-1.5"><span className="text-amber-500 mt-0.5">✦</span>심리적 트리거 분석 — 상대방의 반응을 바꾸는 언어 패턴</li>
+                  <li className="flex items-start gap-1.5"><span className="text-amber-500 mt-0.5">✦</span>리더십 코치 총평 — 전문 코치 시각의 피드백 해설</li>
+                </ul>
+                <button
+                  onClick={() => navigate('/signup', { state: { from: '/feedback', intent: 'golden-script', transcript, scenario, sosTipHistory, evaluation } })}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 text-sm font-black active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-base">auto_awesome</span>
+                  회원가입 후 전문가 코칭 플레이북 구매하기
+                </button>
+              </div>
+
+              {/* 요금제 업그레이드 */}
+              <div className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border border-cyan-500/20 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="material-symbols-outlined text-cyan-400 text-lg">rocket_launch</span>
+                  <h3 className="text-cyan-400 font-black text-sm">요금제 업그레이드</h3>
+                </div>
+                <p className="text-slate-400 text-xs mb-4">프로 플랜으로 20개 시나리오, 풀 피드백 리포트, 즉시 코칭까지. 진짜 리더십을 만드세요.</p>
+                <button
+                  onClick={() => navigate('/pricing')}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500/80 to-cyan-600/60 text-white text-sm font-black active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-base">arrow_forward</span>
+                  요금제 보기 →
+                </button>
+              </div>
+
+              <button
+                onClick={() => navigate('/landing')}
+                className="w-full py-3 text-slate-500 text-xs hover:text-slate-400 transition-colors"
+              >
+                홈으로 돌아가기
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => navigate('/')}
+              className="w-full bg-primary text-navy-deep py-6 rounded-[2rem] font-black shadow-neon-cyan active:scale-[0.98] transition-all text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-lg">home</span>
+              기지 복귀
+            </button>
+          )}
         </div>
       </main>
     </div>

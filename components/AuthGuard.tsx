@@ -30,8 +30,8 @@ export function AuthGuard({ children, requiredRole, requiredPlan, allowGuest }: 
 
   // 비인증 처리
   if (!user) {
-    // 게스트 허용 라우트: location.state에 guest=true가 있으면 통과
-    if (allowGuest && (location.state as any)?.guest === true) {
+    // 게스트 허용 라우트: location.state에 guest=true 또는 isGuest=true가 있으면 통과
+    if (allowGuest && ((location.state as any)?.guest === true || (location.state as any)?.isGuest === true)) {
       return <>{children}</>;
     }
     // 홈이면 회원가입, 그 외는 로그인으로

@@ -54,7 +54,7 @@ export interface ReportPaymentOption {
 
 export const REPORT_PAYMENT_OPTION: ReportPaymentOption = {
   id: 'golden-report',
-  name: '골든 리포트',
+  name: '전문가 코칭 플레이북',
   amount: 3900,
 };
 
@@ -227,6 +227,33 @@ export const paymentService = {
     if (!verified.success) return { success: false, message: verified.message };
 
     return { success: true, message: '골든 리포트가 활성화되었습니다!' };
+  },
+
+  /** 사용자의 전체 플레이북 구매 목록 조회 */
+  async getPurchasedPlaybooks(userId: string): Promise<Array<{ id: string; simulation_id: string; created_at: string; scenario_title?: string }>> {
+    const { data: purchases } = await supabase
+      .from('report_purchases')
+      .select('id, simulation_id, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (!purchases || purchases.length === 0) return [];
+
+    // simulation_id(TEXT)로 scenario_title 별도 조회 (FK 미설정으로 relation query 불가)
+    const simIds = purchases.map((p: any) => p.simulation_id);
+    const { data: sims } = await supabase
+      .from('simulation_history')
+      .select('id, scenario_title')
+      .in('id', simIds);
+
+    const simMap = new Map((sims || []).map((s: any) => [s.id, s.scenario_title]));
+
+    return purchases.map((p: any) => ({
+      id: p.id,
+      simulation_id: p.simulation_id,
+      created_at: p.created_at,
+      scenario_title: simMap.get(p.simulation_id),
+    }));
   },
 
   /** 특정 시뮬레이션에 대한 리포트 구매 여부 확인 */

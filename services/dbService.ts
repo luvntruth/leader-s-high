@@ -13,8 +13,8 @@ export const dbService = {
       .select('id')
       .single();
     if (error) {
-      console.error('시뮬레이션 저장 실패:', error);
-      return null;
+      console.error('시뮬레이션 저장 실패:', JSON.stringify(error));
+      throw new Error(`저장 실패: ${error.message || error.code || JSON.stringify(error)}`);
     }
     return result.id;
   },

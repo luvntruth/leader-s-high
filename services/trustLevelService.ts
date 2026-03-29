@@ -298,6 +298,7 @@ export const TrustLevelService = {
           systemInstruction: INSTANT_COACHING_PROMPT,
           temperature: 0.3,
           responseMimeType: 'application/json',
+          thinkingConfig: { thinkingBudget: 0 },
         }
       });
 

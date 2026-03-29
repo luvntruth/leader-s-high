@@ -1,10 +1,11 @@
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useRef } from 'react';
 // @ts-ignore
-import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthGuard } from './components/AuthGuard';
 import Navigation from './components/Navigation';
+import { useAuth } from './contexts/AuthContext';
 
 // Lazy-loaded screen components
 const Home = React.lazy(() => import('./screens/Home'));
@@ -30,10 +31,34 @@ const ResetPassword = React.lazy(() => import('./screens/ResetPassword'));
 const UpgradePrompt = React.lazy(() => import('./screens/UpgradePrompt'));
 const Landing = React.lazy(() => import('./screens/Landing'));
 const Onboarding = React.lazy(() => import('./screens/Onboarding'));
+const DevPanel = React.lazy(() => import('./screens/DevPanel'));
+const PlaybookSample = React.lazy(() => import('./screens/PlaybookSample'));
+const PurchasePlaybook = React.lazy(() => import('./screens/PurchasePlaybook'));
+
+// Google OAuth 리다이렉트 후 pending 구매 데이터가 있으면 /purchase/playbook으로 이동
+const PendingPurchaseRedirect: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const prevUserRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const prevUser = prevUserRef.current;
+    prevUserRef.current = user?.id ?? null;
+    // null → 로그인 상태로 전환된 경우만 처리 (새 로그인)
+    if (!prevUser && user) {
+      const pending = sessionStorage.getItem('leadershigh_pending_purchase');
+      if (pending) {
+        navigate('/purchase/playbook', { replace: true });
+      }
+    }
+  }, [user]);
+
+  return null;
+};
 
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const noNavPaths = ['/simulation', '/voice', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/reset-password', '/upgrade', '/landing', '/onboarding'];
+  const noNavPaths = ['/simulation', '/voice', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/reset-password', '/upgrade', '/landing', '/onboarding', '/dev', '/dev/playbook-sample', '/purchase/playbook'];
   const showNav = !noNavPaths.includes(location.pathname);
 
   return (
@@ -50,6 +75,7 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <HashRouter>
+        <PendingPurchaseRedirect />
         <LayoutWrapper>
           <Suspense fallback={
             <div className="min-h-screen flex items-center justify-center bg-slate-950">
@@ -67,6 +93,11 @@ const App: React.FC = () => {
               <Route path="/upgrade" element={<UpgradePrompt />} />
               <Route path="/landing" element={<Landing />} />
               <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/dev" element={<DevPanel />} />
+              <Route path="/dev/playbook-sample" element={<PlaybookSample />} />
+
+              {/* 보호 라우트 - 구매 */}
+              <Route path="/purchase/playbook" element={<AuthGuard><PurchasePlaybook /></AuthGuard>} />
 
               {/* 보호 라우트 */}
               <Route path="/" element={<Home />} />
@@ -74,7 +105,7 @@ const App: React.FC = () => {
               <Route path="/setup" element={<AuthGuard allowGuest><Setup /></AuthGuard>} />
               <Route path="/simulation" element={<AuthGuard allowGuest><Simulation /></AuthGuard>} />
               <Route path="/voice" element={<AuthGuard requiredPlan="pro"><VoiceSimulation /></AuthGuard>} />
-              <Route path="/feedback" element={<AuthGuard><Feedback /></AuthGuard>} />
+              <Route path="/feedback" element={<AuthGuard allowGuest><Feedback /></AuthGuard>} />
               <Route path="/insights" element={<AuthGuard><Insights /></AuthGuard>} />
               <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
               <Route path="/custom-lab" element={<AuthGuard requiredPlan="ultra"><CustomLab /></AuthGuard>} />
