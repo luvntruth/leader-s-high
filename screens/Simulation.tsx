@@ -28,7 +28,7 @@ interface SOSTip {
 }
 
 const ANALYSIS_COMPLETE_THRESHOLD = 12; // user turns required (보스 지시사항)
-const TRUST_SCORING_INTERVAL = 2; // user turns between scoring
+const TRUST_SCORING_INTERVAL = 4; // user turns between scoring
 
 // 감정 상태를 Trust Level에 따라 결정하는 함수
 function getEmotionState(trust: number): { state: string; description: string } {
