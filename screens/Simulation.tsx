@@ -627,8 +627,8 @@ const Simulation: React.FC = () => {
                 <span className="material-symbols-outlined">west</span>
               </button>
               <div>
-                <h1 className="text-xs font-black tracking-[0.3em] text-primary uppercase">전술 HUD</h1>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">작전명: {scenario?.title?.split(' ')[0] || 'LEADER_SIM'}</p>
+                <h1 className="text-sm font-black tracking-[0.3em] text-primary uppercase">전술 HUD</h1>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-0.5">작전명: {scenario?.title?.split(' ')[0] || 'LEADER_SIM'}</p>
               </div>
             </div>
             <div className="size-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#00F2FF]" />
@@ -649,11 +649,11 @@ const Simulation: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
+                  <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
                     {config.name}
                     <span className="size-2 rounded-full" style={{ backgroundColor: characterInfo.themeColor }} />
                   </h2>
-                  <p className="text-xs font-black text-slate-500 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded inline-block mt-1">
+                  <p className="text-sm font-black text-slate-500 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded inline-block mt-1">
                     {characterInfo.role} / {config.generation}
                   </p>
                 </div>
@@ -673,32 +673,32 @@ const Simulation: React.FC = () => {
               <div className="absolute top-0 right-0 p-3 opacity-10">
                 <span className="material-symbols-outlined text-4xl">analytics</span>
               </div>
-              <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-primary/20 pb-2">
+              <h3 className="text-sm font-black text-primary uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-primary/20 pb-2">
                 개별 심리 보고서
               </h3>
 
               <div className="space-y-4">
-                <p className="text-sm font-bold text-white leading-relaxed italic border-l-4 border-primary/40 pl-3">
+                <p className="text-base font-bold text-white leading-relaxed italic border-l-4 border-primary/40 pl-3">
                   "{missionBriefing.statusSummary.psychState}"
                 </p>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[10px] font-black text-emerald-500/80 uppercase tracking-widest mb-2">핵심 강점</p>
+                    <p className="text-xs font-black text-emerald-500/80 uppercase tracking-widest mb-2">핵심 강점</p>
                     <ul className="space-y-1.5">
                       {missionBriefing.statusSummary.strengths.slice(0, 3).map((s, i) => (
-                        <li key={i} className="text-xs text-slate-300 flex items-center gap-2">
-                          <span className="text-[10px] text-emerald-500">●</span> {s}
+                        <li key={i} className="text-sm text-slate-300 flex items-center gap-2">
+                          <span className="text-xs text-emerald-500">●</span> {s}
                         </li>
                       ))}
                     </ul>
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-rose-500/80 uppercase tracking-widest mb-2">취약 요소</p>
+                    <p className="text-xs font-black text-rose-500/80 uppercase tracking-widest mb-2">취약 요소</p>
                     <ul className="space-y-1.5">
                       {missionBriefing.statusSummary.weaknesses.slice(0, 3).map((w, i) => (
-                        <li key={i} className="text-xs text-slate-300 flex items-center gap-2">
-                          <span className="text-[10px] text-rose-500">○</span> {w}
+                        <li key={i} className="text-sm text-slate-300 flex items-center gap-2">
+                          <span className="text-xs text-rose-500">○</span> {w}
                         </li>
                       ))}
                     </ul>
@@ -709,12 +709,12 @@ const Simulation: React.FC = () => {
 
             {/* 핵심 수행 과제 (복구) */}
             <section className="bg-white/5 border border-white/10 rounded-2xl p-5">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">핵심 전술 목표</h3>
+              <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">핵심 전술 목표</h3>
               <div className="space-y-3">
                 {missionBriefing.tasks?.map((task: string, i: number) => (
-                  <div key={i} className="flex gap-3 items-start text-xs text-slate-400 leading-relaxed">
+                  <div key={i} className="flex gap-3 items-start text-sm text-slate-400 leading-relaxed">
                     <div className="size-4 rounded border border-white/20 flex items-center justify-center shrink-0 mt-0.5">
-                      <span className="material-symbols-outlined text-[10px] text-primary">done</span>
+                      <span className="material-symbols-outlined text-xs text-primary">done</span>
                     </div>
                     <span>{task}</span>
                   </div>
@@ -725,14 +725,14 @@ const Simulation: React.FC = () => {
             {/* Analysis Dashboard (웅장하게) */}
             <div className="space-y-6">
               <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">신뢰도 추이</h3>
+                <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-4">신뢰도 추이</h3>
                 <div className="h-24">
                   <TacticalTrendChart data={trustState.trustHistory} color={trustState.trust < 40 ? '#ef4444' : '#00F2FF'} />
                 </div>
               </div>
 
               <div className="flex flex-col space-y-4">
-                <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">전술 이벤트 로그</h3>
+                <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">전술 이벤트 로그</h3>
                 <div className="space-y-3">
                   {trustState.lastEvents.length > 0 ? trustState.lastEvents.slice(-3).map((event, i) => (
                     <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
@@ -741,15 +741,15 @@ const Simulation: React.FC = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[11px] font-black text-white truncate pr-2 uppercase tracking-wide">{event.reason_short}</span>
-                          <span className={`text-[11px] font-black ${event.impact >= 0 ? 'text-game-xp' : 'text-game-hp'}`}>{event.impact >= 0 ? `+${event.impact}` : event.impact}</span>
+                          <span className="text-xs font-black text-white truncate pr-2 uppercase tracking-wide">{event.reason_short}</span>
+                          <span className={`text-xs font-black ${event.impact >= 0 ? 'text-game-xp' : 'text-game-hp'}`}>{event.impact >= 0 ? `+${event.impact}` : event.impact}</span>
                         </div>
-                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{event.family}</p>
+                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{event.family}</p>
                       </div>
                     </div>
                   )) : (
                     <div className="text-center py-8 border border-dashed border-white/10 rounded-2xl">
-                      <p className="text-xs font-bold text-slate-600 italic">Accessing Battle History...</p>
+                      <p className="text-sm font-bold text-slate-600 italic">Accessing Battle History...</p>
                     </div>
                   )}
                 </div>
@@ -806,7 +806,7 @@ const Simulation: React.FC = () => {
                   }
                 }}
                 disabled={!isAnalysisComplete}
-                className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${isAnalysisComplete
+                className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${isAnalysisComplete
                   ? 'bg-primary text-black shadow-neon-cyan hover:scale-[1.05] active:scale-[0.95]'
                   : 'bg-white/5 text-slate-600 cursor-not-allowed border border-white/5'
                   }`}
@@ -825,8 +825,8 @@ const Simulation: React.FC = () => {
 
 
             <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 flex items-center gap-3">
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">현재 감정 지수</span>
-              <span className="text-xs font-black" style={{ color: hpColor }}>{emotionLabel}</span>
+              <span className="text-xs font-black text-slate-500 uppercase tracking-widest">현재 감정 지수</span>
+              <span className="text-sm font-black" style={{ color: hpColor }}>{emotionLabel}</span>
             </div>
           </div>
 
@@ -839,10 +839,10 @@ const Simulation: React.FC = () => {
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] group`}>
                   <div className={`flex items-center gap-2 mb-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <span className={`text-[10px] font-black uppercase tracking-widest ${msg.role === 'user' ? 'text-primary' : 'text-slate-500'}`}>
+                    <span className={`text-xs font-black uppercase tracking-widest ${msg.role === 'user' ? 'text-primary' : 'text-slate-500'}`}>
                       {msg.role === 'user' ? 'Commanding Officer' : config.name}
                     </span>
-                    <span className="text-[8px] font-bold text-white/20 uppercase tabular-nums">
+                    <span className="text-[10px] font-bold text-white/20 uppercase tabular-nums">
                       {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -938,7 +938,7 @@ const Simulation: React.FC = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-primary text-sm">auto_fix_high</span>
-                    <span className="text-[10px] font-black text-primary uppercase tracking-widest italic">전술 지원 추천 (SOS)</span>
+                    <span className="text-xs font-black text-primary uppercase tracking-widest italic">전술 지원 추천 (SOS)</span>
                   </div>
                   <button onClick={() => setShowSOS(false)} className="text-slate-500 hover:text-white transition-colors">
                     <span className="material-symbols-outlined text-sm">close</span>
@@ -955,7 +955,7 @@ const Simulation: React.FC = () => {
                       className="bg-[#0f172a] hover:bg-primary/10 border border-white/5 hover:border-primary/30 p-3 rounded-xl text-left transition-all active:scale-95 flex items-center gap-2 group"
                     >
                       <span className="material-symbols-outlined text-xs text-slate-600 group-hover:text-primary transition-colors">bolt</span>
-                      <span className="text-[11px] font-bold truncate flex-1">{phrase}</span>
+                      <span className="text-sm font-bold truncate flex-1">{phrase}</span>
                     </button>
                   ))}
                 </div>
