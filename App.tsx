@@ -72,6 +72,18 @@ const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 };
 
 const App: React.FC = () => {
+  if (import.meta.env.VITE_MAINTENANCE === 'true') {
+    return (
+      <div style={{ minHeight: '100vh', background: '#060B18', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontFamily: 'sans-serif', textAlign: 'center', padding: '2rem' }}>
+        <div>
+          <div style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>🔧</div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '1rem' }}>점검 중입니다</h1>
+          <p style={{ color: '#64748b', lineHeight: 1.8 }}>더 나은 서비스를 위해 잠시 점검 중입니다.<br />곧 돌아올게요!</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AuthProvider>
       <HashRouter>
