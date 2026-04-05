@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { SCENARIOS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { getCharacterAvatar } from '../services/characterAvatars';
+import { analyticsService } from '../services/analyticsService';
 
 const FREE_SCENARIO_IDS = ['late-comer', 'boundaries', 'team-clash'];
 
@@ -38,6 +39,14 @@ const Onboarding: React.FC = () => {
   const displayName = profile?.display_name || '리더';
 
   const firstScenario = SCENARIOS.find(s => s.id === 'late-comer');
+
+  React.useEffect(() => {
+    analyticsService.track('onboarding_start', {
+      screen: 'onboarding',
+      guest: !user,
+      free_scenarios: FREE_SCENARIO_IDS,
+    }, user?.id);
+  }, [user]);
 
   return (
     <motion.div
