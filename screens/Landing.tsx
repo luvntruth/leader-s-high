@@ -168,7 +168,15 @@ export default function Landing() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const attribution = useMemo(() => analyticsService.getAttribution(), []);
+  const attribution = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      lp: params.get('lp') || undefined,
+      utm_source: params.get('utm_source') || undefined,
+      utm_campaign: params.get('utm_campaign') || undefined,
+      utm_content: params.get('utm_content') || undefined,
+    };
+  }, []);
   const variantKey: LandingVariantKey = (attribution.lp && attribution.lp in LANDING_VARIANTS ? attribution.lp : 'practice') as LandingVariantKey;
   const variant = LANDING_VARIANTS[variantKey];
 
