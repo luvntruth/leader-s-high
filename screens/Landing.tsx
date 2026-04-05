@@ -185,17 +185,21 @@ export default function Landing() {
   }, [user, navigate]);
 
   useEffect(() => {
-    analyticsService.track(
-      'landing_variant_view',
-      analyticsService.withAttribution({ variant: variantKey, referrer: document.referrer || undefined, device: navigator.userAgent }),
-    );
-  }, [variantKey]);
+    analyticsService.track('landing_variant_view', {
+      ...attribution,
+      variant: variantKey,
+      referrer: document.referrer || undefined,
+      device: navigator.userAgent,
+    });
+  }, [variantKey, attribution]);
 
   const handlePrimaryCta = (placement: 'hero' | 'bottom') => {
-    analyticsService.track(
-      'cta_click',
-      analyticsService.withAttribution({ variant: variantKey, placement, target: '/onboarding' }),
-    );
+    analyticsService.track('cta_click', {
+      ...attribution,
+      variant: variantKey,
+      placement,
+      target: '/onboarding',
+    });
     navigate('/onboarding');
   };
 
