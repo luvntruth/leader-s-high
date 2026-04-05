@@ -222,6 +222,13 @@ export default function PurchasePlaybook() {
           </div>
         )}
 
+        <div className="bg-slate-900/60 border border-slate-700/40 rounded-2xl p-4">
+          <p className="text-white text-sm font-bold mb-1">먼저 간략 리포트에서 가치를 확인하셨죠.</p>
+          <p className="text-slate-400 text-xs leading-relaxed">
+            이 플레이북은 무료 리포트의 다음 단계입니다. 실제 면담에서 바로 쓸 수 있는 문장과 전략이 더 필요할 때만 구매하면 됩니다.
+          </p>
+        </div>
+
         {/* 구매 버튼 */}
         <button
           onClick={handlePurchase}

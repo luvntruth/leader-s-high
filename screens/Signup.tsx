@@ -124,14 +124,14 @@ export default function Signup() {
           </div>
           <h2 className="text-xl font-bold text-white mb-2">이미 로그인되어 있어요</h2>
           <p className="text-slate-400 text-sm mb-6">
-            바로 전문가 코칭 플레이북 구매를 진행할 수 있습니다.
+            저장된 결과를 이어서 확인하고, 필요하면 상세 리포트 또는 플레이북 구매를 진행할 수 있습니다.
           </p>
           <button
             onClick={goToPurchase}
             className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-black text-sm flex items-center justify-center gap-2"
           >
             <span className="material-symbols-outlined text-base">credit_card</span>
-            ₩3,900 구매 진행하기
+            저장된 결과 이어서 보기
           </button>
         </motion.div>
       </div>
@@ -177,8 +177,8 @@ export default function Signup() {
           </div>
           {intent === 'golden-script' ? (
             <div className="mt-3 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25">
-              <p className="text-amber-400 text-sm font-bold">전문가 코칭 플레이북 구매</p>
-              <p className="text-slate-400 text-xs mt-0.5">회원가입 후 ₩3,900에 플레이북을 구매할 수 있어요</p>
+              <p className="text-amber-400 text-sm font-bold">리포트 저장 후 이어서 보기</p>
+              <p className="text-slate-400 text-xs mt-0.5">회원가입하면 결과를 저장하고, 이후 상세 리포트 또는 플레이북을 이어서 확인할 수 있어요</p>
             </div>
           ) : (
             <p className="text-slate-400 text-sm">무료로 리더십 훈련을 시작하세요</p>
