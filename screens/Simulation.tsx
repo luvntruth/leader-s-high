@@ -170,6 +170,7 @@ const Simulation: React.FC = () => {
   const initialized = useRef(false);
   const emotionMachine = useRef(new EmotionStateMachine(initialTrust));
   const lastUserMessageRef = useRef<string>('');
+  const firstTurnTrackedRef = useRef(false);
 
   // Cleanup on unmount — 시뮬레이션 이탈 트래킹
   const isCompleteRef = useRef(false);
@@ -332,6 +333,16 @@ const Simulation: React.FC = () => {
 
     if (!isSilent) {
       lastUserMessageRef.current = text;
+
+      if (!firstTurnTrackedRef.current) {
+        firstTurnTrackedRef.current = true;
+        analyticsService.track('simulation_first_turn', {
+          scenario_id: scenario?.id,
+          guest: isGuest,
+          plan: profile?.plan || 'free',
+        }, user?.id);
+      }
+
       setMessages(prev => [...prev, { role: 'user', text, timestamp: new Date() }]);
       setInputText('');
     }
