@@ -56,7 +56,10 @@ export default function Pricing() {
   }, [currentPlan, user]);
 
   const handlePurchase = async (optionId: string) => {
-    if (!user || !profile) return;
+    if (!user || !profile) {
+      navigate('/login', { state: { from: '/pricing' } });
+      return;
+    }
     const option = PAYMENT_OPTIONS.find(o => o.id === optionId);
     if (!option) return;
 

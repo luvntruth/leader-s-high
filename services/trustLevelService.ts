@@ -291,24 +291,32 @@ export const TrustLevelService = {
         currentTrust: input.currentTrust
       });
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: userContent,
-        config: {
-          systemInstruction: INSTANT_COACHING_PROMPT,
-          temperature: 0.3,
-          responseMimeType: 'application/json',
-          thinkingConfig: { thinkingBudget: 0 },
-        }
-      });
+      console.log('[InstantCoaching] 요청 시작');
+      const response = await Promise.race([
+        ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: userContent,
+          config: {
+            systemInstruction: INSTANT_COACHING_PROMPT,
+            temperature: 0.3,
+            responseMimeType: 'application/json',
+            thinkingConfig: { thinkingBudget: 0 },
+          }
+        }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('InstantCoaching timeout')), 12000))
+      ]);
 
-      const text = response.text;
-      if (!text) return null;
+      console.log('[InstantCoaching] 응답 수신');
+      const text = (response as any).text;
+      if (!text) throw new Error("Empty response");
 
+      console.log('[InstantCoaching] raw text:', text.slice(0, 200));
       let cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
       cleaned = cleaned.replace(/":\s*\+(\d+)/g, '": $1');
 
-      const output = JSON.parse(cleaned);
+      const raw = JSON.parse(cleaned);
+      // API가 { feedback: { ... } } 로 감싸는 경우 처리
+      const output = raw.feedback || raw;
 
       if (
         typeof output.positiveImpact !== 'string' ||
@@ -317,13 +325,13 @@ export const TrustLevelService = {
         typeof output.betterAlternative !== 'string' ||
         typeof output.tip !== 'string'
       ) {
-        console.error("InstantCoaching: Invalid response structure");
-        return null;
+        console.error("[InstantCoaching] Invalid structure:", JSON.stringify(output).slice(0, 300));
+        throw new Error("Invalid response format");
       }
 
       return output as InstantCoachingResult;
     } catch (error) {
-      console.error("InstantCoaching Error:", error);
+      console.error("[InstantCoaching] Error:", error);
       return null;
     }
   }

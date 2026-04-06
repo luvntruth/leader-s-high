@@ -104,9 +104,15 @@ const Simulation: React.FC = () => {
   const [initError, setInitError] = useState(false);
   const [usageDenied, setUsageDenied] = useState<string | null>(null);
 
-  // 사용량 확인 가드
+  // 사용량 확인 가드 + 시뮬레이션 시작 이벤트
   useEffect(() => {
-    if (!user || !profile) return;
+    if (!user || !profile) {
+      // 게스트 모드: 사용량 체크 없이 sim_start 이벤트만 기록
+      if (isGuest) {
+        analyticsService.track('sim_start', analyticsService.withAttribution({ scenario_id: scenario?.id, plan: 'free', guest: true }));
+      }
+      return;
+    }
     usageService.canStartSimulation(user.id, profile.plan).then(result => {
       if (!result.allowed) {
         setUsageDenied(result.reason || '사용 제한에 도달했습니다.');
@@ -284,6 +290,7 @@ const Simulation: React.FC = () => {
 
         // HOSTILE 도달 시 시뮬레이션 강제 종료 (신뢰도 15 이하)
         if (score.trust <= 15) {
+          isCompleteRef.current = true;
           setMessages(prev => {
             const failMessages = [...prev, {
               role: 'model' as const,
@@ -379,6 +386,7 @@ const Simulation: React.FC = () => {
       }]);
     } finally {
       setIsLoading(false);
+      setTimeout(() => textareaRef.current?.focus(), 100);
     }
   };
 
@@ -455,10 +463,10 @@ const Simulation: React.FC = () => {
         currentTrust: trustState.trust
       });
 
-      if (result && mountedRef.current) {
+      if (result) {
+        console.log('[InstantCoaching] 결과 설정 완료');
         setInstantCoaching(result);
         coachingCacheRef.current.set(cacheKey, result);
-        // 예상 신뢰 변화를 즉시 신뢰도 바에 반영
         if (result.estimatedTrustDelta !== 0) {
           setTrustState(prev => ({
             ...prev,
@@ -467,11 +475,28 @@ const Simulation: React.FC = () => {
             trustHistory: [...prev.trustHistory, Math.max(0, Math.min(100, prev.trust + result.estimatedTrustDelta))].slice(-10),
           }));
         }
+      } else {
+        console.log('[InstantCoaching] 결과 null - 폴백 표시');
+        setInstantCoaching({
+          positiveImpact: '코칭 분석에 실패했습니다.',
+          negativeRisk: '잠시 후 다시 시도해주세요.',
+          estimatedTrustDelta: 0,
+          betterAlternative: '',
+          tip: '대화를 계속 진행하세요.'
+        });
       }
     } catch (err) {
-      console.error('Instant coaching failed:', err);
+      console.error('[InstantCoaching] failed:', err);
+      setInstantCoaching({
+        positiveImpact: '코칭 응답을 받지 못했습니다.',
+        negativeRisk: '네트워크 상태를 확인하거나 잠시 후 다시 시도해주세요.',
+        estimatedTrustDelta: 0,
+        betterAlternative: '',
+        tip: '대화를 계속 진행하며 다시 시도해보세요.'
+      });
     } finally {
-      if (mountedRef.current) setIsCoachingLoading(false);
+      console.log('[InstantCoaching] 로딩 해제');
+      setIsCoachingLoading(false);
     }
   };
 
@@ -491,40 +516,41 @@ const Simulation: React.FC = () => {
     try {
       const ai = createGeminiClient();
 
-      const prompt = `
-        당신은 리더십 코치입니다. 현재 대화 상황을 분석하여 리더(User)에게 필요한 조언을 제공하세요.
+      const recentMsgs = messages.slice(-6).map(m => `${m.role === 'user' ? '리더' : '팀원'}: ${m.text}`).join('\n');
+      const prompt = `리더십 코치로서 아래 대화를 분석하고 JSON으로 응답하세요.
+대화:
+${recentMsgs}
 
-        [대화 내용]
-        ${JSON.stringify(messages.slice(-10))}
+insight: 핵심 통찰 1문장, suggestion: 행동 가이드 2문장, magicPhrases: 추천 발화 3개(배열)`;
 
-        [요청 사항]
-        위 대화의 흐름, 상대방의 감정 상태, 리더의 대응 방식을 분석하여 다음 JSON 형식으로 응답하세요.
-        한국어로 작성하세요.
-      `;
-
-      const response = await fetchWithRetry(() => ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          thinkingConfig: { thinkingBudget: 0 },
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              insight: { type: Type.STRING, description: "현재 상황에 대한 핵심 통찰 (1문장)" },
-              suggestion: { type: Type.STRING, description: "구체적인 행동/태도 가이드 (2문장)" },
-              magicPhrases: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: "상황을 타개할 수 있는 추천 발화 3가지"
-              }
-            },
-            required: ['insight', 'suggestion', 'magicPhrases']
+      console.log('[SOS] 코칭 요청 시작');
+      const response = await Promise.race([
+        ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            thinkingConfig: { thinkingBudget: 0 },
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                insight: { type: Type.STRING, description: "핵심 통찰 1문장" },
+                suggestion: { type: Type.STRING, description: "행동 가이드 2문장" },
+                magicPhrases: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING },
+                  description: "추천 발화 3개"
+                }
+              },
+              required: ['insight', 'suggestion', 'magicPhrases']
+            }
           }
-        }
-      }));
+        }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Coaching timeout')), 12000))
+      ]);
 
-      const responseText = response.text;
+      console.log('[SOS] 응답 수신 완료');
+      const responseText = (response as any).text;
       if (!responseText) throw new Error("Empty response");
 
       const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -532,7 +558,6 @@ const Simulation: React.FC = () => {
 
       if (parsed.insight && parsed.suggestion && Array.isArray(parsed.magicPhrases)) {
         setSosTip(parsed);
-        // SOS 힌트 이력에 저장
         setSosTipHistory(prev => [...prev, {
           tip: parsed,
           turnIndex: messages.filter(m => m.role === 'user').length,
@@ -543,8 +568,8 @@ const Simulation: React.FC = () => {
       }
 
     } catch (error) {
-      console.error("AI Coaching Error:", error);
-      setSosTip(null);
+      console.error("[SOS] AI Coaching Error:", error);
+      setSosTip({ insight: '코칭 응답을 받지 못했습니다.', suggestion: '잠시 후 다시 시도해주세요. 네트워크 상태를 확인해보세요.', magicPhrases: [] });
     } finally {
       setIsGeneratingSOS(false);
     }
@@ -718,18 +743,76 @@ const Simulation: React.FC = () => {
               </div>
             </section>
 
-            {/* 핵심 수행 과제 (복구) */}
+            {/* 핵심 수행 과제 — 단계별 클리어 */}
             <section className="bg-white/5 border border-white/10 rounded-2xl p-5">
               <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">핵심 전술 목표</h3>
               <div className="space-y-3">
-                {missionBriefing.tasks?.map((task: string, i: number) => (
-                  <div key={i} className="flex gap-3 items-start text-sm text-slate-400 leading-relaxed">
-                    <div className="size-4 rounded border border-white/20 flex items-center justify-center shrink-0 mt-0.5">
-                      <span className="material-symbols-outlined text-xs text-primary">done</span>
+                {missionBriefing.tasks?.map((task: string, i: number) => {
+                  const userTurns = messages.filter(m => m.role === 'user').length;
+                  const clearThresholds = [
+                    Math.floor(ANALYSIS_COMPLETE_THRESHOLD / 3),
+                    Math.floor(ANALYSIS_COMPLETE_THRESHOLD * 2 / 3),
+                    ANALYSIS_COMPLETE_THRESHOLD
+                  ];
+                  const isCleared = userTurns >= clearThresholds[i];
+                  const isActive = !isCleared && (i === 0 || userTurns >= clearThresholds[i - 1]);
+                  return (
+                    <div
+                      key={i}
+                      className={`flex gap-3 items-start text-sm leading-relaxed rounded-xl px-3 py-2.5 transition-all duration-700 ${
+                        isCleared
+                          ? 'bg-emerald-500/10 border border-emerald-500/30'
+                          : isActive
+                            ? 'bg-primary/10 border border-primary/30'
+                            : 'bg-transparent border border-transparent'
+                      }`}
+                    >
+                      <div className={`size-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition-all duration-500 ${
+                        isCleared
+                          ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                          : isActive
+                            ? 'bg-primary/20 border border-primary/50 animate-pulse'
+                            : 'bg-white/5 border border-white/15'
+                      }`}>
+                        <span className={`material-symbols-outlined text-xs ${
+                          isCleared ? 'text-white' : isActive ? 'text-primary' : 'text-slate-600'
+                        }`}>
+                          {isCleared ? 'check' : isActive ? 'arrow_forward' : 'lock'}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className={`transition-colors duration-500 ${
+                          isCleared
+                            ? 'text-emerald-300 line-through decoration-emerald-500/40'
+                            : isActive
+                              ? 'text-slate-200'
+                              : 'text-slate-600'
+                        }`}>{task}</span>
+                        {isCleared && (
+                          <span className="ml-2 text-[10px] font-black text-emerald-400 uppercase tracking-widest">Clear</span>
+                        )}
+                      </div>
                     </div>
-                    <span>{task}</span>
-                  </div>
-                ))}
+                  );
+                })}
+              </div>
+              <div className="mt-4 flex items-center gap-2">
+                <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-primary to-emerald-400 rounded-full transition-all duration-700"
+                    style={{ width: `${Math.min(100, (messages.filter(m => m.role === 'user').length / ANALYSIS_COMPLETE_THRESHOLD) * 100)}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                  {missionBriefing.tasks?.filter((_: string, i: number) => {
+                    const clearThresholds = [
+                      Math.floor(ANALYSIS_COMPLETE_THRESHOLD / 3),
+                      Math.floor(ANALYSIS_COMPLETE_THRESHOLD * 2 / 3),
+                      ANALYSIS_COMPLETE_THRESHOLD
+                    ];
+                    return messages.filter(m => m.role === 'user').length >= clearThresholds[i];
+                  }).length || 0}/{missionBriefing.tasks?.length || 3} Done
+                </span>
               </div>
             </section>
 

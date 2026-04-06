@@ -32,7 +32,7 @@ export default function Signup() {
 
   // 가입 페이지 진입 이벤트
   useEffect(() => {
-    analyticsService.track('signup_start', { source: isGuestConversion ? 'guest' : 'direct' });
+    analyticsService.track('signup_start', analyticsService.withAttribution({ source: isGuestConversion ? 'guest' : 'direct' }));
   }, [isGuestConversion]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,7 +47,7 @@ export default function Signup() {
       console.log('[Signup] 회원가입 시작...');
       await signUp(email, password, name);
       console.log('[Signup] 회원가입 성공');
-      analyticsService.track('signup_complete', { source: isGuestConversion ? 'guest' : 'direct' });
+      analyticsService.track('signup_complete', analyticsService.withAttribution({ source: isGuestConversion ? 'guest' : 'direct' }));
 
       // 전문가 코칭 플레이북 구매 intent
       if (intent === 'golden-script') {

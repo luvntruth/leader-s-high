@@ -12,19 +12,20 @@ const Setup: React.FC = () => {
   const location = useLocation();
   const isGuest = location.state?.guest === true;
 
-  // 게스트 모드: late-comer 시나리오 자동 배정 → 바로 시뮬레이션으로
+  // 게스트 모드: 선택한 시나리오로 바로 시뮬레이션으로
   useEffect(() => {
     if (isGuest) {
-      const guestScenario = SCENARIOS.find(s => s.id === 'late-comer');
-      if (guestScenario) {
-        analyticsService.track('guest_sim_start', analyticsService.withAttribution({ scenario_id: 'late-comer' }));
+      const selectedScenario = location.state?.scenario || SCENARIOS.find(s => s.id === 'late-comer');
+      if (selectedScenario) {
+        const initialTrust = selectedScenario.intensity === 'high' ? 25 : selectedScenario.intensity === 'low' ? 65 : 45;
+        analyticsService.track('guest_sim_start', analyticsService.withAttribution({ scenario_id: selectedScenario.id }));
         navigate('/simulation', {
-          state: { scenario: guestScenario, initialTrust: 65, guest: true },
+          state: { scenario: selectedScenario, initialTrust, guest: true },
           replace: true,
         });
       }
     }
-  }, [isGuest, navigate]);
+  }, [isGuest, navigate, location.state?.scenario]);
 
   const scenario = location.state?.scenario;
   const briefing = useMemo(() => getMissionBriefing(scenario?.id), [scenario?.id]);

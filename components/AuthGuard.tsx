@@ -34,6 +34,11 @@ export function AuthGuard({ children, requiredRole, requiredPlan, allowGuest }: 
     if (allowGuest && ((location.state as any)?.guest === true || (location.state as any)?.isGuest === true)) {
       return <>{children}</>;
     }
+    // 게스트 허용 라우트인데 state가 없음 → 새로고침/앱 전환으로 state 유실
+    // 로그인 대신 온보딩으로 보내 자연스럽게 재시작 유도
+    if (allowGuest) {
+      return <Navigate to="/onboarding" replace />;
+    }
     // 홈이면 회원가입, 그 외는 로그인으로
     if (location.pathname === '/') {
       return <Navigate to="/signup" replace />;

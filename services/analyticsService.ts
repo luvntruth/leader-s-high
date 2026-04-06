@@ -53,9 +53,27 @@ export const analyticsService = {
     return SESSION_ID;
   },
 
-  /** 현재 URL의 UTM/landing variant 정보 읽기 */
-  getAttribution(search: string = window.location.search): GrowthAttribution {
-    const params = new URLSearchParams(search);
+  /** 현재 URL의 UTM/landing variant 정보 읽기
+   *  HashRouter 방어: window.location.search와 hash 내부 query params 모두 확인
+   *  - ?lp=v1#/onboarding → search에서 읽힘
+   *  - #/onboarding?lp=v1 → hash 내부에서 읽힘
+   */
+  getAttribution(search?: string): GrowthAttribution {
+    // 명시적 search가 없으면 window.location.search + hash 내부 params 병합
+    let params: URLSearchParams;
+    if (search) {
+      params = new URLSearchParams(search);
+    } else {
+      params = new URLSearchParams(window.location.search);
+      // HashRouter 방어: hash 내부에 ?가 있으면 그 params도 병합 (search 우선)
+      const hashQuery = window.location.hash.split('?')[1];
+      if (hashQuery) {
+        const hashParams = new URLSearchParams(hashQuery);
+        hashParams.forEach((value, key) => {
+          if (!params.has(key)) params.set(key, value);
+        });
+      }
+    }
     return {
       lp: params.get('lp') || undefined,
       utm_source: params.get('utm_source') || undefined,
