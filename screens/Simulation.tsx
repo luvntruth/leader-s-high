@@ -112,7 +112,7 @@ const Simulation: React.FC = () => {
         setUsageDenied(result.reason || '사용 제한에 도달했습니다.');
       } else {
         usageService.recordUsage(user.id, 'simulation').catch(() => {});
-        analyticsService.track('sim_start', { scenario_id: scenario?.id, plan: profile.plan }, user.id);
+        analyticsService.track('sim_start', analyticsService.withAttribution({ scenario_id: scenario?.id, plan: profile.plan }), user.id);
       }
     }).catch(() => {
       // DB 접근 실패 시에도 시뮬레이션은 허용 (graceful degradation)
@@ -170,6 +170,7 @@ const Simulation: React.FC = () => {
   const initialized = useRef(false);
   const emotionMachine = useRef(new EmotionStateMachine(initialTrust));
   const lastUserMessageRef = useRef<string>('');
+  const firstTurnTrackedRef = useRef(false);
 
   // Cleanup on unmount — 시뮬레이션 이탈 트래킹
   const isCompleteRef = useRef(false);
@@ -177,12 +178,12 @@ const Simulation: React.FC = () => {
     return () => {
       mountedRef.current = false;
       if (!isCompleteRef.current) {
-        analyticsService.track('sim_abandon', {
+        analyticsService.track('sim_abandon', analyticsService.withAttribution({
           scenario_id: scenario?.id,
           message_count: messages.length,
           last_trust: trustState.trust,
           guest: isGuest,
-        }, user?.id);
+        }), user?.id);
       }
     };
   }, []);
@@ -332,6 +333,16 @@ const Simulation: React.FC = () => {
 
     if (!isSilent) {
       lastUserMessageRef.current = text;
+
+      if (!firstTurnTrackedRef.current) {
+        firstTurnTrackedRef.current = true;
+        analyticsService.track('simulation_first_turn', analyticsService.withAttribution({
+          scenario_id: scenario?.id,
+          guest: isGuest,
+          plan: profile?.plan || 'free',
+        }), user?.id);
+      }
+
       setMessages(prev => [...prev, { role: 'user', text, timestamp: new Date() }]);
       setInputText('');
     }
@@ -790,13 +801,13 @@ const Simulation: React.FC = () => {
                   }
                   isCompleteRef.current = true;
                   const durationMs = Date.now() - simulationStartTime.current;
-                  analyticsService.track('sim_complete', {
+                  analyticsService.track('sim_complete', analyticsService.withAttribution({
                     scenario_id: scenario?.id,
                     duration: Math.round(durationMs / 1000),
                     final_trust: trustState.trust,
                     message_count: messages.length,
                     guest: isGuest,
-                  }, user?.id);
+                  }), user?.id);
 
                   if (isGuest) {
                     // 게스트: 결과 리포트 → 골든 스크립트 → 요금제 업그레이드 퍼널

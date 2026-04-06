@@ -17,7 +17,7 @@ const Setup: React.FC = () => {
     if (isGuest) {
       const guestScenario = SCENARIOS.find(s => s.id === 'late-comer');
       if (guestScenario) {
-        analyticsService.track('guest_sim_start', { scenario_id: 'late-comer' });
+        analyticsService.track('guest_sim_start', analyticsService.withAttribution({ scenario_id: 'late-comer' }));
         navigate('/simulation', {
           state: { scenario: guestScenario, initialTrust: 65, guest: true },
           replace: true,
