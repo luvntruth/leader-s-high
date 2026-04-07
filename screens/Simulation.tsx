@@ -158,6 +158,9 @@ const Simulation: React.FC = () => {
     trustHistory: [initialTrust]
   });
 
+  // 전술 목표 달성 상태 (AI 판정 기반)
+  const [goalAchievements, setGoalAchievements] = useState<boolean[]>([false, false, false]);
+
   // Dramatic UI State
   const [screenEffect, setScreenEffect] = useState<'none' | 'damage' | 'heal'>('none');
   const [combatTexts, setCombatTexts] = useState<Array<{ id: number; value: number }>>([]);
@@ -268,7 +271,8 @@ const Simulation: React.FC = () => {
         recent_events: currentTrust.recentEvents,
         is_new_session: false,
         optional_context: `상황: ${scenario?.title}, 팀원: ${config.name}(${config.generation})`
-      }
+      },
+      tacticalGoals: missionBriefing.tasks
     }).then(score => {
       if (score && mountedRef.current) {
         // 감정 상태 머신 업데이트
@@ -287,6 +291,11 @@ const Simulation: React.FC = () => {
           nextHint: score.next_hint,
           trustHistory: [...prev.trustHistory, score.trust].slice(-10) // 최근 10개 유지
         }));
+
+        // 전술 목표 달성 업데이트 (비가역적: true → true 유지)
+        if (score.goalAchievements && Array.isArray(score.goalAchievements)) {
+          setGoalAchievements(prev => prev.map((achieved, i) => achieved || score.goalAchievements![i] || false));
+        }
 
         // HOSTILE 도달 시 시뮬레이션 강제 종료 (신뢰도 15 이하)
         if (score.trust <= 15) {
@@ -748,14 +757,8 @@ insight: 핵심 통찰 1문장, suggestion: 행동 가이드 2문장, magicPhras
               <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">핵심 전술 목표</h3>
               <div className="space-y-3">
                 {missionBriefing.tasks?.map((task: string, i: number) => {
-                  const userTurns = messages.filter(m => m.role === 'user').length;
-                  const clearThresholds = [
-                    Math.floor(ANALYSIS_COMPLETE_THRESHOLD / 3),
-                    Math.floor(ANALYSIS_COMPLETE_THRESHOLD * 2 / 3),
-                    ANALYSIS_COMPLETE_THRESHOLD
-                  ];
-                  const isCleared = userTurns >= clearThresholds[i];
-                  const isActive = !isCleared && (i === 0 || userTurns >= clearThresholds[i - 1]);
+                  const isCleared = goalAchievements[i] || false;
+                  const isActive = !isCleared && (i === 0 || goalAchievements[i - 1] || false);
                   return (
                     <div
                       key={i}
@@ -800,18 +803,11 @@ insight: 핵심 통찰 1문장, suggestion: 행동 가이드 2문장, magicPhras
                 <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-primary to-emerald-400 rounded-full transition-all duration-700"
-                    style={{ width: `${Math.min(100, (messages.filter(m => m.role === 'user').length / ANALYSIS_COMPLETE_THRESHOLD) * 100)}%` }}
+                    style={{ width: `${(goalAchievements.filter(Boolean).length / 3) * 100}%` }}
                   />
                 </div>
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">
-                  {missionBriefing.tasks?.filter((_: string, i: number) => {
-                    const clearThresholds = [
-                      Math.floor(ANALYSIS_COMPLETE_THRESHOLD / 3),
-                      Math.floor(ANALYSIS_COMPLETE_THRESHOLD * 2 / 3),
-                      ANALYSIS_COMPLETE_THRESHOLD
-                    ];
-                    return messages.filter(m => m.role === 'user').length >= clearThresholds[i];
-                  }).length || 0}/{missionBriefing.tasks?.length || 3} Done
+                  {goalAchievements.filter(Boolean).length}/{missionBriefing.tasks?.length || 3} Done
                 </span>
               </div>
             </section>

@@ -57,8 +57,18 @@ const TRUST_LEVEL_SYSTEM_PROMPT = `당신은 "Trust Level(대화 품질) 스코�
     "promotion_reason": "<승격 시 근거 1줄, 없으면 null>",
     "demotion_reason": "<강등 시 근거 1줄, 없으면 null>"
   },
-  "next_hint": "<다음 점수 상승을 위한 1줄 조언(한국어, 60자 이내)>"
+  "next_hint": "<다음 점수 상승을 위한 1줄 조언(한국어, 60자 이내)>",
+  "goalAchievements": [<bool>, <bool>, <bool>]
 }
+
+[전술 목표 달성 판정 — goalAchievements]
+- input에 tacticalGoals 배열(3개)이 주어지면 각 목표의 달성 여부를 판정합니다.
+- tacticalGoals가 없으면 goalAchievements를 출력하지 마세요.
+- 각 목표는 [도입], [전환], [합의] 단계로 구성되며 순서대로 달성해야 합니다.
+- 판정 기준: user의 발화 내용이 해당 목표가 요구하는 행동(질문, 경청, 인정, 제안 등)과 의미적으로 일치하는지 판단합니다.
+- 단순히 턴 수가 아닌, user가 실제로 해당 행동을 수행했는지가 핵심입니다.
+- 이전 단계가 미달성이면 다음 단계는 false로 출력합니다.
+- 한 번 true가 된 목표는 이후에도 true를 유지합니다(비가역적).
 
 [정합성 원칙]
 1) 행동 증거 기반: transcript에서 확인되는 단서가 있을 때만 점수 변화.
@@ -157,6 +167,7 @@ export interface TrustLevelInput {
     recent_events?: string[];
     optional_context?: string;
   };
+  tacticalGoals?: string[];
 }
 
 export interface TrustLevelOutput {
@@ -187,6 +198,7 @@ export interface TrustLevelOutput {
     demotion_reason: string | null;
   };
   next_hint: string;
+  goalAchievements?: boolean[];
 }
 
 // --- Instant Coaching (경량 즉시 피드백) ---
