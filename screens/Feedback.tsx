@@ -298,7 +298,7 @@ const Feedback: React.FC = () => {
   // ── 로딩 화면: 대화 결과 분석 중 ──
   if (isAnalysing) {
     return (
-      <div className="h-screen bg-[#060B18] command-center-bg flex flex-col items-center justify-center p-8 text-center font-manrope relative overflow-hidden">
+      <div className="min-h-[100dvh] bg-[#060B18] command-center-bg flex flex-col items-center justify-center p-8 text-center font-manrope relative overflow-hidden">
         {/* 스캔 라인 */}
         <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,242,255,0.03) 2px, rgba(0,242,255,0.03) 4px)' }} />
 
@@ -331,7 +331,7 @@ const Feedback: React.FC = () => {
   // ── 에러 화면 ──
   if (error || !evaluation) {
     return (
-      <div className="h-screen bg-[#060B18] command-center-bg flex flex-col items-center justify-center p-8 text-center font-manrope">
+      <div className="min-h-[100dvh] bg-[#060B18] command-center-bg flex flex-col items-center justify-center p-8 text-center font-manrope">
         <div className="size-20 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-6">
           <span className="material-symbols-outlined text-red-500 text-4xl">error</span>
         </div>
@@ -362,7 +362,7 @@ const Feedback: React.FC = () => {
   const overallRank = getRank(avgScore);
 
   return (
-    <div className="h-screen overflow-y-auto bg-[#060B18] command-center-bg text-white font-manrope pb-32 hide-scrollbar">
+    <div className="min-h-[100dvh] overflow-y-auto bg-[#060B18] command-center-bg text-white font-manrope pb-[calc(128px+env(safe-area-inset-bottom))] hide-scrollbar">
 
       {/* ── 무료 플랜 간략 리포트 안내 ── */}
       {!isFullReport && user && (
