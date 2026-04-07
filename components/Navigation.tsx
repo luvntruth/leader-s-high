@@ -18,6 +18,7 @@ const Navigation: React.FC = () => {
   const navItems = [
     { label: '기지', labelEn: 'BASE', icon: 'grid_view', path: '/' },
     { label: '퀘스트', labelEn: 'QUEST', icon: 'swords', path: '/missions' },
+    { label: '운영판', labelEn: 'OPS', icon: 'dashboard', path: '/ops' },
     { label: '프로필', labelEn: 'PROFILE', icon: 'shield_person', path: '/profile' },
   ];
 
