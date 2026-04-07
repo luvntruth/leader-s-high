@@ -36,7 +36,7 @@ const PlaybookSample = React.lazy(() => import('./screens/PlaybookSample'));
 const PurchasePlaybook = React.lazy(() => import('./screens/PurchasePlaybook'));
 const AuthCallback = React.lazy(() => import('./screens/AuthCallback'));
 
-// Google OAuth 리다이렉트 후 pending 구매 데이터가 있으면 /purchase/playbook으로 이동
+// OAuth 로그인 완료 후 sessionStorage 기반으로 적절한 화면으로 이동
 const PendingPurchaseRedirect: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -48,11 +48,27 @@ const PendingPurchaseRedirect: React.FC = () => {
     // null → 로그인 상태로 전환된 경우만 처리 (새 로그인)
     if (!prevUser && user) {
       const pending = sessionStorage.getItem('leadershigh_pending_purchase');
+      const guestConversion = sessionStorage.getItem('leadershigh_guest_conversion');
+
       if (pending) {
+        // 구매 intent: 결제 화면으로
         navigate('/purchase/playbook', { replace: true });
+      } else if (guestConversion) {
+        // 게스트 전환: 피드백 화면으로 (데이터 복원)
+        try {
+          const { transcript, scenario, sosTipHistory } = JSON.parse(guestConversion);
+          sessionStorage.removeItem('leadershigh_guest_conversion');
+          navigate('/feedback', { state: { transcript, scenario, sosTipHistory }, replace: true });
+        } catch {
+          sessionStorage.removeItem('leadershigh_guest_conversion');
+          navigate('/onboarding', { replace: true });
+        }
+      } else if (window.location.hash.includes('access_token')) {
+        // Implicit flow 리다이렉트 후 특별한 intent 없음 → 온보딩으로
+        navigate('/onboarding', { replace: true });
       }
     }
-  }, [user]);
+  }, [user, navigate]);
 
   return null;
 };
