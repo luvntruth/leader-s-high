@@ -35,7 +35,6 @@ const DevPanel = React.lazy(() => import('./screens/DevPanel'));
 const PlaybookSample = React.lazy(() => import('./screens/PlaybookSample'));
 const PurchasePlaybook = React.lazy(() => import('./screens/PurchasePlaybook'));
 const AuthCallback = React.lazy(() => import('./screens/AuthCallback'));
-const OpsBoard = React.lazy(() => import('./screens/OpsBoard'));
 
 // OAuth 로그인 완료 후 sessionStorage 기반으로 적절한 화면으로 이동
 const PendingPurchaseRedirect: React.FC = () => {
@@ -126,7 +125,6 @@ const App: React.FC = () => {
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/dev" element={<DevPanel />} />
               <Route path="/dev/playbook-sample" element={<PlaybookSample />} />
-              <Route path="/ops" element={<AuthGuard><OpsBoard /></AuthGuard>} />
 
               {/* 보호 라우트 - 구매 */}
               <Route path="/purchase/playbook" element={<AuthGuard><PurchasePlaybook /></AuthGuard>} />
