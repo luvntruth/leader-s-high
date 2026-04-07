@@ -15,7 +15,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const from = (location.state as { from?: string })?.from || '/';
+  const from = (location.state as { from?: string })?.from || '/profile';
 
   // 이미 로그인된 상태면 저장된 의도 경로가 있으면 우선 복귀
   useEffect(() => {
