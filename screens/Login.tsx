@@ -3,6 +3,8 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 
+const POST_AUTH_REDIRECT_KEY = 'leadershigh_post_auth_redirect';
+
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -15,9 +17,15 @@ export default function Login() {
 
   const from = (location.state as { from?: string })?.from || '/';
 
-  // 이미 로그인된 상태면 홈으로 리다이렉트
+  // 이미 로그인된 상태면 저장된 의도 경로가 있으면 우선 복귀
   useEffect(() => {
     if (user && !authLoading) {
+      const postAuthRedirect = sessionStorage.getItem(POST_AUTH_REDIRECT_KEY);
+      if (postAuthRedirect) {
+        sessionStorage.removeItem(POST_AUTH_REDIRECT_KEY);
+        navigate(postAuthRedirect, { replace: true });
+        return;
+      }
       navigate('/', { replace: true });
     }
   }, [user, authLoading, navigate]);
@@ -45,9 +53,11 @@ export default function Login() {
 
   const handleGoogle = async () => {
     setError('');
+    sessionStorage.setItem(POST_AUTH_REDIRECT_KEY, from);
     try {
       await signInWithGoogle();
     } catch (err: unknown) {
+      sessionStorage.removeItem(POST_AUTH_REDIRECT_KEY);
       setError(err instanceof Error ? err.message : 'Google 로그인에 실패했습니다.');
     }
   };

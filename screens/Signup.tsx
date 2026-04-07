@@ -98,7 +98,7 @@ export default function Signup() {
 
   const handleGoogle = async () => {
     setError('');
-    // Google OAuth 리다이렉트 전에 데이터 sessionStorage에 보존
+    // Google OAuth 리다이렉트 전에 필요한 데이터 sessionStorage에 보존
     if (intent === 'golden-script' && pendingTranscript) {
       sessionStorage.setItem('leadershigh_pending_purchase', JSON.stringify({
         transcript: pendingTranscript,
@@ -107,7 +107,6 @@ export default function Signup() {
         evaluation: pendingEvaluation,
       }));
     } else if (isGuestConversion && pendingTranscript) {
-      // 게스트 전환 시 transcript를 sessionStorage에 보존 (OAuth 리다이렉트 후 복원)
       sessionStorage.setItem('leadershigh_guest_conversion', JSON.stringify({
         transcript: pendingTranscript,
         scenario: pendingScenario,
