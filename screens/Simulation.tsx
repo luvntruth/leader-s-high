@@ -525,12 +525,29 @@ const Simulation: React.FC = () => {
     try {
       const ai = createGeminiClient();
 
-      const recentMsgs = messages.slice(-6).map(m => `${m.role === 'user' ? '리더' : '팀원'}: ${m.text}`).join('\n');
-      const prompt = `리더십 코치로서 아래 대화를 분석하고 JSON으로 응답하세요.
-대화:
+      const recentMsgs = messages.slice(-6).map(m => `${m.role === 'user' ? '리더' : config.name}: ${m.text}`).join('\n');
+      const emotionInfo = getEmotionState(trustStateRef.current.trust);
+      const briefing = getMissionBriefing(scenario?.id);
+      const prompt = `당신은 한국 직장 리더십 전문 코치입니다. 아래 맥락을 바탕으로 리더에게 실전적이고 구체적인 코칭을 JSON으로 제공하세요.
+
+[시나리오] ${scenario?.title}
+[배경] ${scenario?.description}
+[팀원 프로필] 이름: ${config.name}, 세대: ${config.generation}, 소통 스타일: 맥락 의존도 ${config.contextStyle ?? 50}/100, 감정 중심도 ${config.driverStyle ?? 50}/100
+[현재 신뢰도] ${trustStateRef.current.trust}/100 (감정 상태: ${emotionInfo.state})
+[감정 설명] ${emotionInfo.description}
+${briefing ? `[적용 심리 프레임워크] ${briefing.theory}\n[미션 목표] ${briefing.tasks?.join(' / ') || ''}\n[팀원 심리 상태] ${briefing.statusSummary?.psychState || ''}\n[이상적 결과] ${briefing.idealState || ''}` : ''}
+
+[최근 대화]
 ${recentMsgs}
 
-insight: 핵심 통찰 1문장, suggestion: 행동 가이드 2문장, magicPhrases: 추천 발화 3개(배열)`;
+다음 규칙을 지켜 응답하세요:
+1. insight: 현재 대화에서 리더가 놓치고 있는 핵심 포인트 1문장 (심리 프레임워크 기반)
+2. suggestion: ${config.name}의 세대·성격·현재 감정 상태를 고려한 구체적 행동 가이드 2문장
+3. magicPhrases: 리더가 바로 사용할 수 있는 자연스러운 한국어 추천 발화 3개. 각 발화는 반드시:
+   - ${config.name}의 이름이나 구체적 상황을 포함할 것
+   - 형식적이거나 교과서적인 표현 금지 (예: "함께 논의할 준비가 되어 있습니다" 같은 표현 절대 사용 금지)
+   - 실제 한국 직장에서 팀장이 할 법한 자연스러운 말투로 작성
+   - 각 발화는 서로 다른 접근법(공감형, 질문형, 제안형)을 사용할 것`;
 
       console.log('[SOS] 코칭 요청 시작');
       const response = await Promise.race([
@@ -1035,17 +1052,17 @@ insight: 핵심 통찰 1문장, suggestion: 행동 가이드 2문장, magicPhras
                   </button>
                 </div>
 
-                <p className="text-[13px] font-bold text-white mb-4 leading-relaxed">"{sosTip.suggestion}"</p>
+                <p className="text-[15px] font-bold text-white mb-4 leading-relaxed">"{sosTip.suggestion}"</p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {sosTip.magicPhrases.map((phrase, idx) => (
                     <button
                       key={idx}
                       onClick={() => { setShowSOS(false); handleSend(phrase); }}
-                      className="bg-[#0f172a] hover:bg-primary/10 border border-white/5 hover:border-primary/30 p-3 rounded-xl text-left transition-all active:scale-95 flex items-center gap-2 group"
+                      className="bg-[#0f172a] hover:bg-primary/10 border border-white/5 hover:border-primary/30 p-3 rounded-xl text-left transition-all active:scale-95 flex items-start gap-2 group"
                     >
-                      <span className="material-symbols-outlined text-xs text-slate-600 group-hover:text-primary transition-colors">bolt</span>
-                      <span className="text-sm font-bold truncate flex-1">{phrase}</span>
+                      <span className="material-symbols-outlined text-xs text-slate-600 group-hover:text-primary transition-colors mt-0.5">bolt</span>
+                      <span className="text-[14px] font-bold flex-1 whitespace-normal leading-snug">{phrase}</span>
                     </button>
                   ))}
                 </div>
