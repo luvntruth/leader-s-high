@@ -669,7 +669,7 @@ ${recentMsgs}
         ))}
       </div>
 
-      <div className={`h-[100dvh] bg-[#060B18] text-white font-manrope overflow-hidden relative flex flex-col sm:flex-row ${screenEffect === 'damage' ? 'animate-shake' : ''}`}>
+      <div className={`min-h-[100dvh] bg-[#060B18] text-white font-manrope relative flex flex-col sm:flex-row ${screenEffect === 'damage' ? 'animate-shake' : ''}`}>
 
         {/* ── BACKGROUND FX ── */}
         <div className="absolute inset-0 pointer-events-none">
@@ -925,7 +925,7 @@ ${recentMsgs}
         </aside>
 
         {/* ── RIGHT AREA: MAIN BATTLE HUD ── */}
-        <main className="flex-1 flex flex-col relative z-10 overflow-hidden">
+        <main className="flex-1 flex flex-col relative z-10 min-h-0">
 
           {/* HUD Overlay Info */}
           <div className="absolute top-6 left-6 right-6 z-30 flex justify-between pointer-events-none">
@@ -940,7 +940,7 @@ ${recentMsgs}
           {/* Message HUD Area */}
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto px-6 pt-24 pb-32 space-y-8 scroll-smooth hide-scrollbar"
+            className="flex-1 min-h-0 overflow-y-auto px-6 pt-24 pb-[220px] sm:pb-32 space-y-8 scroll-smooth hide-scrollbar"
           >
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -1037,7 +1037,7 @@ ${recentMsgs}
           </div>
 
           {/* ── ACTION INPUT DASHBOARD ── */}
-          <div className="absolute bottom-6 left-6 right-6 z-40 bg-navy-mid/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-4 flex flex-col gap-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="fixed sm:absolute bottom-[calc(76px+env(safe-area-inset-bottom))] sm:bottom-6 left-3 right-3 sm:left-6 sm:right-6 z-40 bg-navy-mid/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] p-3 sm:p-4 flex flex-col gap-3 sm:gap-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
 
             {/* Action Suggested / SOS Area */}
             {sosTip && showSOS && !isGeneratingSOS && (
