@@ -806,7 +806,14 @@ const Feedback: React.FC = () => {
                   회원가입하면 이번 결과를 저장하고, 나중에 다시 보거나 다음 시나리오를 이어서 체험할 수 있습니다.
                 </p>
                 <button
-                  onClick={() => navigate('/signup', { state: { from: '/feedback', intent: 'golden-script', transcript, scenario, sosTipHistory, evaluation, guest: true } })}
+                  onClick={() => {
+                    localStorage.setItem('leadershigh_guest_transcript', JSON.stringify({
+                      transcript,
+                      scenario,
+                      sosTipHistory,
+                    }));
+                    navigate('/signup', { state: { from: '/feedback', intent: 'golden-script', transcript, scenario, sosTipHistory, evaluation, guest: true } });
+                  }}
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 text-sm font-black active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-base">person_add</span>
