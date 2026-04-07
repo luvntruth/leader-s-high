@@ -16,6 +16,7 @@ const GOOGLE_AI_WS   = 'wss://generativelanguage.googleapis.com';
 
 export interface Env {
   GEMINI_API_KEY: string;
+  GEMINI_KEY_V2?: string;
   ALLOWED_ORIGIN: string;
   SUPABASE_JWT_SECRET: string;
   SUPABASE_URL?: string;
@@ -520,6 +521,17 @@ export default {
 
     const url = new URL(request.url);
 
+    // 디버그: API 키 상태 확인 (키 값은 노출하지 않음)
+    if (url.pathname === '/health') {
+      const key = env.GEMINI_KEY_V2 || env.GEMINI_API_KEY || '';
+      return new Response(JSON.stringify({
+        hasKey: !!key,
+        keyLength: key.length,
+        keyPrefix: key.slice(0, 6),
+        keySuffix: key.slice(-4),
+      }), { headers: { 'Content-Type': 'application/json' } });
+    }
+
     // Stripe Webhook (Stripe 서명으로 자체 검증, JWT 불필요)
     if (url.pathname === '/api/stripe-webhook' && request.method === 'POST') {
       return handleStripeWebhook(request, env);
@@ -586,20 +598,25 @@ export default {
 // HTTP 프록시
 // ────────────────────────────────────────────────────────────────
 async function handleHTTP(request: Request, env: Env, url: URL): Promise<Response> {
+  const geminiKey = env.GEMINI_KEY_V2 || env.GEMINI_API_KEY;
   const path = url.pathname.replace(/^\/?api\/gemini/, '') || url.pathname;
   // SDK가 보내는 key=proxy 파라미터 제거 후 실제 API 키로 교체
   const cleanSearch = url.search.replace(/[?&]key=[^&]*/g, '');
   const separator = cleanSearch ? '&' : '?';
-  const targetUrl = `${GOOGLE_AI_BASE}${path}${cleanSearch || '?'}${cleanSearch ? separator : ''}key=${env.GEMINI_API_KEY}`;
+  const targetUrl = `${GOOGLE_AI_BASE}${path}${cleanSearch || '?'}${cleanSearch ? separator : ''}key=${geminiKey}`;
 
   const headers = new Headers(request.headers);
-  headers.set('x-goog-api-key', env.GEMINI_API_KEY);
+  headers.set('x-goog-api-key', geminiKey);
   headers.delete('host');
   headers.delete('origin');
   headers.delete('referer');
   headers.delete('authorization');
   headers.delete('cf-connecting-ip');
   headers.delete('cf-ray');
+  headers.delete('x-forwarded-for');
+  headers.delete('x-real-ip');
+  headers.delete('x-forwarded-proto');
+  headers.delete('x-forwarded-host');
 
   const response = await fetch(targetUrl, {
     method: request.method,
@@ -625,7 +642,8 @@ async function handleWebSocket(request: Request, env: Env, url: URL): Promise<Re
   const path = url.pathname.replace(/^\/?api\/gemini/, '');
   const cleanSearch = url.search.replace(/[?&]key=[^&]*/g, '');
   const separator = cleanSearch ? '&' : '?';
-  const targetUrl = `${GOOGLE_AI_WS}${path}${cleanSearch || '?'}${cleanSearch ? separator : ''}key=${env.GEMINI_API_KEY}`;
+  const geminiKeyWs = env.GEMINI_KEY_V2 || env.GEMINI_API_KEY;
+  const targetUrl = `${GOOGLE_AI_WS}${path}${cleanSearch || '?'}${cleanSearch ? separator : ''}key=${geminiKeyWs}`;
 
   const { 0: clientSocket, 1: serverSocket } = new WebSocketPair();
   (serverSocket as any).accept();

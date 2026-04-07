@@ -988,29 +988,29 @@ insight: 핵심 통찰 1문장, suggestion: 행동 가이드 2문장, magicPhras
                   ) : instantCoaching ? (
                     <div className="space-y-2.5">
                       <div className="flex items-start gap-2">
-                        <span className="text-emerald-400 text-sm mt-0.5">✅</span>
-                        <p className="text-[13px] text-slate-300 leading-relaxed">{instantCoaching.positiveImpact}</p>
+                        <span className="text-emerald-400 text-base mt-0.5">✅</span>
+                        <p className="text-[15px] text-slate-300 leading-relaxed">{instantCoaching.positiveImpact}</p>
                       </div>
                       <div className="flex items-start gap-2">
-                        <span className="text-amber-400 text-sm mt-0.5">⚠️</span>
-                        <p className="text-[13px] text-slate-300 leading-relaxed">{instantCoaching.negativeRisk}</p>
+                        <span className="text-amber-400 text-base mt-0.5">⚠️</span>
+                        <p className="text-[15px] text-slate-300 leading-relaxed">{instantCoaching.negativeRisk}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-blue-400 text-sm">📊</span>
-                        <span className="text-[12px] text-slate-400">예상 신뢰 변화:</span>
-                        <span className={`text-[14px] font-black ${instantCoaching.estimatedTrustDelta > 0 ? 'text-emerald-400' : instantCoaching.estimatedTrustDelta < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                        <span className="text-blue-400 text-base">📊</span>
+                        <span className="text-[14px] text-slate-400">예상 신뢰 변화:</span>
+                        <span className={`text-[16px] font-black ${instantCoaching.estimatedTrustDelta > 0 ? 'text-emerald-400' : instantCoaching.estimatedTrustDelta < 0 ? 'text-red-400' : 'text-slate-400'}`}>
                           {instantCoaching.estimatedTrustDelta > 0 ? '+' : ''}{instantCoaching.estimatedTrustDelta}
                         </span>
                       </div>
                       <div className="bg-black/30 rounded-xl p-3 border border-amber-500/10">
                         <div className="flex items-start gap-2">
-                          <span className="text-amber-300 text-sm mt-0.5">💬</span>
-                          <p className="text-[13px] text-amber-200/90 leading-relaxed italic">"{instantCoaching.betterAlternative}"</p>
+                          <span className="text-amber-300 text-base mt-0.5">💬</span>
+                          <p className="text-[15px] text-amber-200/90 leading-relaxed italic">"{instantCoaching.betterAlternative}"</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2 pt-1">
-                        <span className="text-cyan-400 text-sm mt-0.5">🎯</span>
-                        <p className="text-[12px] font-bold text-cyan-300">{instantCoaching.tip}</p>
+                        <span className="text-cyan-400 text-base mt-0.5">🎯</span>
+                        <p className="text-[14px] font-bold text-cyan-300">{instantCoaching.tip}</p>
                       </div>
                     </div>
                   ) : null}
