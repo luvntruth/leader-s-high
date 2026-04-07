@@ -1070,25 +1070,13 @@ ${recentMsgs}
             )}
 
             {/* Input Bar */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleSOS}
-                disabled={isGeneratingSOS}
-                className={`px-3 h-12 rounded-2xl shrink-0 flex items-center gap-1.5 transition-all ${isGeneratingSOS ? 'bg-primary/20 animate-pulse' : 'bg-primary text-navy-deep shadow-neon-cyan active:scale-90'
-                  }`}
-              >
-                <span className="material-symbols-outlined text-lg font-black">
-                  {isGeneratingSOS ? 'sync' : 'psychology'}
-                </span>
-                <span className="text-xs font-black whitespace-nowrap">SOS 힌트</span>
-              </button>
-
-              <div className="flex-1 bg-black/40 rounded-2xl border border-white/5 px-2 py-1 flex items-center focus-within:border-primary/40 transition-all">
+            <div className="flex flex-col gap-3">
+              <div className="bg-black/40 rounded-[1.6rem] border border-white/5 px-3 py-2 flex items-end gap-2 focus-within:border-primary/40 transition-all">
                 <textarea
                   ref={textareaRef}
-                  rows={1}
-                  className="w-full bg-transparent border-none px-4 py-2 text-base text-white placeholder-slate-600 outline-none resize-none hide-scrollbar max-h-[80px] leading-relaxed"
-                  placeholder="여기에 입력하세요..."
+                  rows={2}
+                  className="flex-1 min-w-0 bg-transparent border-none px-3 py-2 text-base text-white placeholder-slate-600 outline-none resize-none hide-scrollbar min-h-[56px] max-h-[132px] leading-relaxed"
+                  placeholder="메시지를 입력하세요..."
                   value={inputText}
                   disabled={isLoading}
                   onChange={e => setInputText(e.target.value)}
@@ -1097,28 +1085,39 @@ ${recentMsgs}
                 <button
                   onClick={() => handleSend(inputText)}
                   disabled={!inputText.trim() || isLoading}
-                  className="size-9 bg-white/5 hover:bg-primary hover:text-navy-deep rounded-xl flex items-center justify-center transition-all disabled:opacity-20 shrink-0"
+                  className="size-11 bg-white/5 hover:bg-primary hover:text-navy-deep rounded-2xl flex items-center justify-center transition-all disabled:opacity-20 shrink-0 mb-1"
                 >
-                  <span className="material-symbols-outlined text-sm font-black">send</span>
+                  <span className="material-symbols-outlined text-base font-black">send</span>
                 </button>
               </div>
 
-              {/* Instant Coaching Button */}
-              <button
-                onClick={handleInstantCoaching}
-                disabled={isCoachingLoading || messages.filter(m => m.role === 'user').length === 0 || isLoading}
-                className={`px-3 h-12 rounded-2xl shrink-0 flex items-center gap-1.5 transition-all ${
-                  isCoachingLoading
-                    ? 'bg-amber-500/20 animate-pulse'
-                    : 'bg-amber-500 text-navy-deep shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:shadow-[0_0_25px_rgba(245,158,11,0.5)] active:scale-90 disabled:opacity-30 disabled:shadow-none'
-                }`}
-              >
-                <span className="material-symbols-outlined text-lg font-black">
-                  {isCoachingLoading ? 'sync' : 'tips_and_updates'}
-                </span>
-                <span className="text-xs font-black whitespace-nowrap">즉시 코칭</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm items-center sm:gap-3">
+                <button
+                  onClick={handleSOS}
+                  disabled={isGeneratingSOS}
+                  className={`h-11 rounded-2xl px-4 flex items-center justify-center gap-2 transition-all ${isGeneratingSOS ? 'bg-primary/20 animate-pulse' : 'bg-primary text-navy-deep shadow-neon-cyan active:scale-95'}`}
+                >
+                  <span className="material-symbols-outlined text-lg font-black">
+                    {isGeneratingSOS ? 'sync' : 'psychology'}
+                  </span>
+                  <span className="text-xs font-black whitespace-nowrap">SOS 힌트</span>
+                </button>
 
+                <button
+                  onClick={handleInstantCoaching}
+                  disabled={isCoachingLoading || messages.filter(m => m.role === 'user').length === 0 || isLoading}
+                  className={`h-11 rounded-2xl px-4 flex items-center justify-center gap-2 transition-all ${
+                    isCoachingLoading
+                      ? 'bg-amber-500/20 animate-pulse'
+                      : 'bg-amber-500 text-navy-deep shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:shadow-[0_0_25px_rgba(245,158,11,0.5)] active:scale-95 disabled:opacity-30 disabled:shadow-none'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-lg font-black">
+                    {isCoachingLoading ? 'sync' : 'tips_and_updates'}
+                  </span>
+                  <span className="text-xs font-black whitespace-nowrap">즉시 코칭</span>
+                </button>
+              </div>
             </div>
           </div>
         </main>
