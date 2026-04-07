@@ -1,0 +1,553 @@
+{
+  "version": "3.0",
+  "lastUpdated": "2026-04-07T03:35:27.028Z",
+  "activeFeatures": [
+    "screens",
+    "missionBriefings.ts",
+    "trustLevelService.ts",
+    "analyticsService.ts",
+    "leader-s-high",
+    "authService.ts"
+  ],
+  "primaryFeature": "screens",
+  "features": {
+    "screens": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-06T14:40:14.855Z",
+        "lastUpdated": "2026-04-07T03:35:27.028Z"
+      },
+      "lastFile": "/Users/stonylee/workspace/leader-s-high/screens/AuthCallback.tsx"
+    },
+    "missionBriefings.ts": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-06T14:47:46.218Z",
+        "lastUpdated": "2026-04-06T14:52:01.948Z"
+      },
+      "lastFile": "/Users/stonylee/workspace/leader-s-high/services/missionBriefings.ts"
+    },
+    "trustLevelService.ts": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-06T15:22:44.928Z",
+        "lastUpdated": "2026-04-06T15:42:05.387Z"
+      },
+      "lastFile": "/Users/stonylee/workspace/leader-s-high/services/trustLevelService.ts"
+    },
+    "analyticsService.ts": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-06T15:29:59.557Z",
+        "lastUpdated": "2026-04-06T15:29:59.557Z"
+      },
+      "lastFile": "/Users/stonylee/workspace/leader-s-high/services/analyticsService.ts"
+    },
+    "leader-s-high": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-06T15:30:22.334Z",
+        "lastUpdated": "2026-04-07T03:34:18.081Z"
+      },
+      "lastFile": "/Users/stonylee/workspace/leader-s-high/src/lib/supabase.ts"
+    },
+    "authService.ts": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-07T03:32:43.733Z",
+        "lastUpdated": "2026-04-07T03:32:43.733Z"
+      },
+      "lastFile": "/Users/stonylee/workspace/leader-s-high/services/authService.ts"
+    }
+  },
+  "pipeline": {
+    "currentPhase": 1,
+    "level": "Dynamic",
+    "phaseHistory": []
+  },
+  "session": {
+    "startedAt": "2026-04-06T14:37:24.293Z",
+    "onboardingCompleted": false,
+    "lastActivity": "2026-04-07T03:35:27.028Z"
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-06T14:40:14.855Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:44:54.939Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:47:46.218Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:47:56.232Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:48:09.552Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:48:22.511Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:48:32.182Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:48:42.708Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:48:53.477Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:49:03.774Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:49:13.028Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:49:20.133Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:49:27.072Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:49:34.214Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:49:41.031Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:49:48.704Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:49:54.899Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:50:07.563Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:50:14.321Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:50:20.317Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:50:27.486Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:50:35.214Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:50:42.071Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:50:48.109Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:51:03.325Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:51:09.719Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:51:16.213Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:51:22.914Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:51:29.063Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:51:37.088Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:51:44.913Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:51:51.020Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:52:01.948Z",
+      "feature": "missionBriefings.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T14:55:34.674Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:12:45.078Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:14:57.205Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:15:03.924Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:15:21.219Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:19:20.135Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:22:44.928Z",
+      "feature": "trustLevelService.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:22:59.408Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:26:15.188Z",
+      "feature": "trustLevelService.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:27:10.285Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:27:40.221Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:27:56.057Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:29:35.087Z",
+      "feature": "trustLevelService.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:29:45.301Z",
+      "feature": "trustLevelService.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:29:59.557Z",
+      "feature": "analyticsService.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:30:02.611Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:30:22.334Z",
+      "feature": "leader-s-high",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:30:40.116Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:30:45.796Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:31:46.797Z",
+      "feature": "trustLevelService.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:35:26.525Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:35:38.778Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:41:45.138Z",
+      "feature": "trustLevelService.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:41:51.915Z",
+      "feature": "trustLevelService.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:42:05.387Z",
+      "feature": "trustLevelService.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:42:21.818Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:42:31.284Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:42:43.533Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:42:53.706Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-06T15:43:04.828Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-07T03:32:35.850Z",
+      "feature": "leader-s-high",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-07T03:32:43.733Z",
+      "feature": "authService.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-07T03:32:55.889Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-07T03:33:02.141Z",
+      "feature": "leader-s-high",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-07T03:33:11.145Z",
+      "feature": "leader-s-high",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-07T03:34:18.081Z",
+      "feature": "leader-s-high",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-07T03:35:01.195Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-07T03:35:17.361Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-07T03:35:27.028Z",
+      "feature": "screens",
+      "phase": "do",
+      "action": "updated"
+    }
+  ],
+  "stateMachine": {
+    "defaultWorkflow": "default",
+    "activeWorkflows": {},
+    "totalTransitions": 0
+  },
+  "automation": {
+    "globalLevel": 2,
+    "trustScore": 40,
+    "pendingApprovals": 0,
+    "lastGateResult": null
+  },
+  "team": {
+    "enabled": true,
+    "stateFile": ".bkit/runtime/agent-state.json",
+    "eventsFile": ".bkit/runtime/agent-events.jsonl"
+  }
+}

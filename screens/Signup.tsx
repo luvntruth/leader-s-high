@@ -61,12 +61,25 @@ export default function Signup() {
         return;
       }
 
-      // 게스트 전환: 저장된 transcript로 피드백 화면 이동
-      const guestData = localStorage.getItem('leadershigh_guest_transcript');
-      if (isGuestConversion && guestData) {
-        const { transcript, scenario, sosTipHistory } = JSON.parse(guestData);
-        localStorage.removeItem('leadershigh_guest_transcript');
-        navigate('/feedback', { state: { transcript, scenario, sosTipHistory }, replace: true });
+      // 게스트 전환: location.state로 전달된 데이터 우선 사용, 없으면 localStorage 폴백
+      if (isGuestConversion) {
+        if (pendingTranscript) {
+          // Feedback → Signup 경로: location.state에 데이터 있음
+          navigate('/feedback', {
+            state: { transcript: pendingTranscript, scenario: pendingScenario, sosTipHistory: pendingSosTipHistory },
+            replace: true,
+          });
+        } else {
+          // 구형 경로 폴백: localStorage 확인
+          const guestData = localStorage.getItem('leadershigh_guest_transcript');
+          if (guestData) {
+            const { transcript, scenario, sosTipHistory } = JSON.parse(guestData);
+            localStorage.removeItem('leadershigh_guest_transcript');
+            navigate('/feedback', { state: { transcript, scenario, sosTipHistory }, replace: true });
+          } else {
+            navigate('/', { replace: true });
+          }
+        }
       } else {
         navigate('/', { replace: true });
       }
@@ -85,13 +98,20 @@ export default function Signup() {
 
   const handleGoogle = async () => {
     setError('');
-    // Google OAuth 리다이렉트 전에 pending 구매 데이터 sessionStorage에 보존
+    // Google OAuth 리다이렉트 전에 데이터 sessionStorage에 보존
     if (intent === 'golden-script' && pendingTranscript) {
       sessionStorage.setItem('leadershigh_pending_purchase', JSON.stringify({
         transcript: pendingTranscript,
         scenario: pendingScenario,
         sosTipHistory: pendingSosTipHistory,
         evaluation: pendingEvaluation,
+      }));
+    } else if (isGuestConversion && pendingTranscript) {
+      // 게스트 전환 시 transcript를 sessionStorage에 보존 (OAuth 리다이렉트 후 복원)
+      sessionStorage.setItem('leadershigh_guest_conversion', JSON.stringify({
+        transcript: pendingTranscript,
+        scenario: pendingScenario,
+        sosTipHistory: pendingSosTipHistory,
       }));
     }
     try {

@@ -71,10 +71,15 @@ export const authService = {
 
   /** Google OAuth 로그인 */
   async signInWithGoogle() {
+    const callbackUrl = `${window.location.origin}/#/auth/callback`;
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: callbackUrl,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       },
     });
     if (error) throw error;

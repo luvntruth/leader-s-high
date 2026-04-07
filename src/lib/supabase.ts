@@ -13,5 +13,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // 정확한 Database 타입을 생성하여 제네릭에 전달하세요.
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder'
+  supabaseAnonKey || 'placeholder',
+  {
+    auth: {
+      detectSessionInUrl: true,
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  }
 );

@@ -1,0 +1,404 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1775486244379,
+  "projectRoot": "/Users/stonylee/workspace/leader-s-high",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "react",
+        "version": "19.2.3",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.2.3",
+        "category": "frontend"
+      },
+      {
+        "name": "vite",
+        "version": "6.0.5",
+        "category": "build"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "vite",
+      "build": "tsc && vite build",
+      "preview": "vite preview"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "components",
+      "docs",
+      "src"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "components": {
+      "path": "components",
+      "purpose": "UI components",
+      "fileCount": 6,
+      "lastAccessed": 1775486244370,
+      "keyFiles": [
+        "AuthGuard.tsx",
+        "BottomNav.tsx",
+        "CompetencyRadar.tsx",
+        "GameUIComponents.tsx",
+        "Navigation.tsx"
+      ]
+    },
+    "contexts": {
+      "path": "contexts",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1775486244371,
+      "keyFiles": [
+        "AuthContext.tsx"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 4,
+      "lastAccessed": 1775486244374,
+      "keyFiles": [
+        "api-cost-estimate.md",
+        "growth-events-ko.md",
+        "leader-high-user-flow-ko.md",
+        "trust-difficulty-spec.md"
+      ]
+    },
+    "screens": {
+      "path": "screens",
+      "purpose": null,
+      "fileCount": 26,
+      "lastAccessed": 1775486244374,
+      "keyFiles": [
+        "AdminDashboard.tsx",
+        "CustomLab.tsx",
+        "DevPanel.tsx",
+        "Feedback.tsx",
+        "HistoryDetail.tsx"
+      ]
+    },
+    "services": {
+      "path": "services",
+      "purpose": "Business logic services",
+      "fileCount": 12,
+      "lastAccessed": 1775486244375,
+      "keyFiles": [
+        "analyticsService.ts",
+        "authService.ts",
+        "billingService.ts",
+        "characterAvatars.ts",
+        "dataService.ts"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1775486244375,
+      "keyFiles": []
+    },
+    "supabase": {
+      "path": "supabase",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1775486244375,
+      "keyFiles": []
+    },
+    "worker": {
+      "path": "worker",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1775486244375,
+      "keyFiles": [
+        "index.ts",
+        "wrangler.toml"
+      ]
+    },
+    "src/lib": {
+      "path": "src/lib",
+      "purpose": "Library code",
+      "fileCount": 2,
+      "lastAccessed": 1775486244376,
+      "keyFiles": [
+        "geminiClient.ts",
+        "supabase.ts"
+      ]
+    },
+    "src/types": {
+      "path": "src/types",
+      "purpose": "Type definitions",
+      "fileCount": 1,
+      "lastAccessed": 1775486244376,
+      "keyFiles": [
+        "database.ts"
+      ]
+    },
+    "supabase/migrations": {
+      "path": "supabase/migrations",
+      "purpose": "Database migrations",
+      "fileCount": 5,
+      "lastAccessed": 1775486244376,
+      "keyFiles": [
+        "001_schema.sql",
+        "002_plan_expires.sql",
+        "003_report_purchases.sql"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "screens/Simulation.tsx",
+      "accessCount": 66,
+      "lastAccessed": 1775532824874,
+      "type": "directory"
+    },
+    {
+      "path": "services/missionBriefings.ts",
+      "accessCount": 34,
+      "lastAccessed": 1775487122718,
+      "type": "directory"
+    },
+    {
+      "path": "services/trustLevelService.ts",
+      "accessCount": 17,
+      "lastAccessed": 1775532106269,
+      "type": "directory"
+    },
+    {
+      "path": "screens/Signup.tsx",
+      "accessCount": 14,
+      "lastAccessed": 1775532918069,
+      "type": "file"
+    },
+    {
+      "path": "screens/Feedback.tsx",
+      "accessCount": 10,
+      "lastAccessed": 1775532871990,
+      "type": "file"
+    },
+    {
+      "path": "App.tsx",
+      "accessCount": 8,
+      "lastAccessed": 1775532791797,
+      "type": "file"
+    },
+    {
+      "path": "screens/Setup.tsx",
+      "accessCount": 8,
+      "lastAccessed": 1775532825251,
+      "type": "file"
+    },
+    {
+      "path": "components/AuthGuard.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1775532821112,
+      "type": "file"
+    },
+    {
+      "path": "screens/Home.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1775532128529,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 4,
+      "lastAccessed": 1775532570563,
+      "type": "directory"
+    },
+    {
+      "path": "screens/Pricing.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1775532815036,
+      "type": "file"
+    },
+    {
+      "path": "src/lib/supabase.ts",
+      "accessCount": 4,
+      "lastAccessed": 1775532858812,
+      "type": "file"
+    },
+    {
+      "path": "constants.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1775486815805,
+      "type": "file"
+    },
+    {
+      "path": "services/analyticsService.ts",
+      "accessCount": 3,
+      "lastAccessed": 1775489400188,
+      "type": "file"
+    },
+    {
+      "path": "services/authService.ts",
+      "accessCount": 3,
+      "lastAccessed": 1775532764397,
+      "type": "file"
+    },
+    {
+      "path": "screens/Login.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1775532810288,
+      "type": "file"
+    },
+    {
+      "path": "screens/Onboarding.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1775532810682,
+      "type": "file"
+    },
+    {
+      "path": "screens/Profile.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1775532824824,
+      "type": "file"
+    },
+    {
+      "path": ".env.example",
+      "accessCount": 3,
+      "lastAccessed": 1775532851399,
+      "type": "file"
+    },
+    {
+      "path": "screens",
+      "accessCount": 2,
+      "lastAccessed": 1775532129266,
+      "type": "directory"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 2,
+      "lastAccessed": 1775532596464,
+      "type": "file"
+    },
+    {
+      "path": "src/types/database.ts",
+      "accessCount": 2,
+      "lastAccessed": 1775532610441,
+      "type": "file"
+    },
+    {
+      "path": "contexts/AuthContext.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1775532712650,
+      "type": "file"
+    },
+    {
+      "path": "src/lib/geminiClient.ts",
+      "accessCount": 2,
+      "lastAccessed": 1775532776260,
+      "type": "file"
+    },
+    {
+      "path": "screens/AuthCallback.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1775532927680,
+      "type": "file"
+    },
+    {
+      "path": "src",
+      "accessCount": 1,
+      "lastAccessed": 1775486340984,
+      "type": "directory"
+    },
+    {
+      "path": "types.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775486359438,
+      "type": "file"
+    },
+    {
+      "path": "services/usageService.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775486363164,
+      "type": "file"
+    },
+    {
+      "path": "screens/Landing.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1775532575525,
+      "type": "file"
+    },
+    {
+      "path": "vite.config.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775532586863,
+      "type": "file"
+    },
+    {
+      "path": "index.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1775532603051,
+      "type": "file"
+    },
+    {
+      "path": "index.html",
+      "accessCount": 1,
+      "lastAccessed": 1775532610622,
+      "type": "file"
+    },
+    {
+      "path": "worker/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775532779833,
+      "type": "file"
+    },
+    {
+      "path": "worker/wrangler.toml",
+      "accessCount": 1,
+      "lastAccessed": 1775532779885,
+      "type": "file"
+    },
+    {
+      "path": "screens/ResetPassword.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1775532815068,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

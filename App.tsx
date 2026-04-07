@@ -34,6 +34,7 @@ const Onboarding = React.lazy(() => import('./screens/Onboarding'));
 const DevPanel = React.lazy(() => import('./screens/DevPanel'));
 const PlaybookSample = React.lazy(() => import('./screens/PlaybookSample'));
 const PurchasePlaybook = React.lazy(() => import('./screens/PurchasePlaybook'));
+const AuthCallback = React.lazy(() => import('./screens/AuthCallback'));
 
 // Google OAuth 리다이렉트 후 pending 구매 데이터가 있으면 /purchase/playbook으로 이동
 const PendingPurchaseRedirect: React.FC = () => {
@@ -98,6 +99,7 @@ const App: React.FC = () => {
               {/* 공개 라우트 */}
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
