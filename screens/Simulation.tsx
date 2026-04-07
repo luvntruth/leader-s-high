@@ -682,7 +682,7 @@ ${recentMsgs}
         </div>
 
         {/* ── LEFT PANEL: TACTICAL STATUS (30%) ── */}
-        <aside className="w-full sm:w-[30%] bg-black/40 backdrop-blur-3xl border-r border-white/5 z-20 flex flex-col shrink-0">
+        <aside className="hidden sm:flex w-full sm:w-[30%] bg-black/40 backdrop-blur-3xl border-r border-white/5 z-20 flex-col shrink-0">
           <header className="p-6 border-b border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-slate-500 hover:text-white transition-colors">
@@ -927,10 +927,41 @@ ${recentMsgs}
         {/* ── RIGHT AREA: MAIN BATTLE HUD ── */}
         <main className="flex-1 flex flex-col relative z-10 min-h-0">
 
+          {/* Mobile compact status */}
+          <div className="sm:hidden sticky top-0 z-30 px-3 pt-3">
+            <div className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-xl px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="size-11 rounded-xl overflow-hidden border border-white/10 shrink-0" style={{ boxShadow: avatarGlow.shadow }}>
+                    <img src={avatarUrl} alt={config.name} className="size-full object-cover" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-black text-white truncate">{config.name}</span>
+                      <span className="text-base shrink-0">{emotionEmoji}</span>
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{characterInfo.role} · {config.generation}</p>
+                  </div>
+                </div>
+                <button onClick={() => navigate(-1)} className="size-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 shrink-0">
+                  <span className="material-symbols-outlined text-base">west</span>
+                </button>
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${trustState.trust > 70 ? 'bg-green-400' : trustState.trust > 30 ? 'bg-primary' : 'bg-red-500'}`} style={{ width: `${trustState.trust}%` }} />
+                </div>
+                <span className="text-[11px] font-black text-white shrink-0">신뢰 {trustState.trust}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                <span>{emotionLabel}</span>
+                <span>{messages.filter(m => m.role === 'user').length}/{ANALYSIS_COMPLETE_THRESHOLD}</span>
+              </div>
+            </div>
+          </div>
+
           {/* HUD Overlay Info */}
-          <div className="absolute top-6 left-6 right-6 z-30 flex justify-between pointer-events-none">
-
-
+          <div className="absolute top-6 left-6 right-6 z-30 justify-between pointer-events-none hidden sm:flex">
             <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 flex items-center gap-3">
               <span className="text-xs font-black text-slate-500 uppercase tracking-widest">현재 감정 지수</span>
               <span className="text-sm font-black" style={{ color: hpColor }}>{emotionLabel}</span>
@@ -940,7 +971,7 @@ ${recentMsgs}
           {/* Message HUD Area */}
           <div
             ref={scrollRef}
-            className="flex-1 min-h-0 overflow-y-auto px-6 pt-24 pb-[220px] sm:pb-32 space-y-8 scroll-smooth hide-scrollbar"
+            className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 pt-4 sm:pt-24 pb-4 sm:pb-32 space-y-4 sm:space-y-8 scroll-smooth hide-scrollbar"
           >
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -1037,7 +1068,7 @@ ${recentMsgs}
           </div>
 
           {/* ── ACTION INPUT DASHBOARD ── */}
-          <div className="fixed sm:absolute bottom-[calc(76px+env(safe-area-inset-bottom))] sm:bottom-6 left-3 right-3 sm:left-6 sm:right-6 z-40 bg-navy-mid/80 backdrop-blur-2xl border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] p-3 sm:p-4 flex flex-col gap-3 sm:gap-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="relative sm:absolute sm:bottom-6 sm:left-6 sm:right-6 z-40 bg-navy-mid/80 backdrop-blur-2xl border-t sm:border border-white/10 rounded-t-[1.4rem] sm:rounded-[2.5rem] p-3 sm:p-4 flex flex-col gap-3 sm:gap-4 shadow-[0_-10px_30px_rgba(0,0,0,0.25)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.5)] mt-2 sm:mt-0 pb-[calc(12px+env(safe-area-inset-bottom))] sm:pb-4">
 
             {/* Action Suggested / SOS Area */}
             {sosTip && showSOS && !isGeneratingSOS && (
