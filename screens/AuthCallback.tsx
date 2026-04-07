@@ -41,7 +41,14 @@ const AuthCallback: React.FC = () => {
           if (error) throw error;
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
+        let session = null as any;
+        for (let i = 0; i < 10; i++) {
+          const result = await supabase.auth.getSession();
+          session = result.data.session;
+          if (session) break;
+          await new Promise(resolve => setTimeout(resolve, 250));
+        }
+
         if (session) {
           const pendingPurchase = sessionStorage.getItem('leadershigh_pending_purchase');
           const guestConversion = sessionStorage.getItem('leadershigh_guest_conversion');

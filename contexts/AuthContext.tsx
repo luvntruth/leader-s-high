@@ -124,12 +124,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // 초기 세션 확인 (3초 타임아웃)
+    // 초기 세션 확인
     let resolved = false;
     const finishLoading = () => {
       if (!resolved) { resolved = true; setLoading(false); }
     };
-    setTimeout(finishLoading, 3000);
+
+    // 최후 안전장치만 유지 (너무 빠른 loading 종료 방지)
+    setTimeout(finishLoading, 8000);
 
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
