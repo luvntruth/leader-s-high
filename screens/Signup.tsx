@@ -85,7 +85,7 @@ export default function Signup() {
 
   const handleGoogle = async () => {
     setError('');
-    // Google OAuth 리다이렉트 전에 pending 구매 데이터 sessionStorage에 보존
+    // Google OAuth 리다이렉트 전에 복귀 의도와 pending 데이터를 모두 보존
     if (intent === 'golden-script' && pendingTranscript) {
       sessionStorage.setItem('leadershigh_pending_purchase', JSON.stringify({
         transcript: pendingTranscript,
@@ -93,6 +93,9 @@ export default function Signup() {
         sosTipHistory: pendingSosTipHistory,
         evaluation: pendingEvaluation,
       }));
+      sessionStorage.setItem('leadershigh_post_auth_redirect', '/purchase/playbook');
+    } else if (isGuestConversion) {
+      sessionStorage.setItem('leadershigh_post_auth_redirect', '/feedback');
     }
     try {
       await signInWithGoogle();
