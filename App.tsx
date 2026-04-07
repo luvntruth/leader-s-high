@@ -1,11 +1,10 @@
 
-import React, { Suspense, useEffect, useRef } from 'react';
+import React, { Suspense } from 'react';
 // @ts-ignore
-import { HashRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthGuard } from './components/AuthGuard';
 import Navigation from './components/Navigation';
-import { useAuth } from './contexts/AuthContext';
 
 // Lazy-loaded screen components
 const Home = React.lazy(() => import('./screens/Home'));
@@ -35,43 +34,6 @@ const DevPanel = React.lazy(() => import('./screens/DevPanel'));
 const PlaybookSample = React.lazy(() => import('./screens/PlaybookSample'));
 const PurchasePlaybook = React.lazy(() => import('./screens/PurchasePlaybook'));
 const AuthCallback = React.lazy(() => import('./screens/AuthCallback'));
-
-// OAuth 로그인 완료 후 sessionStorage 기반으로 적절한 화면으로 이동
-const PendingPurchaseRedirect: React.FC = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const prevUserRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    const prevUser = prevUserRef.current;
-    prevUserRef.current = user?.id ?? null;
-    // null → 로그인 상태로 전환된 경우만 처리 (새 로그인)
-    if (!prevUser && user) {
-      const pending = sessionStorage.getItem('leadershigh_pending_purchase');
-      const guestConversion = sessionStorage.getItem('leadershigh_guest_conversion');
-
-      if (pending) {
-        // 구매 intent: 결제 화면으로
-        navigate('/purchase/playbook', { replace: true });
-      } else if (guestConversion) {
-        // 게스트 전환: 피드백 화면으로 (데이터 복원)
-        try {
-          const { transcript, scenario, sosTipHistory } = JSON.parse(guestConversion);
-          sessionStorage.removeItem('leadershigh_guest_conversion');
-          navigate('/feedback', { state: { transcript, scenario, sosTipHistory }, replace: true });
-        } catch {
-          sessionStorage.removeItem('leadershigh_guest_conversion');
-          navigate('/onboarding', { replace: true });
-        }
-      } else if (window.location.hash.includes('access_token')) {
-        // Implicit flow 리다이렉트 후 특별한 intent 없음 → 온보딩으로
-        navigate('/onboarding', { replace: true });
-      }
-    }
-  }, [user, navigate]);
-
-  return null;
-};
 
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
@@ -104,7 +66,6 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <HashRouter>
-        <PendingPurchaseRedirect />
         <LayoutWrapper>
           <Suspense fallback={
             <div className="min-h-screen flex items-center justify-center bg-slate-950">

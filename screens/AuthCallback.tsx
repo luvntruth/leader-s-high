@@ -55,17 +55,17 @@ const AuthCallback: React.FC = () => {
           const postAuthRedirect = sessionStorage.getItem('leadershigh_post_auth_redirect');
 
           if (pendingPurchase) {
+            sessionStorage.removeItem('leadershigh_pending_purchase');
             navigate('/purchase/playbook', { replace: true });
           } else if (guestConversion) {
+            sessionStorage.removeItem('leadershigh_guest_conversion');
             try {
               const { transcript, scenario, sosTipHistory } = JSON.parse(guestConversion);
-              sessionStorage.removeItem('leadershigh_guest_conversion');
               navigate('/feedback', {
                 state: { transcript, scenario, sosTipHistory },
                 replace: true,
               });
             } catch {
-              sessionStorage.removeItem('leadershigh_guest_conversion');
               navigate('/onboarding', { replace: true });
             }
           } else if (postAuthRedirect) {
