@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { SCENARIOS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
+import Navigation from '../components/Navigation';
 import { getCharacterAvatar } from '../services/characterAvatars';
 import { analyticsService } from '../services/analyticsService';
 
@@ -49,14 +50,27 @@ const Onboarding: React.FC = () => {
   }, [user]);
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
-      className="flex flex-col min-h-screen bg-slate-950 font-manrope text-white"
-    >
+    <>
+      {user && <Navigation />}
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+        className={`flex flex-col min-h-screen bg-slate-950 font-manrope text-white ${user ? 'lg:ml-72' : ''}`}
+      >
       {/* Hero section */}
-      <motion.div variants={itemVariants} className="px-6 pt-16 pb-8 text-center">
+      <motion.div variants={itemVariants} className="px-6 pt-16 pb-8 text-center relative">
+        {user && (
+          <div className="absolute top-0 right-0 flex items-center gap-2">
+            <button
+              onClick={() => navigate('/profile')}
+              className="px-3 py-2 rounded-xl border border-white/10 bg-white/[0.04] text-xs font-bold text-slate-200 hover:bg-white/[0.08] transition-colors"
+            >
+              마이페이지
+            </button>
+          </div>
+        )}
+
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -166,11 +180,12 @@ const Onboarding: React.FC = () => {
           onClick={() => firstScenario && navigate('/setup', { state: { scenario: firstScenario, ...(!user && { guest: true }) } })}
           className="w-full py-5 rounded-2xl bg-amber-500 text-slate-900 font-black text-sm uppercase tracking-widest shadow-lg shadow-amber-500/20 hover:bg-amber-400 transition-all flex items-center justify-center gap-2"
         >
-          무료 체험 시작하기
+          {user ? '시뮬레이션 시작하기' : '무료 체험 시작하기'}
           <span className="text-lg">&rarr;</span>
         </motion.button>
       </motion.div>
     </motion.div>
+    </>
   );
 };
 
