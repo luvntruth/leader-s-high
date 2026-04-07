@@ -64,21 +64,21 @@ const Onboarding: React.FC = () => {
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 mb-8"
         >
           <span className="size-2 rounded-full bg-amber-400 animate-pulse" />
-          <span className="text-amber-400 text-xs font-bold tracking-wide">첫 번째 훈련</span>
+          <span className="text-amber-400 text-xs font-bold tracking-wide">무료 체험 3개 시나리오</span>
         </motion.div>
 
         <h1 className="text-3xl lg:text-4xl font-black tracking-tight mb-4 leading-tight">
           환영합니다, <span className="text-amber-400">{displayName}</span>님
         </h1>
         <p className="text-slate-400 text-sm lg:text-base leading-relaxed max-w-md mx-auto font-medium">
-          팀장으로서 어려운 대화, AI와 먼저 연습하세요
+          어려운 팀원 대화를 AI와 먼저 연습하고, 오늘 바로 써먹을 수 있는 피드백을 받아보세요.
         </p>
       </motion.div>
 
       {/* Scenario cards */}
       <motion.div variants={containerVariants} className="px-6 pb-8 space-y-4 flex-1">
         <motion.p variants={itemVariants} className="text-[10px] font-black text-slate-500 uppercase tracking-[0.22em] px-1 mb-2">
-          추천 시나리오
+          지금 바로 시작할 수 있는 시나리오
         </motion.p>
 
         {CURATED.map((curated, idx) => {
@@ -166,7 +166,7 @@ const Onboarding: React.FC = () => {
           onClick={() => firstScenario && navigate('/setup', { state: { scenario: firstScenario, ...(!user && { guest: true }) } })}
           className="w-full py-5 rounded-2xl bg-amber-500 text-slate-900 font-black text-sm uppercase tracking-widest shadow-lg shadow-amber-500/20 hover:bg-amber-400 transition-all flex items-center justify-center gap-2"
         >
-          첫 번째 도전 시작하기
+          무료 체험 시작하기
           <span className="text-lg">&rarr;</span>
         </motion.button>
       </motion.div>

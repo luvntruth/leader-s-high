@@ -295,7 +295,7 @@ const Feedback: React.FC = () => {
     performEvaluation();
   }, [transcript]);
 
-  // ── 로딩 화면: 전투 데이터 분석 중 ──
+  // ── 로딩 화면: 대화 결과 분석 중 ──
   if (isAnalysing) {
     return (
       <div className="h-screen bg-[#060B18] command-center-bg flex flex-col items-center justify-center p-8 text-center font-manrope relative overflow-hidden">
@@ -309,15 +309,15 @@ const Feedback: React.FC = () => {
           </div>
           <div className="absolute inset-0 rounded-full animate-hologram-scan opacity-50" />
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary/20 border border-primary/30 px-3 py-1 rounded-full">
-            <span className="text-primary text-[9px] font-black uppercase tracking-widest">Scanning</span>
+            <span className="text-primary text-[9px] font-black uppercase tracking-widest">Analyzing</span>
           </div>
         </div>
 
-        <h2 className="text-xl font-black text-white mb-3 uppercase tracking-[0.3em]" style={{ textShadow: '0 0 20px rgba(0,242,255,0.5)' }}>
-          전투 데이터 분석 중...
+        <h2 className="text-xl font-black text-white mb-3 uppercase tracking-[0.2em]" style={{ textShadow: '0 0 20px rgba(0,242,255,0.5)' }}>
+          대화 결과를 분석하고 있습니다
         </h2>
         <p className="text-slate-500 text-xs max-w-xs leading-relaxed font-medium mb-8">
-          {charInfo.name} {charInfo.role}와의 면담 데이터를 AI 엔진이 정밀 분석하고 있습니다.
+          {charInfo.name} {charInfo.role}와의 대화를 바탕으로 바로 적용할 수 있는 피드백을 정리하고 있습니다.
         </p>
         <div className="flex items-center gap-1.5">
           {[0, 0.15, 0.3, 0.45].map((d, i) => (
@@ -459,7 +459,7 @@ const Feedback: React.FC = () => {
           </div>
           <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-5 flex items-center gap-2">
             <span className="material-symbols-outlined text-xs">description</span>
-            사령관 브리핑
+            대화 요약
           </h3>
           <p className="text-lg font-bold leading-[1.8] text-white/90 italic">"{evaluation.summary}"</p>
 
@@ -495,7 +495,7 @@ const Feedback: React.FC = () => {
               <span className="size-7 rounded-lg bg-emerald-500/20 flex items-center justify-center">
                 <span className="material-symbols-outlined text-sm">bolt</span>
               </span>
-              크리티컬 히트
+              잘한 점
             </h3>
             <div className="space-y-5">
               {evaluation.strengths.map((s, i) => (
@@ -518,7 +518,7 @@ const Feedback: React.FC = () => {
               <span className="size-7 rounded-lg bg-red-500/20 flex items-center justify-center">
                 <span className="material-symbols-outlined text-sm">heart_broken</span>
               </span>
-              데미지 리포트
+              개선할 점
             </h3>
             <div className="space-y-5">
               {evaluation.improvements.map((s, i) => (
@@ -543,7 +543,7 @@ const Feedback: React.FC = () => {
               <span className="size-7 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400">
                 <span className="material-symbols-outlined text-sm">psychology</span>
               </span>
-              스킬 스테이터스
+              코칭 역량 요약
             </h3>
             <div className="space-y-4">
               {[

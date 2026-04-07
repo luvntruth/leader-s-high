@@ -638,8 +638,8 @@ const Simulation: React.FC = () => {
                 <span className="material-symbols-outlined">west</span>
               </button>
               <div>
-                <h1 className="text-sm font-black tracking-[0.3em] text-primary uppercase">전술 HUD</h1>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-0.5">작전명: {scenario?.title?.split(' ')[0] || 'LEADER_SIM'}</p>
+                <h1 className="text-sm font-black tracking-[0.2em] text-primary uppercase">대화 화면</h1>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-0.5">시나리오: {scenario?.title?.split(' ')[0] || 'LEADER_SIM'}</p>
               </div>
             </div>
             <div className="size-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#00F2FF]" />
@@ -685,7 +685,7 @@ const Simulation: React.FC = () => {
                 <span className="material-symbols-outlined text-4xl">analytics</span>
               </div>
               <h3 className="text-sm font-black text-primary uppercase tracking-widest mb-4 flex items-center gap-2 border-b border-primary/20 pb-2">
-                개별 심리 보고서
+                대화 상대 요약
               </h3>
 
               <div className="space-y-4">
@@ -720,7 +720,7 @@ const Simulation: React.FC = () => {
 
             {/* 핵심 수행 과제 (복구) */}
             <section className="bg-white/5 border border-white/10 rounded-2xl p-5">
-              <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">핵심 전술 목표</h3>
+              <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">이번 대화에서 볼 포인트</h3>
               <div className="space-y-3">
                 {missionBriefing.tasks?.map((task: string, i: number) => (
                   <div key={i} className="flex gap-3 items-start text-sm text-slate-400 leading-relaxed">
@@ -743,7 +743,7 @@ const Simulation: React.FC = () => {
               </div>
 
               <div className="flex flex-col space-y-4">
-                <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">전술 이벤트 로그</h3>
+                <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">대화 변화 로그</h3>
                 <div className="space-y-3">
                   {trustState.lastEvents.length > 0 ? trustState.lastEvents.slice(-3).map((event, i) => (
                     <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
@@ -760,7 +760,7 @@ const Simulation: React.FC = () => {
                     </div>
                   )) : (
                     <div className="text-center py-8 border border-dashed border-white/10 rounded-2xl">
-                      <p className="text-sm font-bold text-slate-600 italic">Accessing Battle History...</p>
+                      <p className="text-sm font-bold text-slate-600 italic">대화 흐름을 분석하는 중입니다...</p>
                     </div>
                   )}
                 </div>
@@ -769,7 +769,7 @@ const Simulation: React.FC = () => {
           </div>
 
           <footer className="p-6 border-t border-white/5 flex items-center gap-4">
-            <TacticalCircularTimer value={messages.filter(m => m.role === 'user').length * (100 / ANALYSIS_COMPLETE_THRESHOLD)} label={`${messages.filter(m => m.role === 'user').length}/${ANALYSIS_COMPLETE_THRESHOLD}`} subLabel="Turns" />
+            <TacticalCircularTimer value={messages.filter(m => m.role === 'user').length * (100 / ANALYSIS_COMPLETE_THRESHOLD)} label={`${messages.filter(m => m.role === 'user').length}/${ANALYSIS_COMPLETE_THRESHOLD}`} subLabel="대화 수" />
             <div className="flex-1">
               <button
                 onClick={async () => {
@@ -851,7 +851,7 @@ const Simulation: React.FC = () => {
                 <div className={`max-w-[85%] group`}>
                   <div className={`flex items-center gap-2 mb-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                     <span className={`text-xs font-black uppercase tracking-widest ${msg.role === 'user' ? 'text-primary' : 'text-slate-500'}`}>
-                      {msg.role === 'user' ? 'Commanding Officer' : config.name}
+                      {msg.role === 'user' ? '나' : config.name}
                     </span>
                     <span className="text-[10px] font-bold text-white/20 uppercase tabular-nums">
                       {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -1056,8 +1056,8 @@ const Simulation: React.FC = () => {
                 <div className="absolute inset-4 bg-primary/20 rounded-full animate-pulse" />
               </div>
               <div className="text-center">
-                <p className="text-primary font-black tracking-[0.4em] uppercase text-sm animate-pulse">Analyzing Battlefield</p>
-                <p className="text-slate-500 text-[10px] font-bold uppercase mt-2">Accessing Neural Patterns...</p>
+                <p className="text-primary font-black tracking-[0.25em] uppercase text-sm animate-pulse">대화 흐름을 분석하고 있습니다</p>
+                <p className="text-slate-500 text-[10px] font-bold uppercase mt-2">조금만 기다려주세요</p>
               </div>
             </div>
           </div>

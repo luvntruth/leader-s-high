@@ -61,11 +61,11 @@ const Setup: React.FC = () => {
           className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors group"
         >
           <span className="material-symbols-outlined group-hover:-translate-x-1 transition-transform">arrow_back</span>
-          <span className="font-bold tracking-tighter text-sm">기지로 돌아가기</span>
+          <span className="font-bold tracking-tighter text-sm">이전으로 돌아가기</span>
         </button>
         <div className="text-right">
-          <h1 className="text-4xl font-black italic tracking-tighter text-white/90">인사 기록 파일</h1>
-          <p className="text-sm text-primary font-bold tracking-[0.2em] uppercase">Security Clearance: Level 4</p>
+          <h1 className="text-4xl font-black tracking-tighter text-white/90">대화 준비</h1>
+          <p className="text-sm text-primary font-bold tracking-[0.12em] uppercase">Scenario Preview</p>
         </div>
       </div>
 
@@ -92,7 +92,7 @@ const Setup: React.FC = () => {
 
             <div className="space-y-1 mb-8">
               <h2 className="text-2xl font-black tracking-tighter">{characterInfo.name}</h2>
-              <p className="text-xs text-white/40 font-medium">소속 부서: {scenario?.category || '작전본부'}</p>
+              <p className="text-xs text-white/40 font-medium">상황 유형: {scenario?.category || '리더십 대화'}</p>
             </div>
 
             {/* Trust Level Circular Gauge */}
@@ -116,12 +116,12 @@ const Setup: React.FC = () => {
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-3xl font-black italic tracking-tighter" style={{ color: getTrustColor(trustLevel) }}>{trustLevel}%</span>
-                  <span className="text-[10px] text-white/30 font-bold tracking-widest">신뢰 지수</span>
+                  <span className="text-[10px] text-white/30 font-bold tracking-widest">대화 준비도</span>
                 </div>
               </div>
               <div className="text-center mt-4 p-4 border-t border-white/5">
                 <p className="text-sm text-white/80 leading-relaxed break-keep">
-                  리더와 팀원 간의 축적된 상호 신뢰도를 의미합니다.
+                  이 수치는 지금 대화를 시작할 때 예상되는 초기 대화 난이도를 보여줍니다.
                 </p>
               </div>
             </div>
@@ -133,7 +133,7 @@ const Setup: React.FC = () => {
           <div className="bg-[#111] border border-white/10 rounded-2xl p-6 flex-grow flex flex-col shadow-2xl">
             <div className="flex items-center gap-3 mb-8">
               <span className="material-symbols-outlined text-primary text-2xl">analytics</span>
-              <h2 className="text-xl font-black italic tracking-tighter text-white/90">역량 분석 레이더</h2>
+              <h2 className="text-xl font-black tracking-tighter text-white/90">상황 미리보기</h2>
             </div>
 
             <div className="bg-black/20 rounded-2xl p-8 mb-8 flex flex-col items-center justify-center min-h-[400px]">
@@ -149,7 +149,7 @@ const Setup: React.FC = () => {
                 tacticalRisk={Math.round(briefing.competencyData.performance * 0.6 + briefing.competencyData.potential * 0.4)}
               />
               <p className="mt-6 text-xs text-white/30 font-bold italic tracking-wider">
-                ※ 모든 역량 지표는 수치가 높을수록 우수함을 의미합니다.
+                ※ 이 화면은 대화 전에 참고하는 상황 요약입니다.
               </p>
             </div>
 
@@ -218,7 +218,7 @@ const Setup: React.FC = () => {
             <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-primary to-transparent"></div>
             <div className="flex items-center gap-2 mb-4">
               <span className="material-symbols-outlined text-primary text-base">psychology</span>
-              <h3 className="text-sm font-black tracking-[0.2em] text-white/80">요원 상태 요약</h3>
+              <h3 className="text-sm font-black tracking-[0.2em] text-white/80">현재 상태 요약</h3>
             </div>
 
             <div className="space-y-6">
@@ -271,7 +271,7 @@ const Setup: React.FC = () => {
           <div className="mt-12">
             <div className="flex items-center gap-3 mb-8">
               <span className="material-symbols-outlined text-primary text-2xl">history</span>
-              <h2 className="text-xl font-black italic tracking-tighter text-white/90">최근 상호작용 기록</h2>
+              <h2 className="text-xl font-black tracking-tighter text-white/90">최근 대화 맥락</h2>
             </div>
 
             <div className="space-y-4">
@@ -299,16 +299,16 @@ const Setup: React.FC = () => {
       {/* Footer: Start Button */}
       <div className="max-w-7xl mx-auto mt-8 flex flex-col md:flex-row items-center justify-between p-6 bg-gradient-to-r from-primary/20 to-transparent rounded-2xl border border-primary/20 shadow-xl">
         <div className="mb-4 md:mb-0">
-          <h3 className="text-xl font-black tracking-tighter italic text-white/90">분석을 마치시고 작전을 개시하시겠습니까?</h3>
+          <h3 className="text-xl font-black tracking-tighter text-white/90">상황을 확인했다면 대화를 시작해보세요</h3>
           <p className="text-sm text-white/70 leading-relaxed max-w-md">
-            요원의 저항 기제를 완화하고 목표 합의를 이끌어낼 지휘 준비가 되셨다면 작전을 개시해주세요.
+            실제 면담 전에 먼저 연습하면서, 어떤 말이 관계와 신뢰에 영향을 주는지 바로 확인할 수 있습니다.
           </p>
         </div>
         <button
           onClick={handleStart}
           className="w-full md:w-auto px-12 py-4 bg-primary text-black font-black italic tracking-tighter rounded-xl hover:bg-[#00d8e8] hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(0,242,255,0.3)] flex items-center justify-center gap-3 group"
         >
-          <span>작전 개시</span>
+          <span>대화 시작하기</span>
           <span className="material-symbols-outlined font-black group-hover:translate-x-2 transition-transform">bolt</span>
         </button>
       </div>
