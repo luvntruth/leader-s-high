@@ -3,7 +3,6 @@ import React, { useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getCharacterAvatar, getCharacterInfo } from '../services/characterAvatars';
 import { getMissionBriefing } from '../services/missionBriefings';
-import { SCENARIOS } from '../constants';
 import { analyticsService } from '../services/analyticsService';
 import CompetencyRadar from '../components/CompetencyRadar';
 
@@ -12,21 +11,24 @@ const Setup: React.FC = () => {
   const location = useLocation();
   const isGuest = location.state?.guest === true;
 
-  // 게스트 모드: late-comer 시나리오 자동 배정 → 바로 시뮬레이션으로
-  useEffect(() => {
-    if (isGuest) {
-      const guestScenario = SCENARIOS.find(s => s.id === 'late-comer');
-      if (guestScenario) {
-        analyticsService.track('guest_sim_start', analyticsService.withAttribution({ scenario_id: 'late-comer' }));
-        navigate('/simulation', {
-          state: { scenario: guestScenario, initialTrust: 65, guest: true },
-          replace: true,
-        });
-      }
-    }
-  }, [isGuest, navigate]);
-
   const scenario = location.state?.scenario;
+
+  // 게스트 모드: onboarding에서 고른 무료 시나리오 그대로 시뮬레이션으로 연결
+  useEffect(() => {
+    if (isGuest && scenario) {
+      const guestTrustLevel = scenario.intensity === 'high' ? 25 : scenario.intensity === 'low' ? 65 : 45;
+
+      analyticsService.track(
+        'guest_sim_start',
+        analyticsService.withAttribution({ scenario_id: scenario.id })
+      );
+
+      navigate('/simulation', {
+        state: { scenario, initialTrust: guestTrustLevel, guest: true },
+        replace: true,
+      });
+    }
+  }, [isGuest, navigate, scenario]);
   const briefing = useMemo(() => getMissionBriefing(scenario?.id), [scenario?.id]);
   const characterInfo = useMemo(() => getCharacterInfo(scenario?.id, scenario?.memberName), [scenario?.id, scenario?.memberName]);
 
