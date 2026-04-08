@@ -130,6 +130,8 @@ const Simulation: React.FC = () => {
   const [isCoachingLoading, setIsCoachingLoading] = useState(false);
   const [showCoaching, setShowCoaching] = useState(false);
   const coachingCacheRef = useRef<Map<string, InstantCoachingResult>>(new Map());
+  const [mobileComposerOffset, setMobileComposerOffset] = useState(0);
+  const [mobileComposerHeight, setMobileComposerHeight] = useState(140);
 
   // Trust Level State Management
   const [trustState, setTrustState] = useState<{
@@ -176,6 +178,7 @@ const Simulation: React.FC = () => {
   const chatRef = useRef<Chat | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
   const emotionMachine = useRef(new EmotionStateMachine(initialTrust));
   const lastUserMessageRef = useRef<string>('');
@@ -610,7 +613,36 @@ ${recentMsgs}
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages]);
+  }, [messages, mobileComposerHeight, mobileComposerOffset]);
+
+  useEffect(() => {
+    const updateMobileLayout = () => {
+      const composerHeight = composerRef.current?.offsetHeight ?? 140;
+      setMobileComposerHeight(composerHeight);
+
+      const vv = window.visualViewport;
+      if (window.innerWidth >= 640 || !vv) {
+        setMobileComposerOffset(0);
+        return;
+      }
+
+      const keyboardHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setMobileComposerOffset(keyboardHeight);
+    };
+
+    updateMobileLayout();
+
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', updateMobileLayout);
+    vv?.addEventListener('scroll', updateMobileLayout);
+    window.addEventListener('resize', updateMobileLayout);
+
+    return () => {
+      vv?.removeEventListener('resize', updateMobileLayout);
+      vv?.removeEventListener('scroll', updateMobileLayout);
+      window.removeEventListener('resize', updateMobileLayout);
+    };
+  }, [inputText, showSOS, sosTip, isGeneratingSOS, showCoaching, instantCoaching]);
 
   // 사용량 제한 — 무료 플랜 소진 시 업그레이드 유도
   if (usageDenied) {
@@ -971,7 +1003,8 @@ ${recentMsgs}
           {/* Message HUD Area */}
           <div
             ref={scrollRef}
-            className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 pt-4 sm:pt-24 pb-4 sm:pb-32 space-y-4 sm:space-y-8 scroll-smooth hide-scrollbar"
+            className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 pt-4 sm:pt-24 sm:pb-32 space-y-4 sm:space-y-8 scroll-smooth hide-scrollbar"
+            style={{ paddingBottom: window.innerWidth < 640 ? `${mobileComposerHeight + mobileComposerOffset + 20}px` : undefined }}
           >
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -1068,7 +1101,8 @@ ${recentMsgs}
           </div>
 
           {/* ── ACTION INPUT DASHBOARD ── */}
-          <div className="relative sm:absolute sm:bottom-6 sm:left-6 sm:right-6 z-40 bg-navy-mid/80 backdrop-blur-2xl border-t sm:border border-white/10 rounded-t-[1.4rem] sm:rounded-[2.5rem] p-3 sm:p-4 flex flex-col gap-3 sm:gap-4 shadow-[0_-10px_30px_rgba(0,0,0,0.25)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.5)] mt-2 sm:mt-0 pb-[calc(12px+env(safe-area-inset-bottom))] sm:pb-4">
+          <div ref={composerRef} className="fixed sm:relative bottom-0 left-0 right-0 sm:left-auto sm:right-auto sm:bottom-auto z-40 bg-navy-mid/95 sm:bg-navy-mid/80 backdrop-blur-2xl border-t sm:border border-white/10 rounded-t-[1.4rem] sm:rounded-[2.5rem] p-3 sm:p-4 flex flex-col gap-3 sm:gap-4 shadow-[0_-10px_30px_rgba(0,0,0,0.25)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.5)] mt-2 sm:mt-0 pb-[calc(12px+env(safe-area-inset-bottom))] sm:pb-4"
+            style={{ transform: window.innerWidth < 640 && mobileComposerOffset > 0 ? `translateY(-${mobileComposerOffset}px)` : undefined }}>
 
             {/* Action Suggested / SOS Area */}
             {sosTip && showSOS && !isGeneratingSOS && (
