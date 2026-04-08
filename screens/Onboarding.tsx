@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { SCENARIOS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
-import Navigation from '../components/Navigation';
 import { getCharacterAvatar } from '../services/characterAvatars';
 import { analyticsService } from '../services/analyticsService';
 
@@ -50,16 +49,14 @@ const Onboarding: React.FC = () => {
   }, [user]);
 
   return (
-    <>
-      {user && <Navigation />}
       <motion.div
         initial="hidden"
         animate="visible"
         variants={containerVariants}
-        className={`flex flex-col min-h-screen bg-slate-950 font-manrope text-white ${user ? 'lg:ml-72' : ''}`}
+        className="flex flex-col min-h-screen bg-slate-950 font-manrope text-white"
       >
       {/* Hero section */}
-      <motion.div variants={itemVariants} className="px-6 pt-16 pb-8 text-center relative">
+      <motion.div variants={itemVariants} className="px-6 pt-16 lg:pt-20 pb-8 text-center relative max-w-5xl mx-auto w-full">
         {user && (
           <div className="absolute top-0 right-0 flex items-center gap-2">
             <button
@@ -81,16 +78,16 @@ const Onboarding: React.FC = () => {
           <span className="text-amber-400 text-xs font-bold tracking-wide">무료 체험 3개 시나리오</span>
         </motion.div>
 
-        <h1 className="text-3xl lg:text-4xl font-black tracking-tight mb-4 leading-tight">
+        <h1 className="text-3xl lg:text-5xl font-black tracking-tight mb-4 leading-tight">
           환영합니다, <span className="text-amber-400">{displayName}</span>님
         </h1>
-        <p className="text-slate-400 text-sm lg:text-base leading-relaxed max-w-md mx-auto font-medium">
+        <p className="text-slate-400 text-sm lg:text-lg leading-relaxed max-w-2xl mx-auto font-medium">
           어려운 팀원 대화를 AI와 먼저 연습하고, 오늘 바로 써먹을 수 있는 피드백을 받아보세요.
         </p>
       </motion.div>
 
       {/* Scenario cards */}
-      <motion.div variants={containerVariants} className="px-6 pb-8 space-y-4 flex-1">
+      <motion.div variants={containerVariants} className="px-6 pb-8 space-y-4 flex-1 max-w-5xl mx-auto w-full">
         <motion.p variants={itemVariants} className="text-[10px] font-black text-slate-500 uppercase tracking-[0.22em] px-1 mb-2">
           지금 바로 시작할 수 있는 시나리오
         </motion.p>
@@ -108,7 +105,7 @@ const Onboarding: React.FC = () => {
               whileHover={{ translateY: -3 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => navigate('/setup', { state: { scenario, ...(!user && { guest: true }) } })}
-              className="relative bg-[#111B2E]/60 backdrop-blur-md border border-white/5 rounded-2xl p-5 cursor-pointer hover:border-amber-500/20 transition-all group overflow-hidden"
+              className="relative bg-[#111B2E]/60 backdrop-blur-md border border-white/5 rounded-2xl p-5 lg:p-6 cursor-pointer hover:border-amber-500/20 transition-all group overflow-hidden"
             >
               {/* Shimmer */}
               <motion.div
@@ -173,7 +170,7 @@ const Onboarding: React.FC = () => {
       </motion.div>
 
       {/* CTA button */}
-      <motion.div variants={itemVariants} className="px-6 pb-10">
+      <motion.div variants={itemVariants} className="px-6 pb-10 max-w-5xl mx-auto w-full">
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -185,7 +182,6 @@ const Onboarding: React.FC = () => {
         </motion.button>
       </motion.div>
     </motion.div>
-    </>
   );
 };
 
