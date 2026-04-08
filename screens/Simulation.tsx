@@ -976,9 +976,18 @@ ${recentMsgs}
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{characterInfo.role} · {config.generation}</p>
                   </div>
                 </div>
-                <button onClick={() => navigate(-1)} className="size-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 shrink-0">
-                  <span className="material-symbols-outlined text-base">west</span>
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setShowMobileBriefing(true)}
+                    className="px-2.5 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center gap-1 text-[10px] font-bold text-slate-200"
+                  >
+                    <span className="material-symbols-outlined text-sm">list_alt</span>
+                    목표
+                  </button>
+                  <button onClick={() => navigate(-1)} className="size-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300">
+                    <span className="material-symbols-outlined text-base">west</span>
+                  </button>
+                </div>
               </div>
               <div className="mt-3 flex items-center gap-3">
                 <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
@@ -990,12 +999,6 @@ ${recentMsgs}
                 <span>{emotionLabel}</span>
                 <span>{messages.filter(m => m.role === 'user').length}/{ANALYSIS_COMPLETE_THRESHOLD}</span>
               </div>
-              <button
-                onClick={() => setShowMobileBriefing(true)}
-                className="mt-3 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-xs font-bold text-slate-200 active:scale-[0.99] transition-all"
-              >
-                사용자 정보 및 대화 목표 확인하기
-              </button>
             </div>
           </div>
 
