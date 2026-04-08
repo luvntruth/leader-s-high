@@ -722,8 +722,8 @@ ${recentMsgs}
                 <span className="material-symbols-outlined">west</span>
               </button>
               <div>
-                <h1 className="text-sm font-black tracking-[0.2em] text-primary uppercase">대화 화면</h1>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-0.5">시나리오: {scenario?.title?.split(' ')[0] || 'LEADER_SIM'}</p>
+                <h1 className="text-base lg:text-lg font-black tracking-[0.2em] text-primary uppercase">대화 화면</h1>
+                <p className="text-sm lg:text-[15px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">시나리오: {scenario?.title?.split(' ')[0] || 'LEADER_SIM'}</p>
               </div>
             </div>
             <div className="size-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#00F2FF]" />
@@ -748,17 +748,19 @@ ${recentMsgs}
                     {config.name}
                     <span className="size-2 rounded-full" style={{ backgroundColor: characterInfo.themeColor }} />
                   </h2>
-                  <p className="text-sm lg:text-[15px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded inline-block mt-1">
+                  <p className="text-base lg:text-[17px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded inline-block mt-1">
                     {characterInfo.role} / {config.generation}
                   </p>
                 </div>
               </div>
 
               <div className="space-y-6">
-                <HPBar value={trustState.trust} label="신뢰도 레벨" colorClass={trustState.trust > 70 ? 'bg-green-400' : trustState.trust > 30 ? 'bg-primary' : 'bg-red-500'} />
+                <div className="[&_*]:!text-base lg:[&_*]:!text-[17px]">
+                  <HPBar value={trustState.trust} label="신뢰도 레벨" colorClass={trustState.trust > 70 ? 'bg-green-400' : trustState.trust > 30 ? 'bg-primary' : 'bg-red-500'} />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <StatInline icon="psychology" label="정렬도" value={`${trustState.dimensions.understanding_alignment}%`} />
-                  <StatInline icon="shield" label="심리적 안전감" value={`${trustState.dimensions.psychological_safety}%`} />
+                  <div className="[&_*]:!text-base lg:[&_*]:!text-[17px]"><StatInline icon="psychology" label="정렬도" value={`${trustState.dimensions.understanding_alignment}%`} /></div>
+                  <div className="[&_*]:!text-base lg:[&_*]:!text-[17px]"><StatInline icon="shield" label="심리적 안전감" value={`${trustState.dimensions.psychological_safety}%`} /></div>
                 </div>
               </div>
             </section>
@@ -768,7 +770,7 @@ ${recentMsgs}
               <div className="absolute top-0 right-0 p-3 opacity-10">
                 <span className="material-symbols-outlined text-4xl">analytics</span>
               </div>
-              <h3 className="text-[15px] font-black text-primary uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-primary/20 pb-2">
+              <h3 className="text-base lg:text-lg font-black text-primary uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-primary/20 pb-2">
                 대화 상대 요약
               </h3>
 
@@ -804,7 +806,7 @@ ${recentMsgs}
 
             {/* 핵심 수행 과제 — 단계별 클리어 */}
             <section className="bg-white/5 border border-white/10 rounded-2xl p-5">
-              <h3 className="text-[15px] font-black text-slate-400 uppercase tracking-widest mb-3">이번 대화에서 볼 포인트</h3>
+              <h3 className="text-base lg:text-lg font-black text-slate-400 uppercase tracking-widest mb-3">이번 대화에서 볼 포인트</h3>
               <div className="space-y-3">
                 {missionBriefing.tasks?.map((task: string, i: number) => {
                   const isCleared = goalAchievements[i] || false;
@@ -865,14 +867,14 @@ ${recentMsgs}
             {/* Analysis Dashboard (웅장하게) */}
             <div className="space-y-6">
               <div className="bg-white/5 border border-white/10 rounded-2xl p-4 lg:p-5">
-                <h3 className="text-[15px] font-black text-slate-500 uppercase tracking-widest mb-3">신뢰도 추이</h3>
+                <h3 className="text-base lg:text-lg font-black text-slate-500 uppercase tracking-widest mb-3">신뢰도 추이</h3>
                 <div className="h-24">
                   <TacticalTrendChart data={trustState.trustHistory} color={trustState.trust < 40 ? '#ef4444' : '#00F2FF'} />
                 </div>
               </div>
 
               <div className="flex flex-col space-y-3">
-                <h3 className="text-[15px] font-black text-slate-500 uppercase tracking-widest">대화 변화 로그</h3>
+                <h3 className="text-base lg:text-lg font-black text-slate-500 uppercase tracking-widest">대화 변화 로그</h3>
                 <div className="space-y-3">
                   {trustState.lastEvents.length > 0 ? trustState.lastEvents.slice(-3).map((event, i) => (
                     <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
@@ -1035,7 +1037,7 @@ ${recentMsgs}
                       : 'bg-white/5 border-white/10 rounded-tl-sm'}
                   ${msg.isError ? 'bg-red-500/10 border-red-500/30 text-red-400' : ''}
                 `}>
-                    <p className="text-base lg:text-[18px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    <p className="text-[17px] lg:text-[20px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
 
                     {/* Corner Accents */}
                     <div className={`absolute top-0 ${msg.role === 'user' ? 'right-0' : 'left-0'} p-1.5 opacity-40`}>
