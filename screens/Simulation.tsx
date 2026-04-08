@@ -613,8 +613,12 @@ ${recentMsgs}
   }, [inputText]);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, mobileComposerHeight, mobileComposerOffset]);
+    if (scrollRef.current) {
+      const isDesktop = window.innerWidth >= 640;
+      const offset = isDesktop ? 120 : 0;
+      scrollRef.current.scrollTop = Math.max(0, scrollRef.current.scrollHeight - scrollRef.current.clientHeight + offset);
+    }
+  }, [messages, mobileComposerHeight, mobileComposerOffset, inputText]);
 
   useEffect(() => {
     const updateMobileLayout = () => {
@@ -1015,7 +1019,7 @@ ${recentMsgs}
           {/* Message HUD Area */}
           <div
             ref={scrollRef}
-            className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 lg:px-7 pt-4 sm:pt-24 lg:pt-20 sm:pb-32 lg:pb-40 space-y-4 sm:space-y-8 lg:space-y-6 scroll-smooth hide-scrollbar"
+            className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 lg:px-7 pt-4 sm:pt-24 lg:pt-20 sm:pb-32 lg:pb-52 space-y-4 sm:space-y-8 lg:space-y-6 scroll-smooth hide-scrollbar"
             style={{ paddingBottom: window.innerWidth < 640 ? `${mobileComposerHeight + mobileComposerOffset + 20}px` : undefined }}
           >
             {messages.map((msg, idx) => (
@@ -1113,7 +1117,7 @@ ${recentMsgs}
           </div>
 
           {/* ── ACTION INPUT DASHBOARD ── */}
-          <div ref={composerRef} className="fixed sm:absolute bottom-0 sm:bottom-6 left-0 right-0 sm:left-6 sm:right-6 z-40 bg-navy-mid/95 sm:bg-navy-mid/80 backdrop-blur-2xl border-t sm:border border-white/10 rounded-t-[1.4rem] sm:rounded-[2.5rem] p-3 sm:p-4 lg:p-5 flex flex-col gap-3 sm:gap-4 shadow-[0_-10px_30px_rgba(0,0,0,0.25)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.5)] mt-2 sm:mt-0 pb-[calc(12px+env(safe-area-inset-bottom))] sm:pb-4"
+          <div ref={composerRef} className="fixed sm:absolute bottom-0 sm:bottom-4 lg:bottom-5 left-0 right-0 sm:left-6 sm:right-6 z-40 bg-navy-mid/95 sm:bg-navy-mid/80 backdrop-blur-2xl border-t sm:border border-white/10 rounded-t-[1.4rem] sm:rounded-[2rem] lg:rounded-[2.2rem] p-3 sm:p-3.5 lg:p-4 flex flex-col gap-2.5 sm:gap-3 shadow-[0_-10px_30px_rgba(0,0,0,0.25)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.5)] mt-2 sm:mt-0 pb-[calc(12px+env(safe-area-inset-bottom))] sm:pb-3.5"
             style={{ transform: window.innerWidth < 640 && mobileComposerOffset > 0 ? `translateY(-${mobileComposerOffset}px)` : undefined }}>
 
             {/* Action Suggested / SOS Area */}
@@ -1148,11 +1152,11 @@ ${recentMsgs}
 
             {/* Input Bar */}
             <div className="flex flex-col gap-3">
-              <div className="bg-black/40 rounded-[1.6rem] border border-white/5 px-3 py-2 flex items-end gap-2 focus-within:border-primary/40 transition-all">
+              <div className="bg-black/40 rounded-[1.6rem] border border-white/5 px-3 py-2 sm:py-1.5 lg:py-2 flex items-end gap-2 focus-within:border-primary/40 transition-all">
                 <textarea
                   ref={textareaRef}
                   rows={2}
-                  className="flex-1 min-w-0 bg-transparent border-none px-3 py-2 text-base text-white placeholder-slate-600 outline-none resize-none hide-scrollbar min-h-[56px] max-h-[132px] leading-relaxed"
+                  className="flex-1 min-w-0 bg-transparent border-none px-3 py-2 sm:py-1.5 lg:py-2 text-base lg:text-[18px] text-white placeholder-slate-600 outline-none resize-none hide-scrollbar min-h-[56px] sm:min-h-[48px] lg:min-h-[56px] max-h-[132px] leading-relaxed"
                   placeholder="메시지를 입력하세요..."
                   value={inputText}
                   disabled={isLoading}
