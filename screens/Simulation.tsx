@@ -132,6 +132,7 @@ const Simulation: React.FC = () => {
   const coachingCacheRef = useRef<Map<string, InstantCoachingResult>>(new Map());
   const [mobileComposerOffset, setMobileComposerOffset] = useState(0);
   const [mobileComposerHeight, setMobileComposerHeight] = useState(140);
+  const [showMobileBriefing, setShowMobileBriefing] = useState(false);
 
   // Trust Level State Management
   const [trustState, setTrustState] = useState<{
@@ -989,6 +990,12 @@ ${recentMsgs}
                 <span>{emotionLabel}</span>
                 <span>{messages.filter(m => m.role === 'user').length}/{ANALYSIS_COMPLETE_THRESHOLD}</span>
               </div>
+              <button
+                onClick={() => setShowMobileBriefing(true)}
+                className="mt-3 w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2.5 text-xs font-bold text-slate-200 active:scale-[0.99] transition-all"
+              >
+                사용자 정보 및 대화 목표 확인하기
+              </button>
             </div>
           </div>
 
@@ -1186,6 +1193,96 @@ ${recentMsgs}
             </div>
           </div>
         </main>
+
+        {/* ── MOBILE BRIEFING SHEET ── */}
+        {showMobileBriefing && (
+          <div className="sm:hidden fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm" onClick={() => setShowMobileBriefing(false)}>
+            <div
+              className="absolute left-0 right-0 bottom-0 rounded-t-[2rem] border-t border-white/10 bg-[#0B1020] px-4 pt-3 pb-[calc(20px+env(safe-area-inset-bottom))] max-h-[78vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/15" />
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-black text-white">사용자 정보 및 대화 목표</h3>
+                <button
+                  onClick={() => setShowMobileBriefing(false)}
+                  className="size-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300"
+                >
+                  <span className="material-symbols-outlined text-base">close</span>
+                </button>
+              </div>
+
+              <section className="mb-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="size-14 rounded-2xl overflow-hidden border border-white/10 shrink-0" style={{ boxShadow: avatarGlow.shadow }}>
+                    <img src={avatarUrl} alt={config.name} className="size-full object-cover" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-black text-white truncate">{config.name}</span>
+                      <span className="text-lg shrink-0">{emotionEmoji}</span>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-400">{characterInfo.role} · {config.generation}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">현재 감정: {emotionLabel}</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-400">
+                    <span>신뢰도</span>
+                    <span>{trustState.trust}/100</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                    <div className={`h-full rounded-full ${trustState.trust > 70 ? 'bg-green-400' : trustState.trust > 30 ? 'bg-primary' : 'bg-red-500'}`} style={{ width: `${trustState.trust}%` }} />
+                  </div>
+                </div>
+              </section>
+
+              <section className="mb-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest mb-3">대화 상대 요약</h4>
+                <p className="text-sm font-bold text-white leading-relaxed mb-4">{missionBriefing.statusSummary.psychState}</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">강점</p>
+                    <ul className="space-y-1.5">
+                      {missionBriefing.statusSummary.strengths.slice(0, 3).map((s, i) => (
+                        <li key={i} className="text-xs text-slate-300 leading-relaxed">• {s}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-2">취약 요소</p>
+                    <ul className="space-y-1.5">
+                      {missionBriefing.statusSummary.weaknesses.slice(0, 3).map((w, i) => (
+                        <li key={i} className="text-xs text-slate-300 leading-relaxed">• {w}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </section>
+
+              <section className="mb-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest mb-3">핵심 전술 목표</h4>
+                <div className="space-y-2.5">
+                  {missionBriefing.tasks?.map((task: string, i: number) => {
+                    const isCleared = goalAchievements[i] || false;
+                    return (
+                      <div key={i} className={`rounded-xl border px-3 py-3 ${isCleared ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-white/10 bg-white/[0.02]'}`}>
+                        <div className="flex items-start gap-2">
+                          <span className={`material-symbols-outlined text-sm mt-0.5 ${isCleared ? 'text-emerald-400' : 'text-slate-500'}`}>{isCleared ? 'check_circle' : 'radio_button_unchecked'}</span>
+                          <span className={`text-sm leading-relaxed ${isCleared ? 'text-emerald-200' : 'text-slate-200'}`}>{task}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-4 flex items-center justify-between text-[11px] font-bold text-slate-400">
+                  <span>진행도</span>
+                  <span>{goalAchievements.filter(Boolean).length}/{missionBriefing.tasks?.length || 3}</span>
+                </div>
+              </section>
+            </div>
+          </div>
+        )}
 
         {/* ── INIT ERROR OVERLAY ── */}
         {initError && (
