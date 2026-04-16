@@ -7,6 +7,7 @@ import { TrustLevelService, TrustLevelOutput, InstantCoachingResult } from '../s
 import { getMissionBriefing, getOpeningLine } from '../services/missionBriefings';
 import { EmotionStateMachine } from '../services/emotionStateMachine';
 import { createGeminiClient } from '../src/lib/geminiClient';
+import { getAiErrorMessage, getInitErrorMessage } from '../src/lib/geminiErrors';
 import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor, getEmotionEmoji, DEFAULT_CHARACTERS } from '../services/characterAvatars';
 import { HPBar, TacticalCircularTimer, StatInline, TacticalTrendChart } from '../components/GameUIComponents';
 import { useAuth } from '../contexts/AuthContext';
@@ -101,7 +102,7 @@ const Simulation: React.FC = () => {
   const [isGeneratingSOS, setIsGeneratingSOS] = useState(false);
   const [sosTip, setSosTip] = useState<SOSTip | null>(null);
   const [sosTipHistory, setSosTipHistory] = useState<{ tip: SOSTip; turnIndex: number; timestamp: string }[]>([]);
-  const [initError, setInitError] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
   const [usageDenied, setUsageDenied] = useState<string | null>(null);
 
   // 사용량 확인 가드 + 시뮬레이션 시작 이벤트
@@ -384,13 +385,10 @@ const Simulation: React.FC = () => {
     } catch (error: any) {
       console.error('[Simulation] sendMessage failed:', error);
       const detail = error?.message || error?.statusText || String(error);
-      const errMsg = error?.status === 401 || error?.status === 403
-        ? `인증 오류: ${detail}`
-        : error?.status === 404
-          ? '모델을 찾을 수 없습니다. 설정을 확인해주세요.'
-          : error?.status === 429
-            ? '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'
-            : `연결 오류: ${detail}`;
+      const errMsg = getAiErrorMessage({
+        status: error?.status,
+        detail,
+      });
       setMessages(prev => [...prev, {
         role: 'model',
         text: errMsg,
@@ -405,7 +403,7 @@ const Simulation: React.FC = () => {
 
   const initializeChat = async () => {
     try {
-      setInitError(false);
+      setInitError(null);
 
       const ai = createGeminiClient();
       const systemInstruction = buildSystemPrompt(config, scenario, trustStateRef.current);
@@ -427,7 +425,7 @@ const Simulation: React.FC = () => {
       });
 
     } catch (err) {
-      setInitError(true);
+      setInitError(getInitErrorMessage(err));
     }
   };
 
@@ -726,8 +724,8 @@ ${recentMsgs}
                 <span className="material-symbols-outlined">west</span>
               </button>
               <div>
-                <h1 className="text-base lg:text-lg font-black tracking-[0.2em] text-primary uppercase">대화 화면</h1>
-                <p className="text-sm lg:text-[15px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">시나리오: {scenario?.title?.split(' ')[0] || 'LEADER_SIM'}</p>
+                <h1 className="text-lg lg:text-xl font-black tracking-[0.2em] text-primary uppercase">대화 화면</h1>
+                <p className="text-base lg:text-lg font-bold text-slate-500 uppercase tracking-widest mt-0.5">시나리오: {scenario?.title?.split(' ')[0] || 'LEADER_SIM'}</p>
               </div>
             </div>
             <div className="size-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#00F2FF]" />
@@ -785,20 +783,20 @@ ${recentMsgs}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs font-black text-emerald-500/80 uppercase tracking-widest mb-2">핵심 강점</p>
+                    <p className="text-sm lg:text-base font-black text-emerald-500/80 uppercase tracking-widest mb-2">핵심 강점</p>
                     <ul className="space-y-1.5">
                       {missionBriefing.statusSummary.strengths.slice(0, 3).map((s, i) => (
-                        <li key={i} className="text-[15px] text-slate-300 flex items-center gap-2 leading-snug">
+                        <li key={i} className="text-base lg:text-[17px] text-slate-300 flex items-center gap-2 leading-snug">
                           <span className="text-xs text-emerald-500">●</span> {s}
                         </li>
                       ))}
                     </ul>
                   </div>
                   <div>
-                    <p className="text-xs font-black text-rose-500/80 uppercase tracking-widest mb-2">취약 요소</p>
+                    <p className="text-sm lg:text-base font-black text-rose-500/80 uppercase tracking-widest mb-2">취약 요소</p>
                     <ul className="space-y-1.5">
                       {missionBriefing.statusSummary.weaknesses.slice(0, 3).map((w, i) => (
-                        <li key={i} className="text-[15px] text-slate-300 flex items-center gap-2 leading-snug">
+                        <li key={i} className="text-base lg:text-[17px] text-slate-300 flex items-center gap-2 leading-snug">
                           <span className="text-xs text-rose-500">○</span> {w}
                         </li>
                       ))}
@@ -818,7 +816,7 @@ ${recentMsgs}
                   return (
                     <div
                       key={i}
-                      className={`flex gap-3 items-start text-[15px] leading-relaxed rounded-xl px-3 py-2 transition-all duration-700 ${
+                      className={`flex gap-3 items-start text-base lg:text-[17px] leading-relaxed rounded-xl px-3 py-2 transition-all duration-700 ${
                         isCleared
                           ? 'bg-emerald-500/10 border border-emerald-500/30'
                           : isActive
@@ -848,7 +846,7 @@ ${recentMsgs}
                               : 'text-slate-600'
                         }`}>{task}</span>
                         {isCleared && (
-                          <span className="ml-2 text-[10px] font-black text-emerald-400 uppercase tracking-widest">Clear</span>
+                          <span className="ml-2 text-xs font-black text-emerald-400 uppercase tracking-widest">Clear</span>
                         )}
                       </div>
                     </div>
@@ -862,7 +860,7 @@ ${recentMsgs}
                     style={{ width: `${(goalAchievements.filter(Boolean).length / 3) * 100}%` }}
                   />
                 </div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                <span className="text-xs lg:text-sm font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">
                   {goalAchievements.filter(Boolean).length}/{missionBriefing.tasks?.length || 3} Done
                 </span>
               </div>
@@ -887,10 +885,10 @@ ${recentMsgs}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-black text-white truncate pr-2 uppercase tracking-wide">{event.reason_short}</span>
-                          <span className={`text-xs font-black ${event.impact >= 0 ? 'text-game-xp' : 'text-game-hp'}`}>{event.impact >= 0 ? `+${event.impact}` : event.impact}</span>
+                          <span className="text-sm lg:text-base font-black text-white truncate pr-2 uppercase tracking-wide">{event.reason_short}</span>
+                          <span className={`text-sm lg:text-base font-black ${event.impact >= 0 ? 'text-game-xp' : 'text-game-hp'}`}>{event.impact >= 0 ? `+${event.impact}` : event.impact}</span>
                         </div>
-                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{event.family}</p>
+                        <p className="text-xs lg:text-sm font-bold text-slate-500 uppercase tracking-widest">{event.family}</p>
                       </div>
                     </div>
                   )) : (
@@ -1070,7 +1068,7 @@ ${recentMsgs}
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-amber-400 text-sm">tips_and_updates</span>
-                      <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Instant Coaching</span>
+                      <span className="text-sm font-black text-amber-400 uppercase tracking-widest">Instant Coaching</span>
                     </div>
                     <button onClick={() => setShowCoaching(false)} className="text-slate-500 hover:text-white transition-colors">
                       <span className="material-symbols-outlined text-sm">close</span>
@@ -1126,7 +1124,7 @@ ${recentMsgs}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-primary text-sm">auto_fix_high</span>
-                    <span className="text-xs font-black text-primary uppercase tracking-widest italic">전술 지원 추천 (SOS)</span>
+                    <span className="text-sm font-black text-primary uppercase tracking-widest italic">전술 지원 추천 (SOS)</span>
                   </div>
                   <button onClick={() => setShowSOS(false)} className="text-slate-500 hover:text-white transition-colors">
                     <span className="material-symbols-outlined text-sm">close</span>
@@ -1181,7 +1179,7 @@ ${recentMsgs}
                   <span className="material-symbols-outlined text-lg font-black">
                     {isGeneratingSOS ? 'sync' : 'psychology'}
                   </span>
-                  <span className="text-xs font-black whitespace-nowrap">SOS 힌트</span>
+                  <span className="text-sm font-black whitespace-nowrap">SOS 힌트</span>
                 </button>
 
                 <button
@@ -1196,7 +1194,7 @@ ${recentMsgs}
                   <span className="material-symbols-outlined text-lg font-black">
                     {isCoachingLoading ? 'sync' : 'tips_and_updates'}
                   </span>
-                  <span className="text-xs font-black whitespace-nowrap">즉시 코칭</span>
+                  <span className="text-sm font-black whitespace-nowrap">즉시 코칭</span>
                 </button>
               </div>
             </div>
@@ -1301,7 +1299,8 @@ ${recentMsgs}
                 <span className="material-symbols-outlined text-red-400 text-4xl">warning</span>
               </div>
               <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight">System Critical Failure</h3>
-              <p className="text-sm text-slate-400 mb-8 leading-relaxed">전술 시스템 연결에 실패했습니다. AI 프로세서와의 동기화를 재시도하십시오.</p>
+              <p className="text-base text-slate-300 mb-4 leading-relaxed">전술 시스템 연결에 실패했습니다. AI 프로세서와의 동기화를 재시도하십시오.</p>
+              <p className="text-sm text-slate-400 mb-8 leading-relaxed break-words">{initError}</p>
               <button
                 onClick={() => { initialized.current = false; initializeChat(); }}
                 className="w-full py-4 bg-red-500 text-white rounded-2xl font-black uppercase tracking-widest active:scale-95 transition-all shadow-[0_0_20px_rgba(239,68,68,0.4)]"
