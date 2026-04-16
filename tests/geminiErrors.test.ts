@@ -10,6 +10,13 @@ describe('getAiErrorMessage', () => {
     })).toMatch(/운영 설정 오류/);
   });
 
+  it('explains location-restricted Gemini failures as an unsupported region issue', () => {
+    expect(getAiErrorMessage({
+      status: 400,
+      detail: '{"error":{"code":400,"message":"User location is not supported for the API use.","status":"FAILED_PRECONDITION"}}',
+    })).toMatch(/이 요청 지역을 지원하지 않습니다/);
+  });
+
   it('keeps rate limiting guidance specific', () => {
     expect(getAiErrorMessage({
       status: 429,
