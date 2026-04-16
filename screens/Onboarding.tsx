@@ -75,20 +75,20 @@ const Onboarding: React.FC = () => {
           className="inline-flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-2.5 rounded-full bg-amber-500/10 border border-amber-500/20 mb-8 lg:mb-10"
         >
           <span className="size-2 rounded-full bg-amber-400 animate-pulse" />
-          <span className="text-amber-400 text-xs font-bold tracking-wide">무료 체험 3개 시나리오</span>
+          <span className="text-amber-400 text-sm lg:text-base font-bold tracking-wide">무료 체험 3개 시나리오</span>
         </motion.div>
 
-        <h1 className="text-3xl lg:text-6xl font-black tracking-tight mb-4 lg:mb-5 leading-tight">
+        <h1 className="text-4xl lg:text-6xl font-black tracking-tight mb-4 lg:mb-5 leading-tight">
           환영합니다, <span className="text-amber-400">{displayName}</span>님
         </h1>
-        <p className="text-slate-400 text-sm lg:text-xl leading-relaxed max-w-3xl mx-auto font-medium">
+        <p className="text-slate-400 text-base lg:text-2xl leading-relaxed max-w-3xl mx-auto font-medium">
           어려운 팀원 대화를 AI와 먼저 연습하고, 오늘 바로 써먹을 수 있는 피드백을 받아보세요.
         </p>
       </motion.div>
 
       {/* Scenario cards */}
       <motion.div variants={containerVariants} className="px-6 pb-8 lg:pb-10 space-y-4 lg:space-y-5 flex-1 max-w-6xl mx-auto w-full">
-        <motion.p variants={itemVariants} className="text-[10px] font-black text-slate-500 uppercase tracking-[0.22em] px-1 mb-2">
+        <motion.p variants={itemVariants} className="text-xs lg:text-sm font-black text-slate-500 uppercase tracking-[0.22em] px-1 mb-2">
           지금 바로 시작할 수 있는 시나리오
         </motion.p>
 
@@ -142,16 +142,16 @@ const Onboarding: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span
-                      className="text-[9px] font-black uppercase tracking-[0.12em] px-2 py-0.5 rounded-md"
+                      className="text-[11px] lg:text-xs font-black uppercase tracking-[0.12em] px-2.5 py-1 rounded-md"
                       style={{ color: curated.color, backgroundColor: curated.bg }}
                     >
                       {curated.difficulty}
                     </span>
                   </div>
-                  <h4 className="text-[15px] lg:text-lg font-black text-white leading-tight group-hover:text-amber-400 transition-colors truncate">
+                  <h4 className="text-lg lg:text-2xl font-black text-white leading-tight group-hover:text-amber-400 transition-colors truncate">
                     {scenario.title}
                   </h4>
-                  <p className="text-xs lg:text-sm text-slate-500 mt-0.5 lg:mt-1 font-medium">{scenario.memberName}</p>
+                  <p className="text-sm lg:text-base text-slate-500 mt-0.5 lg:mt-1 font-medium">{scenario.memberName}</p>
                 </div>
 
                 {/* Arrow */}
@@ -175,7 +175,7 @@ const Onboarding: React.FC = () => {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => firstScenario && navigate('/setup', { state: { scenario: firstScenario, ...(!user && { guest: true }) } })}
-          className="w-full py-5 lg:py-6 rounded-2xl lg:rounded-[1.75rem] bg-amber-500 text-slate-900 font-black text-sm lg:text-base uppercase tracking-widest shadow-lg shadow-amber-500/20 hover:bg-amber-400 transition-all flex items-center justify-center gap-2"
+          className="w-full py-5 lg:py-6 rounded-2xl lg:rounded-[1.75rem] bg-amber-500 text-slate-900 font-black text-base lg:text-lg uppercase tracking-widest shadow-lg shadow-amber-500/20 hover:bg-amber-400 transition-all flex items-center justify-center gap-2"
         >
           {user ? '시뮬레이션 시작하기' : '무료 체험 시작하기'}
           <span className="text-lg">&rarr;</span>

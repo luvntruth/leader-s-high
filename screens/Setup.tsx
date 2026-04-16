@@ -1,10 +1,11 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo } from 'react';
 // @ts-ignore
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getCharacterAvatar, getCharacterInfo } from '../services/characterAvatars';
 import { getMissionBriefing } from '../services/missionBriefings';
 import { analyticsService } from '../services/analyticsService';
 import CompetencyRadar from '../components/CompetencyRadar';
+import { buildSimulationRouteState, getInitialTrustForIntensity } from '../src/lib/simulationEntry';
 
 const Setup: React.FC = () => {
   const navigate = useNavigate();
@@ -12,33 +13,23 @@ const Setup: React.FC = () => {
   const isGuest = location.state?.guest === true;
 
   const scenario = location.state?.scenario;
-
-  // 게스트 모드: onboarding에서 고른 무료 시나리오 그대로 시뮬레이션으로 연결
-  useEffect(() => {
-    if (isGuest && scenario) {
-      const guestTrustLevel = scenario.intensity === 'high' ? 25 : scenario.intensity === 'low' ? 65 : 45;
-
-      analyticsService.track(
-        'guest_sim_start',
-        analyticsService.withAttribution({ scenario_id: scenario.id })
-      );
-
-      navigate('/simulation', {
-        state: { scenario, initialTrust: guestTrustLevel, guest: true },
-        replace: true,
-      });
-    }
-  }, [isGuest, navigate, scenario]);
   const briefing = useMemo(() => getMissionBriefing(scenario?.id), [scenario?.id]);
   const characterInfo = useMemo(() => getCharacterInfo(scenario?.id, scenario?.memberName), [scenario?.id, scenario?.memberName]);
 
   const avatar = getCharacterAvatar(characterInfo.name, scenario?.id);
-  // Scenario 타입에 trustLevel 없음 → intensity에서 도출 (시나리오 난이도에 따라 초기 신뢰도 다름)
-  // 시나리오 난이도에 따라 초기 신뢰도 설정 (S등급=어려움, B등급=쉬움)
-  const trustLevel = scenario?.intensity === 'high' ? 25 : scenario?.intensity === 'low' ? 65 : 45;
+  const trustLevel = useMemo(() => getInitialTrustForIntensity(scenario?.intensity), [scenario?.intensity]);
 
   const handleStart = () => {
-    navigate('/simulation', { state: { scenario, initialTrust: trustLevel } });
+    if (!scenario) return;
+
+    if (isGuest) {
+      analyticsService.track(
+        'guest_sim_start',
+        analyticsService.withAttribution({ scenario_id: scenario.id })
+      );
+    }
+
+    navigate('/simulation', { state: buildSimulationRouteState(scenario, isGuest) });
   };
 
   const handleBack = () => {
@@ -61,11 +52,11 @@ const Setup: React.FC = () => {
           className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors group"
         >
           <span className="material-symbols-outlined group-hover:-translate-x-1 transition-transform">arrow_back</span>
-          <span className="font-bold tracking-tighter text-sm">이전으로 돌아가기</span>
+          <span className="font-bold tracking-tighter text-base">이전으로 돌아가기</span>
         </button>
         <div className="text-right">
-          <h1 className="text-4xl font-black tracking-tighter text-white/90">대화 준비</h1>
-          <p className="text-sm text-primary font-bold tracking-[0.12em] uppercase">Scenario Preview</p>
+          <h1 className="text-4xl lg:text-5xl font-black tracking-tighter text-white/90">대화 준비</h1>
+          <p className="text-base text-primary font-bold tracking-[0.12em] uppercase">Scenario Preview</p>
         </div>
       </div>
 
@@ -85,14 +76,14 @@ const Setup: React.FC = () => {
                   className="w-full h-full object-cover scale-110 group-hover:scale-100 transition-transform duration-700"
                 />
               </div>
-              <div className="absolute -bottom-2 -right-2 bg-primary text-black px-3 py-1 text-[10px] font-black rounded-md shadow-lg italic">
+              <div className="absolute -bottom-2 -right-2 bg-primary text-black px-3 py-1 text-xs font-black rounded-md shadow-lg italic">
                 {characterInfo.role || '팀원'}
               </div>
             </div>
 
             <div className="space-y-1 mb-8">
               <h2 className="text-2xl font-black tracking-tighter">{characterInfo.name}</h2>
-              <p className="text-xs text-white/40 font-medium">상황 유형: {scenario?.category || '리더십 대화'}</p>
+              <p className="text-sm lg:text-base text-white/40 font-medium">상황 유형: {scenario?.category || '리더십 대화'}</p>
             </div>
 
             {/* Trust Level Circular Gauge */}
@@ -116,11 +107,11 @@ const Setup: React.FC = () => {
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-3xl font-black italic tracking-tighter" style={{ color: getTrustColor(trustLevel) }}>{trustLevel}%</span>
-                  <span className="text-[10px] text-white/30 font-bold tracking-widest">대화 준비도</span>
+                  <span className="text-[11px] text-white/30 font-bold tracking-widest">대화 준비도</span>
                 </div>
               </div>
               <div className="text-center mt-4 p-4 border-t border-white/5">
-                <p className="text-sm text-white/80 leading-relaxed break-keep">
+                <p className="text-base lg:text-lg text-white/80 leading-relaxed break-keep">
                   이 수치는 지금 대화를 시작할 때 예상되는 초기 대화 난이도를 보여줍니다.
                 </p>
               </div>
@@ -156,7 +147,7 @@ const Setup: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-black/20 rounded-xl p-5 border border-white/5">
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-base font-bold text-white/50">성과</span>
+                  <span className="text-lg font-bold text-white/50">성과</span>
                   <span className="text-2xl font-black italic text-primary">{briefing.competencyData.performance}</span>
                 </div>
                 <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
