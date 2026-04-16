@@ -724,8 +724,8 @@ ${recentMsgs}
                 <span className="material-symbols-outlined">west</span>
               </button>
               <div>
-                <h1 className="text-lg lg:text-xl font-black tracking-[0.2em] text-primary uppercase">대화 화면</h1>
-                <p className="text-base lg:text-lg font-bold text-slate-500 uppercase tracking-widest mt-0.5">시나리오: {scenario?.title?.split(' ')[0] || 'LEADER_SIM'}</p>
+                <h1 className="text-base lg:text-lg font-black tracking-[0.2em] text-primary uppercase">대화 화면</h1>
+                <p className="text-sm lg:text-base font-bold text-slate-500 uppercase tracking-widest mt-0.5">시나리오: {scenario?.title?.split(' ')[0] || 'LEADER_SIM'}</p>
               </div>
             </div>
             <div className="size-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#00F2FF]" />
@@ -746,23 +746,23 @@ ${recentMsgs}
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-[1.7rem] lg:text-[1.9rem] font-black tracking-tight flex items-center gap-2">
+                  <h2 className="text-[1.45rem] lg:text-[1.65rem] font-black tracking-tight flex items-center gap-2">
                     {config.name}
                     <span className="size-2 rounded-full" style={{ backgroundColor: characterInfo.themeColor }} />
                   </h2>
-                  <p className="text-base lg:text-[17px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded inline-block mt-1">
+                  <p className="text-sm lg:text-[15px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded inline-block mt-1">
                     {characterInfo.role} / {config.generation}
                   </p>
                 </div>
               </div>
 
               <div className="space-y-6">
-                <div className="[&_*]:!text-base lg:[&_*]:!text-[17px]">
+                <div className="[&_*]:!text-sm lg:[&_*]:!text-[15px]">
                   <HPBar value={trustState.trust} label="신뢰도 레벨" colorClass={trustState.trust > 70 ? 'bg-green-400' : trustState.trust > 30 ? 'bg-primary' : 'bg-red-500'} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="[&_*]:!text-base lg:[&_*]:!text-[17px]"><StatInline icon="psychology" label="정렬도" value={`${trustState.dimensions.understanding_alignment}%`} /></div>
-                  <div className="[&_*]:!text-base lg:[&_*]:!text-[17px]"><StatInline icon="shield" label="심리적 안전감" value={`${trustState.dimensions.psychological_safety}%`} /></div>
+                  <div className="[&_*]:!text-sm lg:[&_*]:!text-[15px]"><StatInline icon="psychology" label="정렬도" value={`${trustState.dimensions.understanding_alignment}%`} /></div>
+                  <div className="[&_*]:!text-sm lg:[&_*]:!text-[15px]"><StatInline icon="shield" label="심리적 안전감" value={`${trustState.dimensions.psychological_safety}%`} /></div>
                 </div>
               </div>
             </section>
@@ -772,31 +772,31 @@ ${recentMsgs}
               <div className="absolute top-0 right-0 p-3 opacity-10">
                 <span className="material-symbols-outlined text-4xl">analytics</span>
               </div>
-              <h3 className="text-base lg:text-lg font-black text-primary uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-primary/20 pb-2">
+              <h3 className="text-sm lg:text-base font-black text-primary uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-primary/20 pb-2">
                 대화 상대 요약
               </h3>
 
               <div className="space-y-4">
-                <p className="text-[17px] lg:text-lg font-bold text-white leading-relaxed italic border-l-4 border-primary/40 pl-3">
+                <p className="text-[15px] lg:text-[17px] font-bold text-white leading-relaxed italic border-l-4 border-primary/40 pl-3">
                   "{missionBriefing.statusSummary.psychState}"
                 </p>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm lg:text-base font-black text-emerald-500/80 uppercase tracking-widest mb-2">핵심 강점</p>
+                    <p className="text-xs lg:text-sm font-black text-emerald-500/80 uppercase tracking-widest mb-2">핵심 강점</p>
                     <ul className="space-y-1.5">
                       {missionBriefing.statusSummary.strengths.slice(0, 3).map((s, i) => (
-                        <li key={i} className="text-base lg:text-[17px] text-slate-300 flex items-center gap-2 leading-snug">
+                        <li key={i} className="text-sm lg:text-[15px] text-slate-300 flex items-center gap-2 leading-snug">
                           <span className="text-xs text-emerald-500">●</span> {s}
                         </li>
                       ))}
                     </ul>
                   </div>
                   <div>
-                    <p className="text-sm lg:text-base font-black text-rose-500/80 uppercase tracking-widest mb-2">취약 요소</p>
+                    <p className="text-xs lg:text-sm font-black text-rose-500/80 uppercase tracking-widest mb-2">취약 요소</p>
                     <ul className="space-y-1.5">
                       {missionBriefing.statusSummary.weaknesses.slice(0, 3).map((w, i) => (
-                        <li key={i} className="text-base lg:text-[17px] text-slate-300 flex items-center gap-2 leading-snug">
+                        <li key={i} className="text-sm lg:text-[15px] text-slate-300 flex items-center gap-2 leading-snug">
                           <span className="text-xs text-rose-500">○</span> {w}
                         </li>
                       ))}
@@ -808,7 +808,7 @@ ${recentMsgs}
 
             {/* 핵심 수행 과제 — 단계별 클리어 */}
             <section className="bg-white/5 border border-white/10 rounded-2xl p-5">
-              <h3 className="text-base lg:text-lg font-black text-slate-400 uppercase tracking-widest mb-3">이번 대화에서 볼 포인트</h3>
+              <h3 className="text-sm lg:text-base font-black text-slate-400 uppercase tracking-widest mb-3">이번 대화에서 볼 포인트</h3>
               <div className="space-y-3">
                 {missionBriefing.tasks?.map((task: string, i: number) => {
                   const isCleared = goalAchievements[i] || false;
@@ -816,7 +816,7 @@ ${recentMsgs}
                   return (
                     <div
                       key={i}
-                      className={`flex gap-3 items-start text-base lg:text-[17px] leading-relaxed rounded-xl px-3 py-2 transition-all duration-700 ${
+                      className={`flex gap-3 items-start text-sm lg:text-[15px] leading-relaxed rounded-xl px-3 py-2 transition-all duration-700 ${
                         isCleared
                           ? 'bg-emerald-500/10 border border-emerald-500/30'
                           : isActive
@@ -869,14 +869,14 @@ ${recentMsgs}
             {/* Analysis Dashboard (웅장하게) */}
             <div className="space-y-6">
               <div className="bg-white/5 border border-white/10 rounded-2xl p-4 lg:p-5">
-                <h3 className="text-base lg:text-lg font-black text-slate-500 uppercase tracking-widest mb-3">신뢰도 추이</h3>
+                <h3 className="text-sm lg:text-base font-black text-slate-500 uppercase tracking-widest mb-3">신뢰도 추이</h3>
                 <div className="h-24">
                   <TacticalTrendChart data={trustState.trustHistory} color={trustState.trust < 40 ? '#ef4444' : '#00F2FF'} />
                 </div>
               </div>
 
               <div className="flex flex-col space-y-3">
-                <h3 className="text-base lg:text-lg font-black text-slate-500 uppercase tracking-widest">대화 변화 로그</h3>
+                <h3 className="text-sm lg:text-base font-black text-slate-500 uppercase tracking-widest">대화 변화 로그</h3>
                 <div className="space-y-3">
                   {trustState.lastEvents.length > 0 ? trustState.lastEvents.slice(-3).map((event, i) => (
                     <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
@@ -885,10 +885,10 @@ ${recentMsgs}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm lg:text-base font-black text-white truncate pr-2 uppercase tracking-wide">{event.reason_short}</span>
-                          <span className={`text-sm lg:text-base font-black ${event.impact >= 0 ? 'text-game-xp' : 'text-game-hp'}`}>{event.impact >= 0 ? `+${event.impact}` : event.impact}</span>
+                          <span className="text-xs lg:text-sm font-black text-white truncate pr-2 uppercase tracking-wide">{event.reason_short}</span>
+                          <span className={`text-xs lg:text-sm font-black ${event.impact >= 0 ? 'text-game-xp' : 'text-game-hp'}`}>{event.impact >= 0 ? `+${event.impact}` : event.impact}</span>
                         </div>
-                        <p className="text-xs lg:text-sm font-bold text-slate-500 uppercase tracking-widest">{event.family}</p>
+                        <p className="text-[11px] lg:text-xs font-bold text-slate-500 uppercase tracking-widest">{event.family}</p>
                       </div>
                     </div>
                   )) : (
@@ -1039,7 +1039,7 @@ ${recentMsgs}
                       : 'bg-white/5 border-white/10 rounded-tl-sm'}
                   ${msg.isError ? 'bg-red-500/10 border-red-500/30 text-red-400' : ''}
                 `}>
-                    <p className="text-[17px] lg:text-[20px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    <p className="text-[16px] lg:text-[18px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
 
                     {/* Corner Accents */}
                     <div className={`absolute top-0 ${msg.role === 'user' ? 'right-0' : 'left-0'} p-1.5 opacity-40`}>
