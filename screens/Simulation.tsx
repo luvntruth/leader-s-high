@@ -717,8 +717,8 @@ ${recentMsgs}
         </div>
 
         {/* ── LEFT PANEL: TACTICAL STATUS (30%) ── */}
-        <aside className="hidden sm:flex w-full lg:w-[25%] bg-black/40 backdrop-blur-3xl border-r border-white/5 z-20 flex-col shrink-0 min-h-0">
-          <header className="p-5 border-b border-white/5 flex items-center justify-between">
+        <aside className="hidden sm:flex w-full lg:w-[22%] bg-black/40 backdrop-blur-3xl border-r border-white/5 z-20 flex-col shrink-0 min-h-0">
+          <header className="p-4 border-b border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-slate-500 hover:text-white transition-colors">
                 <span className="material-symbols-outlined">west</span>
@@ -731,38 +731,38 @@ ${recentMsgs}
             <div className="size-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#00F2FF]" />
           </header>
 
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 lg:p-5 space-y-3.5 lg:space-y-4 hide-scrollbar">
+          <div className="flex-1 min-h-0 overflow-y-auto p-3.5 lg:p-4 space-y-3 lg:space-y-3.5 hide-scrollbar">
             {/* Target Profile & Trust (웅장하게 복구) */}
             <section>
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-2.5 mb-3.5">
                 <div className="relative group/avatar">
-                  <div className={`size-16 rounded-[1.2rem] overflow-hidden border-2 transition-all duration-700 relative ${avatarGlow.animationClass}`}
+                  <div className={`size-14 rounded-[1rem] overflow-hidden border-2 transition-all duration-700 relative ${avatarGlow.animationClass}`}
                     style={{ borderColor: avatarGlow.borderColor, boxShadow: avatarGlow.shadow }}>
                     <img src={avatarUrl} alt={config.name} className="size-full object-cover scale-110 group-hover/avatar:scale-125 transition-transform duration-1000" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                   </div>
-                  <div className="absolute -bottom-1 -right-1 size-6 bg-[#0f172a] rounded-xl border border-white/20 flex items-center justify-center text-base shadow-2xl">
+                  <div className="absolute -bottom-1 -right-1 size-5.5 bg-[#0f172a] rounded-lg border border-white/20 flex items-center justify-center text-sm shadow-2xl">
                     {emotionEmoji}
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-[1.25rem] lg:text-[1.4rem] font-black tracking-tight flex items-center gap-2">
+                  <h2 className="text-[1.1rem] lg:text-[1.2rem] font-black tracking-tight flex items-center gap-1.5">
                     {config.name}
-                    <span className="size-2 rounded-full" style={{ backgroundColor: characterInfo.themeColor }} />
+                    <span className="size-1.5 rounded-full" style={{ backgroundColor: characterInfo.themeColor }} />
                   </h2>
-                  <p className="text-xs lg:text-[13px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded inline-block mt-1">
+                  <p className="text-[11px] lg:text-[12px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-1.5 py-0.5 rounded inline-block mt-0.5">
                     {characterInfo.role} / {config.generation}
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="[&_*]:!text-xs lg:[&_*]:!text-[13px]">
+              <div className="space-y-3">
+                <div className="[&_*]:!text-[11px] lg:[&_*]:!text-[12px]">
                   <HPBar value={trustState.trust} label="신뢰도 레벨" colorClass={trustState.trust > 70 ? 'bg-green-400' : trustState.trust > 30 ? 'bg-primary' : 'bg-red-500'} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="[&_*]:!text-xs lg:[&_*]:!text-[13px]"><StatInline icon="psychology" label="정렬도" value={`${trustState.dimensions.understanding_alignment}%`} /></div>
-                  <div className="[&_*]:!text-xs lg:[&_*]:!text-[13px]"><StatInline icon="shield" label="심리적 안전감" value={`${trustState.dimensions.psychological_safety}%`} /></div>
+                  <div className="[&_*]:!text-[11px] lg:[&_*]:!text-[12px]"><StatInline icon="psychology" label="정렬도" value={`${trustState.dimensions.understanding_alignment}%`} /></div>
+                  <div className="[&_*]:!text-[11px] lg:[&_*]:!text-[12px]"><StatInline icon="shield" label="심리적 안전감" value={`${trustState.dimensions.psychological_safety}%`} /></div>
                 </div>
               </div>
             </section>
@@ -772,31 +772,31 @@ ${recentMsgs}
               <div className="absolute top-0 right-0 p-3 opacity-10">
                 <span className="material-symbols-outlined text-4xl">analytics</span>
               </div>
-              <h3 className="text-xs lg:text-sm font-black text-primary uppercase tracking-widest mb-2.5 flex items-center gap-2 border-b border-primary/20 pb-2">
+              <h3 className="text-[11px] lg:text-xs font-black text-primary uppercase tracking-widest mb-2 flex items-center gap-2 border-b border-primary/20 pb-1.5">
                 대화 상대 요약
               </h3>
 
-              <div className="space-y-3">
-                <p className="text-sm lg:text-[15px] font-bold text-white leading-relaxed italic border-l-4 border-primary/40 pl-3">
+              <div className="space-y-2.5">
+                <p className="text-[13px] lg:text-[14px] font-bold text-white leading-relaxed italic border-l-4 border-primary/40 pl-2.5">
                   "{missionBriefing.statusSummary.psychState}"
                 </p>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <p className="text-[11px] lg:text-xs font-black text-emerald-500/80 uppercase tracking-widest mb-1.5">핵심 강점</p>
-                    <ul className="space-y-1">
+                    <p className="text-[10px] font-black text-emerald-500/80 uppercase tracking-widest mb-1">핵심 강점</p>
+                    <ul className="space-y-0.5">
                       {missionBriefing.statusSummary.strengths.slice(0, 3).map((s, i) => (
-                        <li key={i} className="text-xs lg:text-[13px] text-slate-300 flex items-center gap-2 leading-snug">
+                        <li key={i} className="text-[11px] lg:text-[12px] text-slate-300 flex items-center gap-1.5 leading-snug">
                           <span className="text-xs text-emerald-500">●</span> {s}
                         </li>
                       ))}
                     </ul>
                   </div>
                   <div>
-                    <p className="text-[11px] lg:text-xs font-black text-rose-500/80 uppercase tracking-widest mb-1.5">취약 요소</p>
-                    <ul className="space-y-1">
+                    <p className="text-[10px] font-black text-rose-500/80 uppercase tracking-widest mb-1">취약 요소</p>
+                    <ul className="space-y-0.5">
                       {missionBriefing.statusSummary.weaknesses.slice(0, 3).map((w, i) => (
-                        <li key={i} className="text-xs lg:text-[13px] text-slate-300 flex items-center gap-2 leading-snug">
+                        <li key={i} className="text-[11px] lg:text-[12px] text-slate-300 flex items-center gap-1.5 leading-snug">
                           <span className="text-xs text-rose-500">○</span> {w}
                         </li>
                       ))}
@@ -807,16 +807,16 @@ ${recentMsgs}
             </section>
 
             {/* 핵심 수행 과제 — 단계별 클리어 */}
-            <section className="bg-white/5 border border-white/10 rounded-2xl p-4">
-              <h3 className="text-xs lg:text-sm font-black text-slate-400 uppercase tracking-widest mb-2.5">이번 대화에서 볼 포인트</h3>
-              <div className="space-y-2">
+            <section className="bg-white/5 border border-white/10 rounded-2xl p-3">
+              <h3 className="text-[11px] lg:text-xs font-black text-slate-400 uppercase tracking-widest mb-2">이번 대화에서 볼 포인트</h3>
+              <div className="space-y-1.5">
                 {missionBriefing.tasks?.map((task: string, i: number) => {
                   const isCleared = goalAchievements[i] || false;
                   const isActive = !isCleared && (i === 0 || goalAchievements[i - 1] || false);
                   return (
                     <div
                       key={i}
-                      className={`flex gap-2.5 items-start text-xs lg:text-[13px] leading-relaxed rounded-xl px-2.5 py-2 transition-all duration-700 ${
+                      className={`flex gap-2 items-start text-[11px] lg:text-[12px] leading-relaxed rounded-lg px-2 py-1.5 transition-all duration-700 ${
                         isCleared
                           ? 'bg-emerald-500/10 border border-emerald-500/30'
                           : isActive
@@ -1017,12 +1017,12 @@ ${recentMsgs}
           {/* Message HUD Area */}
           <div
             ref={scrollRef}
-            className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-5 lg:px-6 pt-4 sm:pt-20 lg:pt-[4.5rem] sm:pb-28 lg:pb-44 space-y-4 sm:space-y-6 lg:space-y-5 scroll-smooth hide-scrollbar"
+            className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 lg:px-5 pt-4 sm:pt-[4.5rem] lg:pt-[4rem] sm:pb-24 lg:pb-32 space-y-3 sm:space-y-5 lg:space-y-4 scroll-smooth hide-scrollbar"
             style={{ paddingBottom: window.innerWidth < 640 ? `${mobileComposerHeight + mobileComposerOffset + 20}px` : undefined }}
           >
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className="max-w-[88%] lg:max-w-[82%] group">
+                <div className="max-w-[90%] lg:max-w-[88%] group">
                   <div className={`flex items-center gap-2 mb-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                     <span className={`text-xs lg:text-[13px] font-black uppercase tracking-widest ${msg.role === 'user' ? 'text-primary' : 'text-slate-500'}`}>
                       {msg.role === 'user' ? '나' : config.name}
@@ -1033,13 +1033,13 @@ ${recentMsgs}
                   </div>
 
                   <div className={`
-                  relative p-4 rounded-[1.6rem] backdrop-blur-md border transition-all duration-300
+                  relative p-3.5 rounded-[1.35rem] backdrop-blur-md border transition-all duration-300
                   ${msg.role === 'user'
                       ? 'bg-primary/10 border-primary/30 rounded-tr-sm shadow-[0_4px_20px_rgba(0,242,255,0.1)]'
                       : 'bg-white/5 border-white/10 rounded-tl-sm'}
                   ${msg.isError ? 'bg-red-500/10 border-red-500/30 text-red-400' : ''}
                 `}>
-                    <p className="text-[15px] lg:text-[16px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    <p className="text-[14px] lg:text-[15px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
 
                     {/* Corner Accents */}
                     <div className={`absolute top-0 ${msg.role === 'user' ? 'right-0' : 'left-0'} p-1.5 opacity-40`}>
@@ -1051,7 +1051,7 @@ ${recentMsgs}
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-white/5 border border-white/10 rounded-[1.6rem] rounded-tl-sm p-5 max-w-[85%]">
+                <div className="bg-white/5 border border-white/10 rounded-[1.35rem] rounded-tl-sm p-4 max-w-[88%]">
                   <div className="flex gap-2">
                     <div className="size-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
                     <div className="size-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
@@ -1115,7 +1115,7 @@ ${recentMsgs}
           </div>
 
           {/* ── ACTION INPUT DASHBOARD ── */}
-          <div ref={composerRef} className="fixed sm:absolute bottom-0 sm:bottom-3 lg:bottom-4 left-0 right-0 sm:left-6 sm:right-6 z-40 bg-navy-mid/95 sm:bg-navy-mid/80 backdrop-blur-2xl border-t sm:border border-white/10 rounded-t-[1.4rem] sm:rounded-[1.4rem] lg:rounded-[1.6rem] p-2.5 sm:p-2.5 lg:p-3 flex flex-col gap-2 sm:gap-2 shadow-[0_-10px_30px_rgba(0,0,0,0.25)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.5)] mt-2 sm:mt-0 pb-[calc(10px+env(safe-area-inset-bottom))] sm:pb-2.5"
+          <div ref={composerRef} className="fixed sm:absolute bottom-0 sm:bottom-2.5 lg:bottom-3 left-0 right-0 sm:left-5 sm:right-5 z-40 bg-navy-mid/95 sm:bg-navy-mid/80 backdrop-blur-2xl border-t sm:border border-white/10 rounded-t-[1.2rem] sm:rounded-[1.25rem] lg:rounded-[1.35rem] p-2 sm:p-2 lg:p-2.5 flex flex-col gap-1.5 sm:gap-1.5 shadow-[0_-10px_30px_rgba(0,0,0,0.25)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.5)] mt-2 sm:mt-0 pb-[calc(8px+env(safe-area-inset-bottom))] sm:pb-2"
             style={{ transform: window.innerWidth < 640 && mobileComposerOffset > 0 ? `translateY(-${mobileComposerOffset}px)` : undefined }}>
 
             {/* Action Suggested / SOS Area */}
@@ -1149,12 +1149,12 @@ ${recentMsgs}
             )}
 
             {/* Input Bar */}
-            <div className="flex flex-col gap-2 sm:gap-1.5">
-              <div className="bg-black/40 rounded-[1.25rem] sm:rounded-[1.35rem] border border-white/5 px-3 py-1 sm:py-1 lg:py-1.5 flex items-end gap-2 focus-within:border-primary/40 transition-all">
+            <div className="flex flex-col gap-1.5 sm:gap-1">
+              <div className="bg-black/40 rounded-[1.1rem] sm:rounded-[1.15rem] border border-white/5 px-2.5 py-0.5 sm:py-0.5 lg:py-1 flex items-end gap-1.5 focus-within:border-primary/40 transition-all">
                 <textarea
                   ref={textareaRef}
-                  rows={2}
-                  className="flex-1 min-w-0 bg-transparent border-none px-2.5 py-1 sm:py-1 lg:py-1.5 text-[15px] lg:text-[16px] text-white placeholder-slate-600 outline-none resize-none hide-scrollbar min-h-[46px] sm:min-h-[38px] lg:min-h-[42px] max-h-[104px] leading-relaxed"
+                  rows={window.innerWidth < 640 ? 2 : 1}
+                  className="flex-1 min-w-0 bg-transparent border-none px-2 py-1 sm:py-0.5 lg:py-1 text-[14px] lg:text-[15px] text-white placeholder-slate-600 outline-none resize-none hide-scrollbar min-h-[40px] sm:min-h-[34px] lg:min-h-[38px] max-h-[88px] leading-relaxed"
                   placeholder="메시지를 입력하세요..."
                   value={inputText}
                   disabled={isLoading}
@@ -1164,37 +1164,37 @@ ${recentMsgs}
                 <button
                   onClick={() => handleSend(inputText)}
                   disabled={!inputText.trim() || isLoading}
-                  className="size-10 bg-white/5 hover:bg-primary hover:text-navy-deep rounded-xl flex items-center justify-center transition-all disabled:opacity-20 shrink-0 mb-0.5"
+                  className="size-9 bg-white/5 hover:bg-primary hover:text-navy-deep rounded-lg flex items-center justify-center transition-all disabled:opacity-20 shrink-0 mb-0.5"
                 >
-                  <span className="material-symbols-outlined text-[15px] font-black">send</span>
+                  <span className="material-symbols-outlined text-[14px] font-black">send</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2.5">
+              <div className="grid grid-cols-2 gap-1.5 sm:flex sm:items-center sm:gap-2">
                 <button
                   onClick={handleSOS}
                   disabled={isGeneratingSOS}
-                  className={`h-10 rounded-xl px-3.5 flex items-center justify-center gap-1.5 transition-all ${isGeneratingSOS ? 'bg-primary/20 animate-pulse' : 'bg-primary text-navy-deep shadow-neon-cyan active:scale-95'}`}
+                  className={`h-9 rounded-lg px-3 flex items-center justify-center gap-1 transition-all ${isGeneratingSOS ? 'bg-primary/20 animate-pulse' : 'bg-primary text-navy-deep shadow-neon-cyan active:scale-95'}`}
                 >
-                  <span className="material-symbols-outlined text-base font-black">
+                  <span className="material-symbols-outlined text-[15px] font-black">
                     {isGeneratingSOS ? 'sync' : 'psychology'}
                   </span>
-                  <span className="text-xs font-black whitespace-nowrap">SOS 힌트</span>
+                  <span className="text-[11px] font-black whitespace-nowrap">SOS 힌트</span>
                 </button>
 
                 <button
                   onClick={handleInstantCoaching}
                   disabled={isCoachingLoading || messages.filter(m => m.role === 'user').length === 0 || isLoading}
-                  className={`h-10 rounded-xl px-3.5 flex items-center justify-center gap-1.5 transition-all ${
+                  className={`h-9 rounded-lg px-3 flex items-center justify-center gap-1 transition-all ${
                     isCoachingLoading
                       ? 'bg-amber-500/20 animate-pulse'
                       : 'bg-amber-500 text-navy-deep shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:shadow-[0_0_25px_rgba(245,158,11,0.5)] active:scale-95 disabled:opacity-30 disabled:shadow-none'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-base font-black">
+                  <span className="material-symbols-outlined text-[15px] font-black">
                     {isCoachingLoading ? 'sync' : 'tips_and_updates'}
                   </span>
-                  <span className="text-xs font-black whitespace-nowrap">즉시 코칭</span>
+                  <span className="text-[11px] font-black whitespace-nowrap">즉시 코칭</span>
                 </button>
               </div>
             </div>
