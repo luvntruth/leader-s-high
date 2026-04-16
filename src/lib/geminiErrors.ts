@@ -4,12 +4,17 @@ type AiErrorMessageInput = {
 };
 
 const DEPLOYMENT_ERROR_MESSAGE = '운영 설정 오류: AI 연결 키 또는 프록시 설정이 잘못되었습니다. 배포 환경의 VITE_GEMINI_PROXY_URL / GEMINI_API_KEY를 확인해주세요.';
+const LOCATION_RESTRICTION_MESSAGE = '운영 제한: 현재 AI 제공자가 이 요청 지역을 지원하지 않습니다. API 키 재입력보다 프록시 실행 위치 또는 모델 제공 경로를 변경해야 합니다.';
 
 export function getAiErrorMessage({ status, detail = '' }: AiErrorMessageInput) {
   const normalized = detail.toLowerCase();
 
   if (normalized.includes('api key expired') || normalized.includes('api_key_invalid') || normalized.includes('invalid api key')) {
     return DEPLOYMENT_ERROR_MESSAGE;
+  }
+
+  if (normalized.includes('user location is not supported') || normalized.includes('failed_precondition')) {
+    return LOCATION_RESTRICTION_MESSAGE;
   }
 
   if (status === 401 || status === 403) {
