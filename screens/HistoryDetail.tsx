@@ -2,69 +2,176 @@
 import React, { useState, useEffect } from 'react';
 // @ts-ignore
 import { useNavigate, useParams } from 'react-router-dom';
+import { dbService } from '../services/dbService';
+import type { SimulationRecord } from '../src/types/database';
 
 type TabType = 'summary' | 'transcript' | 'sos' | 'memo';
+
+type DataSource = 'supabase' | 'local';
+
+interface NormalizedRecord {
+  id: string;
+  scenarioTitle: string;
+  memberName: string;
+  transcript: Array<{ role: 'user' | 'model'; text: string }>;
+  evaluation: {
+    summary?: string;
+    coachingSkills?: Record<string, number>;
+    metrics?: { empathyIndex?: number; sbiScore?: number; outcomeSuccess?: number };
+    [k: string]: unknown;
+  } | null;
+  sosTipHistory: Array<{ tip: { insight: string; suggestion: string; magicPhrases?: string[] }; turnIndex: number }>;
+  memo: string;
+  tags: string[];
+}
+
+/** Supabase SimulationRecord → UI 기대 필드로 정규화 */
+function fromSupabase(r: SimulationRecord): NormalizedRecord {
+  const fb = (r.feedback || {}) as Record<string, unknown>;
+  return {
+    id: r.id,
+    scenarioTitle: r.scenario_title,
+    memberName: r.character_name,
+    transcript: Array.isArray(r.transcript) ? r.transcript : [],
+    evaluation: {
+      summary: (fb.summary as string) || undefined,
+      coachingSkills: r.coaching_skills || undefined,
+      metrics: (fb.metrics as NormalizedRecord['evaluation']) as any || undefined,
+      ...fb,
+    },
+    // 현재 스키마에 sosTipHistory 컬럼이 없음 — feedback 안에 들어있으면 읽음, 없으면 빈 배열
+    sosTipHistory: Array.isArray(fb.sosTipHistory)
+      ? (fb.sosTipHistory as NormalizedRecord['sosTipHistory'])
+      : [],
+    memo: r.memo || '',
+    tags: Array.isArray(r.tags) ? r.tags : [],
+  };
+}
+
+/** Legacy localStorage 항목을 그대로 수용 */
+function fromLocal(raw: any): NormalizedRecord {
+  return {
+    id: raw.id,
+    scenarioTitle: raw.scenarioTitle || raw.scenario_title || '',
+    memberName: raw.memberName || raw.character_name || '',
+    transcript: Array.isArray(raw.transcript) ? raw.transcript : [],
+    evaluation: raw.evaluation || null,
+    sosTipHistory: Array.isArray(raw.sosTipHistory) ? raw.sosTipHistory : [],
+    memo: raw.memo || '',
+    tags: Array.isArray(raw.tags) ? raw.tags : [],
+  };
+}
 
 const HistoryDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<NormalizedRecord | null>(null);
+  const [source, setSource] = useState<DataSource>('local');
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('summary');
   const [memo, setMemo] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
 
   useEffect(() => {
-    const history = JSON.parse(localStorage.getItem('leadershigh_history') || '[]');
-    const found = history.find((h: any) => h.id === id);
-    if (found) {
-      setData(found);
-      setMemo(found.memo || '');
-      setTags(found.tags || []);
-    } else {
-      navigate('/history');
-    }
+    let cancelled = false;
+    const load = async () => {
+      if (!id) { navigate('/history'); return; }
+
+      // 1순위: Supabase (UUID 형식이든 아니든 시도)
+      try {
+        const rec = await dbService.getHistoryById(id);
+        if (rec && !cancelled) {
+          const norm = fromSupabase(rec);
+          setData(norm);
+          setSource('supabase');
+          setMemo(norm.memo);
+          setTags(norm.tags);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        /* fallthrough to localStorage */
+      }
+
+      // 2순위: localStorage (guest 또는 마이그레이션 전 데이터)
+      try {
+        const local = JSON.parse(localStorage.getItem('leadershigh_history') || '[]');
+        const found = local.find((h: any) => h.id === id);
+        if (found && !cancelled) {
+          const norm = fromLocal(found);
+          setData(norm);
+          setSource('local');
+          setMemo(norm.memo);
+          setTags(norm.tags);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+
+      if (!cancelled) {
+        setLoading(false);
+        navigate('/history');
+      }
+    };
+    load();
+    return () => { cancelled = true; };
   }, [id, navigate]);
 
-  // 메모 저장
-  const saveMemo = () => {
-    const history = JSON.parse(localStorage.getItem('leadershigh_history') || '[]');
-    const idx = history.findIndex((h: any) => h.id === id);
-    if (idx >= 0) {
-      history[idx].memo = memo;
-      history[idx].tags = tags;
-      localStorage.setItem('leadershigh_history', JSON.stringify(history));
+  /** memo/tags 저장 — source 별로 분기 */
+  const persist = async (nextMemo: string, nextTags: string[]) => {
+    if (!id) return;
+    if (source === 'supabase') {
+      try {
+        await dbService.updateHistoryMemo(id, nextMemo, nextTags);
+      } catch (e) {
+        console.error('[HistoryDetail] memo/tag DB 저장 실패:', e);
+      }
+      return;
     }
-  };
-
-  // 태그 추가
-  const addTag = () => {
-    const trimmed = tagInput.trim();
-    if (trimmed && !tags.includes(trimmed)) {
-      const newTags = [...tags, trimmed];
-      setTags(newTags);
-      setTagInput('');
-      // 즉시 저장
+    // local
+    try {
       const history = JSON.parse(localStorage.getItem('leadershigh_history') || '[]');
       const idx = history.findIndex((h: any) => h.id === id);
       if (idx >= 0) {
-        history[idx].tags = newTags;
+        history[idx].memo = nextMemo;
+        history[idx].tags = nextTags;
         localStorage.setItem('leadershigh_history', JSON.stringify(history));
       }
+    } catch (e) {
+      console.error('[HistoryDetail] memo/tag localStorage 저장 실패:', e);
     }
   };
 
-  // 태그 삭제
+  const saveMemo = () => { persist(memo, tags); };
+
+  const addTag = () => {
+    const trimmed = tagInput.trim();
+    if (!trimmed || tags.includes(trimmed)) return;
+    const newTags = [...tags, trimmed];
+    setTags(newTags);
+    setTagInput('');
+    persist(memo, newTags);
+  };
+
   const removeTag = (tag: string) => {
     const newTags = tags.filter(t => t !== tag);
     setTags(newTags);
-    const history = JSON.parse(localStorage.getItem('leadershigh_history') || '[]');
-    const idx = history.findIndex((h: any) => h.id === id);
-    if (idx >= 0) {
-      history[idx].tags = newTags;
-      localStorage.setItem('leadershigh_history', JSON.stringify(history));
-    }
+    persist(memo, newTags);
   };
+
+  if (loading) {
+    return (
+      <div className="h-screen bg-background-dark flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">기록 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!data) return null;
 
@@ -129,13 +236,15 @@ const HistoryDetail: React.FC = () => {
         {/* === 요약 탭 === */}
         {activeTab === 'summary' && data.evaluation && (
           <div className="space-y-4 animate-in fade-in duration-300">
-            <div className="bg-primary/10 border border-primary/20 p-6 rounded-[2rem]">
-              <h3 className="text-[10px] font-bold text-primary uppercase mb-3 tracking-widest flex items-center gap-1">
-                <span className="material-symbols-outlined text-xs">auto_awesome</span>
-                AI 정밀 분석 요약
-              </h3>
-              <p className="text-sm font-bold text-slate-100 leading-tight">{data.evaluation.summary}</p>
-            </div>
+            {data.evaluation.summary && (
+              <div className="bg-primary/10 border border-primary/20 p-6 rounded-[2rem]">
+                <h3 className="text-[10px] font-bold text-primary uppercase mb-3 tracking-widest flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs">auto_awesome</span>
+                  AI 정밀 분석 요약
+                </h3>
+                <p className="text-sm font-bold text-slate-100 leading-tight">{data.evaluation.summary}</p>
+              </div>
+            )}
 
             {/* 코칭 역량 점수 */}
             {data.evaluation.coachingSkills && (
@@ -149,7 +258,7 @@ const HistoryDetail: React.FC = () => {
                     { key: 'activeListening', label: '경청력', color: 'bg-green-500' },
                     { key: 'actionGuidance', label: '행동 유도', color: 'bg-amber-500' },
                   ].map((skill) => {
-                    const value = data.evaluation.coachingSkills[skill.key] || 0;
+                    const value = data.evaluation?.coachingSkills?.[skill.key] || 0;
                     return (
                       <div key={skill.key} className="flex items-center gap-3">
                         <span className="text-[10px] font-bold text-slate-400 w-16 shrink-0">{skill.label}</span>
@@ -165,25 +274,37 @@ const HistoryDetail: React.FC = () => {
             )}
 
             {/* 메트릭 */}
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: '공감도', value: data.evaluation.metrics?.empathyIndex },
-                { label: '전달력', value: data.evaluation.metrics?.sbiScore },
-                { label: '성공률', value: data.evaluation.metrics?.outcomeSuccess },
-              ].map((m, i) => (
-                <div key={i} className="bg-white/5 p-4 rounded-xl text-center border border-white/5">
-                  <p className="text-[9px] font-bold text-slate-500 uppercase mb-1">{m.label}</p>
-                  <p className="text-xl font-black">{m.value || 0}%</p>
-                </div>
-              ))}
-            </div>
+            {data.evaluation.metrics && (
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: '공감도', value: data.evaluation.metrics?.empathyIndex },
+                  { label: '전달력', value: data.evaluation.metrics?.sbiScore },
+                  { label: '성공률', value: data.evaluation.metrics?.outcomeSuccess },
+                ].map((m, i) => (
+                  <div key={i} className="bg-white/5 p-4 rounded-xl text-center border border-white/5">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase mb-1">{m.label}</p>
+                    <p className="text-xl font-black">{m.value || 0}%</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 평가 데이터가 전혀 없을 때 안내 */}
+        {activeTab === 'summary' && !data.evaluation && (
+          <div className="py-16 text-center">
+            <span className="material-symbols-outlined text-4xl text-slate-700 mb-3 block">info</span>
+            <p className="text-slate-500 text-sm">이 시뮬레이션은 AI 분석이 저장되지 않았습니다.</p>
           </div>
         )}
 
         {/* === 대화 탭 === */}
         {activeTab === 'transcript' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            {data.transcript.map((msg: any, idx: number) => (
+            {data.transcript.length === 0 ? (
+              <p className="text-center text-slate-500 text-sm py-16">대화 기록이 없습니다.</p>
+            ) : data.transcript.map((msg, idx) => (
               <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                  <div className={`max-w-[90%] p-5 rounded-[1.5rem] border ${
                    msg.role === 'user'
@@ -209,7 +330,7 @@ const HistoryDetail: React.FC = () => {
                 <p className="text-slate-500 text-sm">이 세션에서는 SOS 힌트를 사용하지 않았습니다.</p>
               </div>
             ) : (
-              sosHistory.map((sos: any, idx: number) => (
+              sosHistory.map((sos, idx: number) => (
                 <div key={idx} className="bg-navy-card p-5 rounded-2xl border border-primary/20">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-[9px] font-bold text-primary uppercase tracking-widest flex items-center gap-1">
@@ -253,7 +374,9 @@ const HistoryDetail: React.FC = () => {
                 className="w-full bg-navy-card border border-white/10 rounded-2xl p-4 text-sm text-white placeholder-slate-600 outline-none resize-none focus:border-primary/50 transition-colors"
                 placeholder="이 세션에 대한 메모를 남겨보세요. (예: 실제 팀원 이름, 적용할 상황, 느낀 점 등)"
               />
-              <p className="text-[9px] text-slate-600 mt-1 px-1">포커스를 벗어나면 자동 저장됩니다.</p>
+              <p className="text-[9px] text-slate-600 mt-1 px-1">
+                포커스를 벗어나면 자동 저장됩니다. {source === 'supabase' ? '(계정에 저장)' : '(브라우저 로컬 저장)'}
+              </p>
             </div>
 
             {/* 태그 */}
@@ -300,15 +423,9 @@ const HistoryDetail: React.FC = () => {
                     key={suggestion}
                     onClick={() => {
                       if (!tags.includes(suggestion)) {
-                        setTagInput(suggestion);
                         const newTags = [...tags, suggestion];
                         setTags(newTags);
-                        const history = JSON.parse(localStorage.getItem('leadershigh_history') || '[]');
-                        const idx = history.findIndex((h: any) => h.id === id);
-                        if (idx >= 0) {
-                          history[idx].tags = newTags;
-                          localStorage.setItem('leadershigh_history', JSON.stringify(history));
-                        }
+                        persist(memo, newTags);
                         setTagInput('');
                       }
                     }}

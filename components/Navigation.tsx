@@ -15,9 +15,13 @@ const Navigation: React.FC = () => {
     navigate('/');
   };
 
+  // 로그인 유저에게만 "기록" 진입점 노출 (게스트는 Supabase 에 기록 없음)
   const navItems = [
     { label: '기지', labelEn: 'BASE', icon: 'grid_view', path: '/' },
     { label: '퀘스트', labelEn: 'QUEST', icon: 'swords', path: '/missions' },
+    ...(user
+      ? [{ label: '기록', labelEn: 'HISTORY', icon: 'history', path: '/history' }]
+      : []),
     { label: '프로필', labelEn: 'PROFILE', icon: 'shield_person', path: '/profile' },
   ];
 
