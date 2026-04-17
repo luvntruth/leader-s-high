@@ -128,8 +128,9 @@ const CustomLab: React.FC = () => {
     }
   };
 
-  const startCustomSim = (mode: 'voice' | 'text') => {
-    navigate(mode === 'voice' ? '/voice' : '/simulation', {
+  // Voice 모드는 2026-04 런치에서 일시 제외. 텍스트 시뮬레이션만 사용.
+  const startCustomSim = () => {
+    navigate('/simulation', {
       state: {
         name: generatedScenario?.memberName || '팀원',
         generation: generatedScenario?.generation || 'Gen Z',
@@ -190,20 +191,12 @@ const CustomLab: React.FC = () => {
               <h3 className="text-lg font-bold mb-1">{generatedScenario.memberName}님과의 면담</h3>
               <p className="text-xs text-slate-400 leading-relaxed px-4">{generatedScenario.description}</p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={() => startCustomSim('text')} 
-                className="py-4 bg-white/5 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all active:scale-95"
-              >
-                텍스트 시작
-              </button>
-              <button 
-                onClick={() => startCustomSim('voice')} 
-                className="py-4 bg-primary text-navy-deep rounded-2xl font-bold shadow-xl shadow-primary/30 hover:bg-primary/90 transition-all active:scale-95"
-              >
-                음성 시작
-              </button>
-            </div>
+            <button
+              onClick={startCustomSim}
+              className="w-full py-4 bg-primary text-navy-deep rounded-2xl font-bold shadow-xl shadow-primary/30 hover:bg-primary/90 transition-all active:scale-95"
+            >
+              시뮬레이션 시작
+            </button>
             <button 
               onClick={() => setGeneratedScenario(null)} 
               className="w-full py-2 text-[10px] text-slate-500 font-bold uppercase tracking-widest hover:text-slate-300 transition-colors"

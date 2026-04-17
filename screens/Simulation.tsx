@@ -208,7 +208,6 @@ const Simulation: React.FC = () => {
   const emotionEmoji = useMemo(() => getEmotionEmoji(trustState.trust), [trustState.trust]);
   const emotionData = useMemo(() => getEmotionState(trustState.trust), [trustState.trust]);
   const emotionLabel = emotionData.state;
-  const hpColor = trustState.trust > 70 ? '#4ade80' : trustState.trust > 30 ? '#00f2ff' : '#ef4444';
 
   // Derived State for Analysis Completion
   const isAnalysisComplete = useMemo(() => {
@@ -614,11 +613,10 @@ ${recentMsgs}
 
   useEffect(() => {
     if (scrollRef.current) {
-      const isDesktop = window.innerWidth >= 640;
-      const offset = isDesktop ? 180 : 0;
-      scrollRef.current.scrollTop = Math.max(0, scrollRef.current.scrollHeight - scrollRef.current.clientHeight + offset);
+      // composer 가 flex flow 에 들어왔으므로 인위적 오프셋 없이 자연 bottom-align.
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, mobileComposerHeight, mobileComposerOffset, inputText]);
+  }, [messages, mobileComposerHeight, mobileComposerOffset, inputText, isLoading]);
 
   useEffect(() => {
     const updateMobileLayout = () => {
@@ -706,7 +704,7 @@ ${recentMsgs}
         ))}
       </div>
 
-      <div className={`min-h-[100dvh] bg-[#060B18] text-white font-manrope relative flex flex-col sm:flex-row ${screenEffect === 'damage' ? 'animate-shake' : ''}`}>
+      <div className={`h-[100dvh] bg-[#060B18] text-white font-manrope relative flex flex-col sm:flex-row overflow-hidden ${screenEffect === 'damage' ? 'animate-shake' : ''}`}>
 
         {/* ── BACKGROUND FX ── */}
         <div className="absolute inset-0 pointer-events-none">
@@ -1008,25 +1006,18 @@ ${recentMsgs}
             </div>
           </div>
 
-          {/* HUD Overlay Info */}
-          <div className="absolute top-6 left-6 right-6 z-30 justify-between pointer-events-none hidden sm:flex">
-            <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 flex items-center gap-3">
-              <span className="text-xs font-black text-slate-500 uppercase tracking-widest">현재 감정 지수</span>
-              <span className="text-sm font-black" style={{ color: hpColor }}>{emotionLabel}</span>
-            </div>
-          </div>
-
-          {/* Message HUD Area */}
+          {/* Message HUD Area
+              — 데스크톱 상단의 "현재 감정 지수" 중복 HUD 는 제거했음 (좌측 패널에서 이미 노출) */}
           <div
             ref={scrollRef}
-            className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 lg:px-7 pt-4 sm:pt-24 lg:pt-20 sm:pb-32 lg:pb-64 space-y-4 sm:space-y-8 lg:space-y-6 scroll-smooth hide-scrollbar"
+            className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-5 pb-4 sm:pb-4 space-y-4 sm:space-y-5 lg:space-y-3 scroll-smooth hide-scrollbar"
             style={{ paddingBottom: window.innerWidth < 640 ? `${mobileComposerHeight + mobileComposerOffset + 20}px` : undefined }}
           >
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className="max-w-[88%] lg:max-w-[82%] group">
-                  <div className={`flex items-center gap-2 mb-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <span className={`text-xs lg:text-[13px] font-black uppercase tracking-widest ${msg.role === 'user' ? 'text-primary' : 'text-slate-500'}`}>
+                <div className="max-w-[88%] lg:max-w-[68ch] group">
+                  <div className={`flex items-center gap-2 mb-2 lg:mb-1 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <span className={`text-xs lg:text-[11px] font-black uppercase tracking-widest ${msg.role === 'user' ? 'text-primary' : 'text-slate-500'}`}>
                       {msg.role === 'user' ? '나' : config.name}
                     </span>
                     <span className="text-[10px] font-bold text-white/20 uppercase tabular-nums">
@@ -1035,13 +1026,13 @@ ${recentMsgs}
                   </div>
 
                   <div className={`
-                  relative p-5 rounded-3xl backdrop-blur-md border transition-all duration-300
+                  relative p-5 lg:px-4 lg:py-3 rounded-3xl lg:rounded-2xl backdrop-blur-md border transition-all duration-300
                   ${msg.role === 'user'
                       ? 'bg-primary/10 border-primary/30 rounded-tr-sm shadow-[0_4px_20px_rgba(0,242,255,0.1)]'
                       : 'bg-white/5 border-white/10 rounded-tl-sm'}
                   ${msg.isError ? 'bg-red-500/10 border-red-500/30 text-red-400' : ''}
                 `}>
-                    <p className="text-[17px] lg:text-[20px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    <p className="text-[17px] lg:text-[15.5px] leading-relaxed lg:leading-[1.55] whitespace-pre-wrap">{msg.text}</p>
 
                     {/* Corner Accents */}
                     <div className={`absolute top-0 ${msg.role === 'user' ? 'right-0' : 'left-0'} p-1.5 opacity-40`}>
@@ -1116,8 +1107,10 @@ ${recentMsgs}
             )}
           </div>
 
-          {/* ── ACTION INPUT DASHBOARD ── */}
-          <div ref={composerRef} className="fixed sm:absolute bottom-0 sm:bottom-3 lg:bottom-4 left-0 right-0 sm:left-6 sm:right-6 z-40 bg-navy-mid/95 sm:bg-navy-mid/80 backdrop-blur-2xl border-t sm:border border-white/10 rounded-t-[1.4rem] sm:rounded-[1.6rem] lg:rounded-[1.8rem] p-3 sm:p-3 lg:p-3.5 flex flex-col gap-2 sm:gap-2.5 shadow-[0_-10px_30px_rgba(0,0,0,0.25)] sm:shadow-[0_20px_50px_rgba(0,0,0,0.5)] mt-2 sm:mt-0 pb-[calc(12px+env(safe-area-inset-bottom))] sm:pb-3"
+          {/* ── ACTION INPUT DASHBOARD ──
+              Mobile(<640): fixed bottom + visualViewport 오프셋 (기존 유지)
+              Desktop(≥640): flex flow 에 복귀하여 메시지 영역을 가리지 않음 */}
+          <div ref={composerRef} className="fixed sm:static bottom-0 left-0 right-0 z-40 bg-navy-mid/95 sm:bg-black/30 backdrop-blur-2xl border-t border-white/10 sm:border-l-0 sm:border-r-0 sm:border-b-0 rounded-t-[1.4rem] sm:rounded-none p-3 sm:px-6 sm:py-3 lg:px-8 lg:py-3 flex flex-col gap-2 sm:gap-2 shadow-[0_-10px_30px_rgba(0,0,0,0.25)] sm:shadow-none mt-2 sm:mt-0 pb-[calc(12px+env(safe-area-inset-bottom))] sm:pb-3"
             style={{ transform: window.innerWidth < 640 && mobileComposerOffset > 0 ? `translateY(-${mobileComposerOffset}px)` : undefined }}>
 
             {/* Action Suggested / SOS Area */}
@@ -1152,27 +1145,61 @@ ${recentMsgs}
 
             {/* Input Bar */}
             <div className="flex flex-col gap-2.5 sm:gap-2">
-              <div className="bg-black/40 rounded-[1.4rem] sm:rounded-[1.5rem] border border-white/5 px-3 py-1.5 sm:py-1.5 lg:py-1.5 flex items-end gap-2 focus-within:border-primary/40 transition-all">
+              <div className="bg-black/40 rounded-[1.4rem] sm:rounded-[1.5rem] border border-white/5 px-3 py-1.5 sm:py-1.5 lg:py-1 flex items-end gap-2 focus-within:border-primary/40 transition-all">
                 <textarea
                   ref={textareaRef}
                   rows={2}
-                  className="flex-1 min-w-0 bg-transparent border-none px-3 py-1.5 sm:py-1.5 lg:py-1.5 text-base lg:text-[18px] text-white placeholder-slate-600 outline-none resize-none hide-scrollbar min-h-[52px] sm:min-h-[42px] lg:min-h-[46px] max-h-[120px] leading-relaxed"
+                  className="flex-1 min-w-0 bg-transparent border-none px-3 py-1.5 sm:py-1.5 lg:py-1.5 text-base lg:text-[15.5px] text-white placeholder-slate-600 outline-none resize-none hide-scrollbar min-h-[52px] sm:min-h-[42px] lg:min-h-[40px] max-h-[120px] leading-relaxed"
                   placeholder="메시지를 입력하세요..."
                   value={inputText}
                   disabled={isLoading}
                   onChange={e => setInputText(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend(inputText))}
                 />
+
+                {/* 데스크톱 전용 — SOS / 즉시 코칭 아이콘을 입력바 우측에 편입 */}
+                <button
+                  onClick={handleSOS}
+                  disabled={isGeneratingSOS}
+                  title="SOS 힌트"
+                  aria-label="SOS 힌트"
+                  className={`hidden lg:flex size-10 rounded-xl items-center justify-center transition-all shrink-0 mb-1 ${
+                    isGeneratingSOS
+                      ? 'bg-primary/20 animate-pulse'
+                      : 'bg-primary/15 text-primary hover:bg-primary hover:text-navy-deep'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base font-black">
+                    {isGeneratingSOS ? 'sync' : 'psychology'}
+                  </span>
+                </button>
+                <button
+                  onClick={handleInstantCoaching}
+                  disabled={isCoachingLoading || messages.filter(m => m.role === 'user').length === 0 || isLoading}
+                  title="즉시 코칭"
+                  aria-label="즉시 코칭"
+                  className={`hidden lg:flex size-10 rounded-xl items-center justify-center transition-all shrink-0 mb-1 ${
+                    isCoachingLoading
+                      ? 'bg-amber-500/20 animate-pulse'
+                      : 'bg-amber-500/15 text-amber-400 hover:bg-amber-500 hover:text-navy-deep disabled:opacity-30'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base font-black">
+                    {isCoachingLoading ? 'sync' : 'tips_and_updates'}
+                  </span>
+                </button>
+
                 <button
                   onClick={() => handleSend(inputText)}
                   disabled={!inputText.trim() || isLoading}
-                  className="size-11 bg-white/5 hover:bg-primary hover:text-navy-deep rounded-2xl flex items-center justify-center transition-all disabled:opacity-20 shrink-0 mb-1"
+                  className="size-11 lg:size-10 bg-white/5 hover:bg-primary hover:text-navy-deep rounded-2xl lg:rounded-xl flex items-center justify-center transition-all disabled:opacity-20 shrink-0 mb-1"
                 >
                   <span className="material-symbols-outlined text-base font-black">send</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 sm:flex sm items-center sm:gap-3">
+              {/* 모바일/태블릿 전용 전체폭 액션 버튼 (lg 이상은 입력바 내 아이콘으로 대체) */}
+              <div className="grid grid-cols-2 gap-2 sm:flex sm items-center sm:gap-3 lg:hidden">
                 <button
                   onClick={handleSOS}
                   disabled={isGeneratingSOS}

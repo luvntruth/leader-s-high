@@ -1,8 +1,9 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 // @ts-ignore
 import { useNavigate } from 'react-router-dom';
-import CompetencyRadar from '../components/CompetencyRadar';
+// recharts(~367KB) 초기 번들 제외
+const CompetencyRadar = lazy(() => import('../components/CompetencyRadar'));
 import { DataService, Badge, UserRank } from '../services/dataService';
 import { createGeminiClient } from '../src/lib/geminiClient';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,7 +51,7 @@ const RANK_DETAILS: Record<string, RankDetail> = {
     name: '마스터 디렉터',
     definition: '조직 전체의 문화를 선도하고 미래 리더를 육성하는 통찰력을 지닌 최상위 리더십 단계입니다.',
     features: ['비전 제시 및 조직 가치 내재화 탁월', '극한의 스트레스 상황에서도 평정심 유지', '차세대 리더들을 위한 멘토링 가능'],
-    usage: '음성 시뮬레이션(Live API)을 통해 실시간 대화의 즉각적인 반응성을 극대화하고, 전사 리더십 인사이트를 관리하세요.',
+    usage: '고급 시나리오 전 분야를 넘나들며 팀·조직 단위 리더십 인사이트를 관리하고, 차세대 리더 육성에 역량을 투자하세요.',
     actions: ['종합 LQ 지수 950점 돌파', '전사 리더십 벤치마킹 리포트 생성 및 활용', '모든 카테고리 마스터 배지 획득']
   }
 };
@@ -438,12 +439,14 @@ const Profile: React.FC = () => {
                   </div>
 
 
-                  {/* 역량 레이더 컴포넌트 */}
-                  <CompetencyRadar
-                    data={reportProfile?.radarData}
-                    teamAffinity={reportProfile?.persona?.teamAffinity != null ? Math.round(reportProfile.persona.teamAffinity) : undefined}
-                    tacticalRisk={reportProfile?.persona?.riskManagement != null ? Math.round(reportProfile.persona.riskManagement) : undefined}
-                  />
+                  {/* 역량 레이더 컴포넌트 (lazy) */}
+                  <Suspense fallback={<div className="min-h-[320px] w-full animate-pulse bg-white/[0.02] rounded-xl" />}>
+                    <CompetencyRadar
+                      data={reportProfile?.radarData}
+                      teamAffinity={reportProfile?.persona?.teamAffinity != null ? Math.round(reportProfile.persona.teamAffinity) : undefined}
+                      tacticalRisk={reportProfile?.persona?.riskManagement != null ? Math.round(reportProfile.persona.riskManagement) : undefined}
+                    />
+                  </Suspense>
 
 
                 </div>

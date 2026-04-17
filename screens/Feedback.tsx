@@ -714,24 +714,38 @@ const Feedback: React.FC = () => {
                 </div>
               </div>
 
-              {/* 오버레이 */}
+              {/* 오버레이 — 게스트는 /signup 으로 직결(아래 카드와 동일 intent) */}
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-[2px]">
                 <div className="text-4xl mb-3">🔒</div>
                 <h4 className="text-white font-bold text-lg mb-1">
-                  {user ? '풀 리포트로 더 깊이 분석하세요' : '가입하면 전체 결과를 확인할 수 있어요'}
+                  {user ? '풀 리포트로 더 깊이 분석하세요' : '가입하고 전체 결과 받기'}
                 </h4>
                 <p className="text-slate-400 text-xs mb-4 text-center max-w-xs">
                   모범 스크립트, 5차원 역량 분석, 과학적 근거까지<br/>
-                  {user ? '프로 플랜에서 확인하세요' : '무료 가입 후 바로 확인하세요'}
+                  {user ? '프로 플랜에서 확인하세요' : '가입 20초 · 이번 결과 영구 저장 · 다음 시나리오 이어가기'}
                 </p>
                 {user ? (
                   <button onClick={() => navigate('/pricing')} className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors">
                     프로 플랜 보기 →
                   </button>
                 ) : (
-                  <button onClick={() => navigate('/onboarding')} className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors">
-                    무료 체험하기 →
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('leadershigh_guest_transcript', JSON.stringify({
+                        transcript,
+                        scenario,
+                        sosTipHistory,
+                      }));
+                      navigate('/signup', { state: { from: '/feedback', intent: 'golden-script', transcript, scenario, sosTipHistory, evaluation, guest: true } });
+                    }}
+                    className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <span className="material-symbols-outlined text-base">person_add</span>
+                    가입하고 전체 보기 →
                   </button>
+                )}
+                {!user && (
+                  <p className="text-slate-500 text-[10px] mt-3">가입하지 않으면 이번 결과는 다시 열 수 없어요</p>
                 )}
               </div>
             </div>

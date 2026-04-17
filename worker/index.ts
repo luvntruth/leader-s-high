@@ -1,18 +1,35 @@
 /**
  * Leader's High — Gemini API 백엔드 프록시 (Cloudflare Worker)
  *
+ * 아키텍처:
+ *   프로덕션 기본 = Vertex AI 경로 (us-central1-aiplatform.googleapis.com).
+ *   → 국가 차단(FAILED_PRECONDITION) 없음. 서비스 계정 OAuth 토큰으로 인증.
+ *   폴백 = Gemini Developer API (generativelanguage.googleapis.com).
+ *   → USE_VERTEX="false" 로 설정 시 활성화 (롤백 전용).
+ *
  * 배포:
  *   cd worker && npx wrangler deploy
+ *   # Vertex AI (프로덕션 필수)
+ *   npx wrangler secret put VERTEX_SA_JSON       # GCP 서비스 계정 JSON 전체
+ *   # 폴백/개발용
  *   npx wrangler secret put GEMINI_API_KEY
+ *   # 공통
  *   npx wrangler secret put SUPABASE_JWT_SECRET
  *   npx wrangler secret put SUPABASE_SERVICE_KEY
  *   npx wrangler secret put STRIPE_SECRET_KEY
  *   npx wrangler secret put STRIPE_WEBHOOK_SECRET
  *   npx wrangler secret put PORTONE_API_SECRET
+ *
+ *   wrangler.toml [vars] 에 GCP_PROJECT_ID, VERTEX_LOCATION 설정 필수.
  */
 
 const GOOGLE_AI_BASE = 'https://generativelanguage.googleapis.com';
 const GOOGLE_AI_WS   = 'wss://generativelanguage.googleapis.com';
+
+// Vertex AI — generativelanguage.googleapis.com 의 국가 차단(FAILED_PRECONDITION) 해결용
+// 서비스 계정 OAuth 로 인증하며 호출원 IP 국가 제한이 없음.
+const VERTEX_OAUTH_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const VERTEX_SCOPE           = 'https://www.googleapis.com/auth/cloud-platform';
 
 export interface Env {
   GEMINI_API_KEY: string;
@@ -23,8 +40,17 @@ export interface Env {
   SUPABASE_SERVICE_KEY?: string;
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  // Stripe 플랜별 priceId (서버측 맵핑으로 클라이언트 조작 차단)
+  STRIPE_PRICE_PRO?: string;
+  STRIPE_PRICE_ULTRA?: string;
   PORTONE_API_SECRET?: string;
   RATE_LIMIT?: KVNamespace;
+
+  // Vertex AI (국가 차단 해제 경로)
+  GCP_PROJECT_ID?: string;
+  VERTEX_LOCATION?: string;       // 예: "us-central1"
+  VERTEX_SA_JSON?: string;        // Service Account JSON 전체 (wrangler secret put VERTEX_SA_JSON)
+  USE_VERTEX?: string;            // "false" 로 설정 시 기존 Developer API 경로로 폴백
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -60,6 +86,17 @@ async function verifyAuth(request: Request, env: Env): Promise<{
     const parts = token.split('.');
     if (parts.length !== 3) return { valid: false, error: 'Invalid token format' };
 
+    // alg 헤더 엄격 검증 (alg="none" 공격 및 알고리즘 혼동 차단)
+    let header: { alg?: string; typ?: string };
+    try {
+      header = JSON.parse(atob(parts[0].replace(/-/g, '+').replace(/_/g, '/')));
+    } catch {
+      return { valid: false, error: 'Invalid token header' };
+    }
+    if (header.alg !== 'HS256') {
+      return { valid: false, error: `Unsupported alg: ${header.alg}` };
+    }
+
     // HMAC-SHA256 서명 검증
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
@@ -85,9 +122,31 @@ async function verifyAuth(request: Request, env: Env): Promise<{
       return { valid: false, error: 'Token expired' };
     }
 
-    // issuer/audience 검증
-    if (payload.iss !== 'supabase' && !payload.iss?.includes('supabase')) {
+    // issuer 검증: Supabase는 legacy(iss="supabase")와 URL 기반(iss="${URL}/auth/v1")
+    // 두 형식을 혼용 중 — 두 형식 모두 허용하되, ref 클레임으로 프로젝트 격리 강제
+    const expectedUrlIss = env.SUPABASE_URL ? `${env.SUPABASE_URL}/auth/v1` : null;
+    const isLegacyIss = payload.iss === 'supabase';
+    const isUrlIss = expectedUrlIss && payload.iss === expectedUrlIss;
+    if (!isLegacyIss && !isUrlIss) {
       return { valid: false, error: 'Invalid token issuer' };
+    }
+
+    // project ref 검증 (핵심 프로젝트 격리 — 다른 Supabase 프로젝트 토큰 차단)
+    if (env.SUPABASE_URL) {
+      try {
+        const expectedRef = new URL(env.SUPABASE_URL).hostname.split('.')[0];
+        if (payload.ref && payload.ref !== expectedRef) {
+          return { valid: false, error: 'Invalid token project ref' };
+        }
+      } catch {
+        // URL 파싱 실패는 서버 설정 문제 — 무시
+      }
+    }
+
+    // audience 검증 (Supabase 표준: 'authenticated'; anon key는 aud 없을 수 있음)
+    // user JWT는 반드시 'authenticated' 이어야 함
+    if (payload.aud && payload.aud !== 'authenticated') {
+      return { valid: false, error: 'Invalid token audience' };
     }
 
     return {
@@ -110,6 +169,144 @@ function base64UrlDecode(str: string): ArrayBuffer {
 }
 
 // ────────────────────────────────────────────────────────────────
+// Vertex AI — OAuth2 access token (서비스 계정 JWT → access_token 교환)
+// 호출원 IP 국가 제한이 없는 `{region}-aiplatform.googleapis.com` 엔드포인트 사용.
+// ────────────────────────────────────────────────────────────────
+interface VertexServiceAccount {
+  client_email: string;
+  private_key: string;  // PEM (PKCS#8)
+  project_id?: string;
+  token_uri?: string;
+}
+
+// 모듈 스코프 캐시 — 같은 Worker 인스턴스의 연속 요청에 재사용 (최대 ~1h)
+let cachedVertexToken: { token: string; exp: number } | null = null;
+let cachedVertexSA: VertexServiceAccount | null = null;
+
+function b64UrlEncodeString(s: string): string {
+  return btoa(s).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+function b64UrlEncodeBytes(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+function pemToArrayBuffer(pem: string): ArrayBuffer {
+  const b64 = pem
+    .replace(/-----BEGIN [^-]+-----/g, '')
+    .replace(/-----END [^-]+-----/g, '')
+    .replace(/\s+/g, '');
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+function parseServiceAccount(env: Env): VertexServiceAccount | null {
+  if (cachedVertexSA) return cachedVertexSA;
+  if (!env.VERTEX_SA_JSON) return null;
+  try {
+    const sa = JSON.parse(env.VERTEX_SA_JSON) as VertexServiceAccount;
+    if (!sa.client_email || !sa.private_key) return null;
+    // private_key 는 JSON 이스케이프 (\n) 형태로 저장되는 경우가 많음
+    sa.private_key = sa.private_key.replace(/\\n/g, '\n');
+    cachedVertexSA = sa;
+    return sa;
+  } catch {
+    return null;
+  }
+}
+
+async function getVertexAccessToken(env: Env): Promise<string | null> {
+  const now = Math.floor(Date.now() / 1000);
+
+  // 만료 60초 전까지는 캐시 재사용
+  if (cachedVertexToken && cachedVertexToken.exp > now + 60) {
+    return cachedVertexToken.token;
+  }
+
+  const sa = parseServiceAccount(env);
+  if (!sa) return null;
+
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const payload = {
+    iss: sa.client_email,
+    scope: VERTEX_SCOPE,
+    aud: sa.token_uri || VERTEX_OAUTH_TOKEN_URL,
+    iat: now,
+    exp: now + 3600,
+  };
+
+  const signingInput = `${b64UrlEncodeString(JSON.stringify(header))}.${b64UrlEncodeString(JSON.stringify(payload))}`;
+
+  let jwt: string;
+  try {
+    const key = await crypto.subtle.importKey(
+      'pkcs8',
+      pemToArrayBuffer(sa.private_key),
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const sig = await crypto.subtle.sign(
+      'RSASSA-PKCS1-v1_5',
+      key,
+      new TextEncoder().encode(signingInput)
+    );
+    jwt = `${signingInput}.${b64UrlEncodeBytes(new Uint8Array(sig))}`;
+  } catch (e) {
+    console.error('Vertex JWT sign failed:', e);
+    return null;
+  }
+
+  try {
+    const res = await fetch(sa.token_uri || VERTEX_OAUTH_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        assertion: jwt,
+      }),
+    });
+    if (!res.ok) {
+      console.error(`Vertex token exchange failed: ${res.status} ${await res.text()}`);
+      return null;
+    }
+    const data = await res.json() as { access_token?: string; expires_in?: number };
+    if (!data.access_token) return null;
+    cachedVertexToken = {
+      token: data.access_token,
+      exp: now + (data.expires_in ?? 3600),
+    };
+    return data.access_token;
+  } catch (e) {
+    console.error('Vertex token fetch error:', e);
+    return null;
+  }
+}
+
+// SDK 가 보내는 경로 `/v1beta/models/{model}:{method}` 를
+// Vertex REST 경로 `/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:{method}` 로 재작성.
+function rewritePathToVertex(
+  path: string,
+  projectId: string,
+  location: string
+): string | null {
+  // 선행 `/api/gemini` 는 호출 시점에 이미 제거됨
+  const m = path.match(/^\/v1(?:beta|alpha)?\/models\/([^:/]+):([A-Za-z]+)\/?$/);
+  if (!m) return null;
+  const [, model, method] = m;
+  return `/v1/projects/${encodeURIComponent(projectId)}/locations/${encodeURIComponent(location)}/publishers/google/models/${encodeURIComponent(model)}:${method}`;
+}
+
+function vertexEnabled(env: Env): boolean {
+  if (env.USE_VERTEX === 'false') return false;
+  return !!(env.VERTEX_SA_JSON && env.GCP_PROJECT_ID);
+}
+
+// ────────────────────────────────────────────────────────────────
 // Rate Limiting (KV 또는 메모리 폴백)
 // ────────────────────────────────────────────────────────────────
 const RATE_LIMITS: Record<string, number> = {
@@ -119,24 +316,20 @@ const RATE_LIMITS: Record<string, number> = {
   ultra: 1000,
 };
 
-// KV 미설정 시 메모리 기반 폴백 (Worker 재시작 시 리셋)
-const memoryRateStore = new Map<string, number>();
-
 async function checkRateLimit(userId: string, plan: string, env: Env): Promise<boolean> {
+  // fail-closed: KV 미바인딩 시 요청 거부 (DoS/크레딧 고갈 방지)
+  // Cloudflare Worker는 인스턴스별 메모리 분리 + 수평 확장되므로 메모리 Map은 사실상 무제한
+  if (!env.RATE_LIMIT) {
+    console.error('RATE_LIMIT KV namespace not bound — rejecting request (fail-closed)');
+    return false;
+  }
+
   const key = `rate:${userId}:${new Date().toISOString().slice(0, 10)}`;
   const limit = RATE_LIMITS[plan] || RATE_LIMITS.free;
 
-  if (env.RATE_LIMIT) {
-    const current = parseInt(await env.RATE_LIMIT.get(key) || '0');
-    if (current >= limit) return false;
-    await env.RATE_LIMIT.put(key, String(current + 1), { expirationTtl: 86400 });
-    return true;
-  }
-
-  // 메모리 폴백
-  const current = memoryRateStore.get(key) || 0;
+  const current = parseInt((await env.RATE_LIMIT.get(key)) || '0', 10);
   if (current >= limit) return false;
-  memoryRateStore.set(key, current + 1);
+  await env.RATE_LIMIT.put(key, String(current + 1), { expirationTtl: 86400 });
   return true;
 }
 
@@ -205,6 +398,48 @@ async function updateProfilePlan(
 }
 
 // ────────────────────────────────────────────────────────────────
+// Stripe Webhook 재생 공격 방어 (event.id 기반 idempotency)
+// Supabase에 processed_stripe_events 테이블 필요 (SQL: CREATE TABLE processed_stripe_events (event_id text PRIMARY KEY, event_type text, processed_at timestamptz DEFAULT now()))
+// ────────────────────────────────────────────────────────────────
+async function isStripeEventProcessed(env: Env, eventId: string): Promise<boolean> {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return false;
+  try {
+    const res = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/processed_stripe_events?select=event_id&event_id=eq.${encodeURIComponent(eventId)}&limit=1`,
+      {
+        headers: {
+          'apikey': env.SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+        },
+      }
+    );
+    if (!res.ok) return false;
+    const rows = (await res.json()) as Array<{ event_id: string }>;
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function markStripeEventProcessed(env: Env, eventId: string, eventType: string): Promise<void> {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return;
+  try {
+    await fetch(`${env.SUPABASE_URL}/rest/v1/processed_stripe_events`, {
+      method: 'POST',
+      headers: {
+        'apikey': env.SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({ event_id: eventId, event_type: eventType }),
+    });
+  } catch (e) {
+    console.error('Failed to mark stripe event processed:', e);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────
 // Stripe Webhook 처리
 // ────────────────────────────────────────────────────────────────
 async function handleStripeWebhook(request: Request, env: Env): Promise<Response> {
@@ -224,11 +459,21 @@ async function handleStripeWebhook(request: Request, env: Env): Promise<Response
   try {
     const event = JSON.parse(body);
 
+    // Idempotency: 이미 처리한 event.id 재전송 시 스킵 (재생 공격으로 플랜 강등 방지)
+    if (event.id && await isStripeEventProcessed(env, event.id)) {
+      return new Response('OK (duplicate)', { status: 200 });
+    }
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
-        if (session.customer && session.metadata?.plan) {
-          await updateProfilePlan(env, session.customer, session.metadata.plan);
+        // metadata.plan은 클라이언트 주입 가능하므로 화이트리스트 재검증
+        const ALLOWED = ['pro', 'ultra'];
+        const plan = session.metadata?.plan;
+        if (session.customer && plan && ALLOWED.includes(plan)) {
+          await updateProfilePlan(env, session.customer, plan);
+        } else if (session.customer && plan) {
+          console.warn(`Rejected unknown plan in webhook: ${plan}`);
         }
         break;
       }
@@ -243,6 +488,11 @@ async function handleStripeWebhook(request: Request, env: Env): Promise<Response
         console.log('Payment failed:', event.data.object.customer);
         break;
       }
+    }
+
+    // 성공적으로 처리한 이벤트 기록 (다음번 재전송 시 스킵)
+    if (event.id) {
+      await markStripeEventProcessed(env, event.id, event.type || 'unknown');
     }
 
     return new Response('OK', { status: 200 });
@@ -262,9 +512,32 @@ async function handleCreateCheckout(request: Request, env: Env, auth: { userId?:
     });
   }
 
-  const { priceId, plan, returnUrl } = await request.json() as {
-    priceId: string; plan: string; returnUrl: string;
+  const { plan, returnUrl } = await request.json() as {
+    plan: string; returnUrl: string;
   };
+
+  // plan 화이트리스트 검증 (클라이언트가 임의 plan 값을 주입하여 상위 플랜 획득 차단)
+  const ALLOWED_PLANS = ['pro', 'ultra'] as const;
+  if (!plan || !ALLOWED_PLANS.includes(plan as typeof ALLOWED_PLANS[number])) {
+    return new Response(JSON.stringify({ error: 'Invalid plan' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
+    });
+  }
+
+  // priceId 서버측 맵핑 (클라이언트 priceId 조작 차단 — $0 priceId + 상위 plan metadata 공격 방어)
+  const PLAN_PRICE_MAP: Record<string, string | undefined> = {
+    pro: env.STRIPE_PRICE_PRO,
+    ultra: env.STRIPE_PRICE_ULTRA,
+  };
+  const serverPriceId = PLAN_PRICE_MAP[plan];
+  if (!serverPriceId) {
+    console.error(`STRIPE_PRICE_${plan.toUpperCase()} secret not configured`);
+    return new Response(JSON.stringify({ error: 'Plan not available' }), {
+      status: 501,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
+    });
+  }
 
   // returnUrl 화이트리스트 검증 (오픈 리다이렉트 방지)
   const allowedOrigin = env.ALLOWED_ORIGIN;
@@ -281,11 +554,11 @@ async function handleCreateCheckout(request: Request, env: Env, auth: { userId?:
 
   const params = new URLSearchParams({
     'mode': 'subscription',
-    'line_items[0][price]': priceId,
+    'line_items[0][price]': serverPriceId,
     'line_items[0][quantity]': '1',
     'success_url': `${returnUrl}/#/profile?checkout=success`,
     'cancel_url': `${returnUrl}/#/pricing?checkout=cancel`,
-    'metadata[plan]': plan || 'pro',
+    'metadata[plan]': plan,
     'metadata[user_id]': auth.userId || '',
   });
 
@@ -435,19 +708,27 @@ async function handleVerifyPayment(
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       if (type === 'plan' && plan && days) {
-        // 플랜 활성화
+        // 플랜 활성화 — plan 화이트리스트 재검증
+        const ALLOWED_PLANS = ['pro', 'ultra'];
+        if (!ALLOWED_PLANS.includes(plan)) {
+          lastError = `Invalid plan: ${plan}`;
+          break;
+        }
+
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + days);
 
+        // return=representation + select=id로 실제 업데이트된 rows 확인
+        // (profiles 행이 아직 생성되지 않은 race condition에서 0 rows 업데이트 감지)
         const res = await fetch(
-          `${env.SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(auth.userId ?? '')}`,
+          `${env.SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(auth.userId ?? '')}&select=id`,
           {
             method: 'PATCH',
             headers: {
               'apikey': env.SUPABASE_SERVICE_KEY,
               'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
               'Content-Type': 'application/json',
-              'Prefer': 'return=minimal',
+              'Prefer': 'return=representation',
             },
             body: JSON.stringify({
               plan,
@@ -456,8 +737,43 @@ async function handleVerifyPayment(
             }),
           }
         );
-        if (res.ok) { dbSuccess = true; break; }
-        lastError = `Profile update failed: ${res.status}`;
+
+        if (!res.ok) {
+          lastError = `Profile update failed: ${res.status}`;
+        } else {
+          const rows = (await res.json()) as Array<{ id: string }>;
+          if (rows.length === 0) {
+            // profiles 행이 없음 — upsert fallback 시도
+            const upsertRes = await fetch(
+              `${env.SUPABASE_URL}/rest/v1/profiles`,
+              {
+                method: 'POST',
+                headers: {
+                  'apikey': env.SUPABASE_SERVICE_KEY,
+                  'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'resolution=merge-duplicates,return=representation',
+                },
+                body: JSON.stringify({
+                  id: auth.userId,
+                  plan,
+                  plan_expires_at: expiresAt.toISOString(),
+                  updated_at: new Date().toISOString(),
+                }),
+              }
+            );
+            if (upsertRes.ok) {
+              const upsertRows = (await upsertRes.json()) as Array<{ id: string }>;
+              if (upsertRows.length > 0) { dbSuccess = true; break; }
+              lastError = 'Upsert returned 0 rows';
+            } else {
+              lastError = `Profile upsert failed: ${upsertRes.status}`;
+            }
+          } else {
+            dbSuccess = true;
+            break;
+          }
+        }
       } else if (type === 'report' && simulationId) {
         // 리포트 구매 기록
         const res = await fetch(
@@ -521,27 +837,29 @@ export default {
 
     const url = new URL(request.url);
 
-    // 디버그: API 키 상태 확인 (키 값은 노출하지 않음)
+    // 헬스체크 (키 지문 노출 금지 — OK 여부만 응답)
     if (url.pathname === '/health') {
-      const key = env.GEMINI_KEY_V2 || env.GEMINI_API_KEY || '';
-      return new Response(JSON.stringify({
-        hasKey: !!key,
-        keyLength: key.length,
-        keyPrefix: key.slice(0, 6),
-        keySuffix: key.slice(-4),
-      }), { headers: { 'Content-Type': 'application/json' } });
+      const hasLegacyKey = !!(env.GEMINI_KEY_V2 || env.GEMINI_API_KEY);
+      const usingVertex  = vertexEnabled(env);
+      const ok = usingVertex || hasLegacyKey;
+      return new Response(JSON.stringify({ ok, mode: usingVertex ? 'vertex' : 'legacy' }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
-    // Stripe Webhook (Stripe 서명으로 자체 검증, JWT 불필요)
+    // Stripe Webhook (Stripe 서명으로 자체 검증, JWT 불필요. Origin 헤더도 없이 옴)
     if (url.pathname === '/api/stripe-webhook' && request.method === 'POST') {
       return handleStripeWebhook(request, env);
     }
 
-    // Origin 검증
+    // Origin 엄격 검증 (빈 Origin 차단 — curl/서버-간 호출 악용 방지)
+    // ALLOWED_ORIGIN = '*' 설정 시에만 Origin 없는 요청 허용 (개발용)
     const origin = request.headers.get('Origin') || '';
     const allowed = env.ALLOWED_ORIGIN;
-    if (allowed && allowed !== '*' && origin && origin !== allowed) {
-      return new Response('Forbidden: origin not allowed', { status: 403 });
+    if (allowed && allowed !== '*') {
+      if (!origin || origin !== allowed) {
+        return new Response('Forbidden: origin not allowed', { status: 403 });
+      }
     }
 
     // JWT 인증
@@ -596,12 +914,82 @@ export default {
 
 // ────────────────────────────────────────────────────────────────
 // HTTP 프록시
+// Vertex AI 모드(USE_VERTEX=true, 기본): 국가 차단 없는 `{region}-aiplatform.googleapis.com` 로 포워드.
+// Legacy 모드(USE_VERTEX=false): 기존 `generativelanguage.googleapis.com` 로 포워드 (롤백용).
 // ────────────────────────────────────────────────────────────────
 async function handleHTTP(request: Request, env: Env, url: URL): Promise<Response> {
-  const geminiKey = env.GEMINI_KEY_V2 || env.GEMINI_API_KEY;
   const path = url.pathname.replace(/^\/?api\/gemini/, '') || url.pathname;
+
+  if (vertexEnabled(env)) {
+    return handleVertexHTTP(request, env, path, url.search);
+  }
+  return handleLegacyHTTP(request, env, path, url.search);
+}
+
+async function handleVertexHTTP(
+  request: Request,
+  env: Env,
+  path: string,
+  search: string
+): Promise<Response> {
+  const projectId = env.GCP_PROJECT_ID!;
+  const location  = env.VERTEX_LOCATION || 'us-central1';
+
+  const vertexPath = rewritePathToVertex(path, projectId, location);
+  if (!vertexPath) {
+    return new Response(
+      JSON.stringify({ error: `Unsupported Gemini path for Vertex proxy: ${path}` }),
+      { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) } }
+    );
+  }
+
+  const token = await getVertexAccessToken(env);
+  if (!token) {
+    return new Response(
+      JSON.stringify({ error: 'Vertex access token unavailable. Check VERTEX_SA_JSON secret.' }),
+      { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) } }
+    );
+  }
+
+  // SDK 가 붙이는 key 쿼리 파라미터는 Vertex 가 무시하지만 정리해서 보냄.
+  const cleanSearch = search.replace(/[?&]key=[^&]*/g, '').replace(/^&/, '?') || '';
+  const normalizedSearch = cleanSearch.startsWith('?') || cleanSearch === '' ? cleanSearch : `?${cleanSearch}`;
+  const targetUrl = `https://${location}-aiplatform.googleapis.com${vertexPath}${normalizedSearch}`;
+
+  const headers = new Headers();
+  // content-type 만 보존, 나머지 헤더는 재작성하여 클라이언트 헤더 유출 차단
+  const inboundCT = request.headers.get('content-type');
+  if (inboundCT) headers.set('Content-Type', inboundCT);
+  const inboundAccept = request.headers.get('accept');
+  if (inboundAccept) headers.set('Accept', inboundAccept);
+  headers.set('Authorization', `Bearer ${token}`);
+
+  const response = await fetch(targetUrl, {
+    method: request.method,
+    headers,
+    body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
+  });
+
+  const responseHeaders = new Headers(response.headers);
+  const cors = corsHeaders(env, request);
+  Object.entries(cors).forEach(([k, v]) => responseHeaders.set(k, v));
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: responseHeaders,
+  });
+}
+
+async function handleLegacyHTTP(
+  request: Request,
+  env: Env,
+  path: string,
+  search: string
+): Promise<Response> {
+  const geminiKey = env.GEMINI_KEY_V2 || env.GEMINI_API_KEY;
   // SDK가 보내는 key=proxy 파라미터 제거 후 실제 API 키로 교체
-  const cleanSearch = url.search.replace(/[?&]key=[^&]*/g, '');
+  const cleanSearch = search.replace(/[?&]key=[^&]*/g, '');
   const separator = cleanSearch ? '&' : '?';
   const targetUrl = `${GOOGLE_AI_BASE}${path}${cleanSearch || '?'}${cleanSearch ? separator : ''}key=${geminiKey}`;
 

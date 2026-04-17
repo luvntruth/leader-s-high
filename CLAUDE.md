@@ -14,11 +14,28 @@ npm run preview  # 프로덕션 빌드 미리보기
 
 ## 환경 설정
 
+### 프론트엔드 (`.env.local`)
+
 `.env.example`을 `.env.local`로 복사한 후 다음 값을 설정하세요:
 - `VITE_API_KEY` — Gemini API 키 (개발 전용, 클라이언트 사이드)
 - `VITE_GEMINI_PROXY_URL` — Cloudflare Worker URL (프로덕션)
 
 프로덕션에서는 `geminiClient.ts`가 프록시 URL로 전환되어 API 키가 클라이언트에 노출되지 않습니다.
+
+### Cloudflare Worker (`worker/`)
+
+프로덕션 프록시는 **Vertex AI (`us-central1`)** 엔드포인트로 포워드합니다 (Gemini Developer API 의 국가 차단을 구조적으로 우회).
+
+`worker/wrangler.toml` 의 `[vars]` 에 다음을 설정:
+- `GCP_PROJECT_ID` — Vertex AI 가 활성화된 GCP 프로젝트 ID
+- `VERTEX_LOCATION` — 기본 `us-central1` (전 지역 수용)
+
+시크릿은 `wrangler secret put` 으로 등록:
+- `VERTEX_SA_JSON` — GCP 서비스 계정 JSON 전체 (`roles/aiplatform.user` 권한 필요)
+- `GEMINI_API_KEY` — 폴백 경로용 (선택; `USE_VERTEX=false` 시에만 사용)
+- `SUPABASE_JWT_SECRET`, `SUPABASE_SERVICE_KEY`, `STRIPE_*`, `PORTONE_API_SECRET` — 각 기능별 필요
+
+롤백: `wrangler secret put USE_VERTEX` → `false` 로 설정하면 기존 `generativelanguage.googleapis.com` 경로로 즉시 복귀.
 
 ## 아키텍처
 
@@ -33,7 +50,6 @@ npm run preview  # 프로덕션 빌드 미리보기
 | `Home` | 시나리오 퀘스트 카드 대시보드 |
 | `Setup` | 시나리오 선택 + AI 캐릭터 설정 |
 | `Simulation` | AI 팀원과 텍스트 대화 |
-| `VoiceSimulation` | Gemini Live API를 통한 실시간 음성 대화 |
 | `Feedback` | 시뮬레이션 후 AI 생성 코칭 리포트 |
 | `Insights` | 누적 리더십 역량 레이더 차트 |
 | `CustomLab` | 사용자 정의 시나리오 제작 |
@@ -62,7 +78,9 @@ npm run preview  # 프로덕션 빌드 미리보기
 - **개발**: `VITE_API_KEY`를 사용하는 직접 `GoogleGenAI` 클라이언트
 - **프로덕션**: `VITE_GEMINI_PROXY_URL`(Cloudflare Worker `/worker`)을 통한 프록시 클라이언트
 
-워커(`worker/index.ts`)가 서버 사이드에서 `GEMINI_API_KEY`를 주입하고, HTTP(채팅 API)와 WebSocket(Live 오디오 API) 트래픽을 모두 전달합니다.
+워커(`worker/index.ts`)는 기본적으로 **Vertex AI (`us-central1`)** 엔드포인트로 포워드합니다 — `generativelanguage.googleapis.com` 의 국가 차단(`FAILED_PRECONDITION`) 을 회피하기 위한 구조적 해결책입니다. 인증은 `VERTEX_SA_JSON` (GCP 서비스 계정 JSON) 으로 생성한 OAuth access token 을 사용하며, HTTP(채팅 API) 트래픽을 Vertex 로 중계합니다. `USE_VERTEX=false` 로 설정 시 레거시 Developer API 경로로 즉시 폴백 가능.
+
+> **Voice Simulation 제거(2026-04)**: `/voice` 라우트는 런치 범위에서 제외되어 App.tsx 에서 Route 엔트리와 VoiceSimulation lazy import 가 주석 처리되어 있습니다. `screens/VoiceSimulation.tsx`, `services/geminiLiveService.ts`, `worker/index.ts` 의 `handleWebSocket` 핸들러는 그대로 보존되어 있어 향후 Vertex Live endpoint 로 이관 후 재활성화 가능합니다.
 
 ### 데이터 모델 (`types.ts`, `constants.tsx`)
 

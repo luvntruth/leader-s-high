@@ -1,0 +1,258 @@
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 0000000..89274c9
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,16 @@
++# ──────────────────────────────────────────────────────────────────
++# Leader's High — Landing page 환경변수
++# ──────────────────────────────────────────────────────────────────
++# Vercel 프로젝트의 Environment Variables 섹션에 동일 키로 등록하세요.
++# 클라이언트에서 접근 가능한 값만 NEXT_PUBLIC_* 로 노출되며,
++# 서버 사이드 전용 값은 별도 키(예: META_CAPI_ACCESS_TOKEN)로 분리하세요.
++
++# ── Meta Pixel (광고 전환 트래킹) ───────────────────────────────────
++# Meta Business Suite → 이벤트 관리자 → 픽셀 생성 후 ID 복사
++# 미설정 시 레이아웃에서 조용히 비활성화 (코드 수정 불필요)
++NEXT_PUBLIC_META_PIXEL_ID=1234567890123456
++
++# ── 메인 서비스 URL (CTA 클릭 시 이동 대상) ─────────────────────────
++# 기본값: https://leader-s-high.vercel.app/#/onboarding
++# Preview/Staging 에서는 다른 URL 로 전환 가능
++NEXT_PUBLIC_SERVICE_URL=https://leader-s-high.vercel.app/#/onboarding
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..92c5f06
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,71 @@
++# Leader's High — Landing Page
++
++Meta 광고 A/B 테스트용 랜딩 페이지. Next.js 16 App Router + Tailwind 4 + Framer Motion.
++
++## Variant 구조
++
++URL 쿼리 `?lp=` 로 Hero/Problem 카피가 분기됩니다.
++
++| Variant | URL 접두 | 타겟 |
++|---------|----------|------|
++| practice (기본) | `?lp=practice` 또는 `?lp=` 생략 | 신임·중간 팀장, "연습" 소구 |
++| diagnosis | `?lp=diagnosis` | 현직 팀장, "이미 꼬인 면담 복기" 소구 |
++| new-manager | `?lp=new-manager` | 신임 팀장 전용, "첫 면담" 소구 |
++
++각 variant 는 `<title>`, `<meta name="description">`, `og:title`, `og:description` 이 모두 다릅니다 — 소셜 미리보기·검색 스니펫·카톡 공유에서 차별화됩니다.
++
++## Meta 광고 연결 규약
++
++메타 광고 크리에이티브의 "Website URL" 필드에 아래 형식으로 설정:
++
++```
++https://leaders-high-landing.vercel.app/?lp=<VARIANT>&utm_source=meta&utm_medium=cpc&utm_campaign=<CAMPAIGN_ID>&utm_content=<AD_NAME>
++```
++
++CTA 클릭 시 `lp`, `cta`, `utm_*` 가 메인 앱(`leader-s-high.vercel.app`) 으로 전달되어 퍼널 분석에 사용됩니다.
++
++## 환경변수
++
++`.env.example` 복사 → `.env.local` 또는 Vercel Env.
++
++- `NEXT_PUBLIC_META_PIXEL_ID` — Meta Pixel ID (설정 시 픽셀 자동 설치)
++- `NEXT_PUBLIC_SERVICE_URL` — 메인 서비스 URL (기본: leader-s-high.vercel.app)
++
++## 로컬 개발
++
++```bash
++npm install
++npm run dev
++```
++
++기본 포트: `http://localhost:3000`
++
++Variant 확인: `http://localhost:3000/?lp=diagnosis`
++
++## 배포 (Vercel)
++
++1. Vercel 대시보드에서 이 GitHub 레포를 Import.
++2. Environment Variables 에 위 키 2종 등록.
++3. Production 배포 도메인 확인 (예: `leaders-high-landing.vercel.app`).
++4. Meta Pixel 설치 확인: 배포 후 페이지 열기 → Chrome 확장 "Meta Pixel Helper" 또는 DevTools Network 에 `tr/?id=...` 요청 확인.
++
++## 트래킹 이벤트
++
++모든 CTA 클릭 시 아래 경로로 기록됩니다.
++
++1. `window.dispatchEvent('leadershigh:tracking', detail:{name, payload})` — 커스텀 리스너용
++2. `fbq('trackCustom', name, payload)` — Meta Pixel (설치 시)
++3. `console.info` — 로컬 디버그용
++
++주요 이벤트 이름:
++- `landing_variant_view` — 페이지 진입
++- `cta_click` — CTA 버튼 클릭 (placement 필드로 위치 식별)
++- `scroll_depth_*` — 스크롤 깊이 (구현 시)
++
++## 후속 작업 (Open Items)
++
++- [ ] Variant 별 `og:image` 파일 추가 (1200×630 px, 3장) → `public/og/` 배치 후 `page.tsx` 의 `openGraph.images` 추가
++- [ ] `sitemap.ts` 추가 (App Router 지원)
++- [ ] `robots.txt` 추가
++- [ ] Meta CAPI (Conversions API) 서버측 연동 — Vercel Function + `META_CAPI_ACCESS_TOKEN` 시크릿 필요
++- [ ] 메인 앱(`leader-s-high`) 에도 fbq 설치 → `fbclid` 기반 딥링크 중복제거
+diff --git a/src/app/landing-content.tsx b/src/app/landing-content.tsx
+index 5a665bf..628c7ed 100644
+--- a/src/app/landing-content.tsx
++++ b/src/app/landing-content.tsx
+@@ -21,7 +21,9 @@ import {
+   LifeBuoy,
+ } from "lucide-react";
+ 
+-const SERVICE_URL = "https://leader-s-high.vercel.app/#/onboarding";
++const SERVICE_URL =
++  process.env.NEXT_PUBLIC_SERVICE_URL ||
++  "https://leader-s-high.vercel.app/#/onboarding";
+ 
+ type LandingVariant = "practice" | "diagnosis" | "new-manager";
+ 
+@@ -142,6 +144,18 @@ function trackEvent(name: string, payload: Record<string, unknown>) {
+   }
+ 
+   window.dispatchEvent(new CustomEvent("leadershigh:tracking", { detail: { name, payload } }));
++
++  // Meta Pixel — 설치된 경우에만 custom event 발사.
++  // Pixel base 스크립트는 src/app/layout.tsx 에서 NEXT_PUBLIC_META_PIXEL_ID 설정 시 주입됨.
++  const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq;
++  if (typeof fbq === "function") {
++    try {
++      fbq("trackCustom", name, payload);
++    } catch {
++      /* no-op */
++    }
++  }
++
+   console.info(`[tracking] ${name}`, payload);
+ }
+ 
+diff --git a/src/app/layout.tsx b/src/app/layout.tsx
+index 7770e56..06f2c41 100644
+--- a/src/app/layout.tsx
++++ b/src/app/layout.tsx
+@@ -1,6 +1,11 @@
+ import type { Metadata } from "next";
++import Script from "next/script";
+ import "./globals.css";
+ 
++/**
++ * Root Metadata — page.tsx 의 generateMetadata 가 variant 별로 오버라이드함.
++ * 여기 값은 variant 미지정(root 접근) 시의 기본값 역할.
++ */
+ export const metadata: Metadata = {
+   title: "Leader's High — AI 리더십 코칭 시뮬레이터",
+   description:
+@@ -10,9 +15,13 @@ export const metadata: Metadata = {
+     description:
+       "팀원과의 어려운 대화, 연습하면 달라집니다. 40가지 실전 시나리오와 실시간 AI 코칭.",
+     type: "website",
++    locale: "ko_KR",
+   },
+ };
+ 
++// Meta Pixel — env 주도. NEXT_PUBLIC_META_PIXEL_ID 미설정 시 조용히 비활성.
++const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
++
+ export default function RootLayout({
+   children,
+ }: Readonly<{
+@@ -28,7 +37,26 @@ export default function RootLayout({
+           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+         />
+       </head>
+-      <body className="antialiased">{children}</body>
++      <body className="antialiased">
++        {META_PIXEL_ID && (
++          <>
++            <Script id="meta-pixel-base" strategy="afterInteractive">
++              {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${META_PIXEL_ID}');fbq('track','PageView');`}
++            </Script>
++            <noscript>
++              {/* eslint-disable-next-line @next/next/no-img-element */}
++              <img
++                height="1"
++                width="1"
++                style={{ display: "none" }}
++                src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
++                alt=""
++              />
++            </noscript>
++          </>
++        )}
++        {children}
++      </body>
+     </html>
+   );
+ }
+diff --git a/src/app/page.tsx b/src/app/page.tsx
+index 07f6e71..aebc7b4 100644
+--- a/src/app/page.tsx
++++ b/src/app/page.tsx
+@@ -1,5 +1,62 @@
++import type { Metadata } from "next";
+ import LandingContent from "./landing-content";
+ 
++type LandingVariant = "practice" | "diagnosis" | "new-manager";
++
++const VARIANT_META: Record<
++  LandingVariant,
++  { title: string; description: string; ogDescription: string }
++> = {
++  practice: {
++    title: "Leader's High — 팀원과의 어려운 대화, 연습하면 달라집니다",
++    description:
++      "AI 팀원과 40가지 실전 면담 시나리오를 연습하며 리더십 스킬을 키우세요. 가입 없이 무료 3개 시나리오부터 시작.",
++    ogDescription:
++      "팀원과의 어려운 대화, 연습하면 달라집니다. 실시간 AI 코칭으로 리더십을 키우세요.",
++  },
++  diagnosis: {
++    title: "Leader's High — 꼬인 면담, AI 와 다시 진단해보세요",
++    description:
++      "이미 지나간 어려운 대화도 복기하고, AI 코칭으로 다음 면담을 준비하세요. 3개 시나리오 무료 진단.",
++    ogDescription:
++      "그 대화가 왜 꼬였는지, AI 와 다시 진단해보세요. 구체적인 대안 발화까지.",
++  },
++  "new-manager": {
++    title: "Leader's High — 신임 팀장의 첫 면담 연습",
++    description:
++      "처음 팀장이 된 순간, 가장 먼저 필요한 건 대화 연습입니다. AI 시뮬레이터로 안전하게 준비하세요.",
++    ogDescription:
++      "처음 팀장이 된 순간, 가장 먼저 필요한 건 대화 연습입니다.",
++  },
++};
++
++function resolveVariant(raw: string | string[] | undefined): LandingVariant {
++  const v = Array.isArray(raw) ? raw[0] : raw;
++  if (v === "practice" || v === "diagnosis" || v === "new-manager") return v;
++  return "practice";
++}
++
++export async function generateMetadata({
++  searchParams,
++}: {
++  searchParams: Promise<Record<string, string | string[] | undefined>>;
++}): Promise<Metadata> {
++  const params = await searchParams;
++  const variant = resolveVariant(params.lp);
++  const m = VARIANT_META[variant];
++
++  return {
++    title: m.title,
++    description: m.description,
++    openGraph: {
++      title: m.title,
++      description: m.ogDescription,
++      type: "website",
++      locale: "ko_KR",
++    },
++  };
++}
++
+ export default function Home() {
+   return <LandingContent />;
+ }

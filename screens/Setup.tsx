@@ -1,10 +1,11 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, lazy, Suspense } from 'react';
 // @ts-ignore
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getCharacterAvatar, getCharacterInfo } from '../services/characterAvatars';
 import { getMissionBriefing } from '../services/missionBriefings';
 import { analyticsService } from '../services/analyticsService';
-import CompetencyRadar from '../components/CompetencyRadar';
+// recharts(~367KB)를 초기 번들에서 제외: 시나리오 미리보기 시점에만 로드.
+const CompetencyRadar = lazy(() => import('../components/CompetencyRadar'));
 
 const Setup: React.FC = () => {
   const navigate = useNavigate();
@@ -137,17 +138,19 @@ const Setup: React.FC = () => {
             </div>
 
             <div className="bg-black/20 rounded-2xl p-8 mb-8 flex flex-col items-center justify-center min-h-[400px]">
-              <CompetencyRadar
-                data={[
-                  { subject: '성과', A: briefing.competencyData.performance, fullMark: 100 },
-                  { subject: '스트레스', A: briefing.competencyData.stress, fullMark: 100 },
-                  { subject: '잠재력', A: briefing.competencyData.potential, fullMark: 100 },
-                  { subject: '충성도', A: briefing.competencyData.loyalty, fullMark: 100 },
-                  { subject: '소통', A: briefing.competencyData.communication, fullMark: 100 },
-                ]}
-                teamAffinity={Math.round(briefing.competencyData.communication * 0.5 + briefing.competencyData.loyalty * 0.5)}
-                tacticalRisk={Math.round(briefing.competencyData.performance * 0.6 + briefing.competencyData.potential * 0.4)}
-              />
+              <Suspense fallback={<div className="min-h-[320px] w-full animate-pulse bg-white/[0.02] rounded-xl" />}>
+                <CompetencyRadar
+                  data={[
+                    { subject: '성과', A: briefing.competencyData.performance, fullMark: 100 },
+                    { subject: '스트레스', A: briefing.competencyData.stress, fullMark: 100 },
+                    { subject: '잠재력', A: briefing.competencyData.potential, fullMark: 100 },
+                    { subject: '충성도', A: briefing.competencyData.loyalty, fullMark: 100 },
+                    { subject: '소통', A: briefing.competencyData.communication, fullMark: 100 },
+                  ]}
+                  teamAffinity={Math.round(briefing.competencyData.communication * 0.5 + briefing.competencyData.loyalty * 0.5)}
+                  tacticalRisk={Math.round(briefing.competencyData.performance * 0.6 + briefing.competencyData.potential * 0.4)}
+                />
+              </Suspense>
               <p className="mt-6 text-xs text-white/30 font-bold italic tracking-wider">
                 ※ 이 화면은 대화 전에 참고하는 상황 요약입니다.
               </p>

@@ -5,19 +5,49 @@ name            = "leaders-high-proxy"
 main            = "index.ts"
 compatibility_date = "2025-02-01"
 
-# WebSocket 지원 활성화 (Gemini Live API용)
-[websockets]
-enabled = true
+# Smart Placement — cold-start 최적화용 (Vertex 모드는 egress 지역 무관)
+[placement]
+mode = "smart"
+
+# WebSocket은 wrangler 4.x에서 기본 활성화 (별도 설정 불필요)
+
+# Rate Limit용 KV namespace (C3 fail-closed를 위해 필수)
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "b0b03186782842d892656e01782b78e8"
 
 # 환경 변수 (민감하지 않은 값만 여기에 기재)
-# 실제 API 키는 아래 명령어로 시크릿에 등록:
+# 실제 API 키/자격증명은 아래 명령어로 시크릿에 등록:
+#
+#   # Vertex AI (프로덕션 기본 경로 — 국가 차단 없음)
+#   npx wrangler secret put VERTEX_SA_JSON       # GCP 서비스 계정 JSON 전체 (roles/aiplatform.user 필요)
+#
+#   # Gemini Developer API (Vertex 폴백/로컬 테스트용)
 #   npx wrangler secret put GEMINI_API_KEY
+#   npx wrangler secret put GEMINI_KEY_V2        # (선택, V2 전용 키 사용 시)
+#
+#   # Supabase / Stripe / PortOne
+#   npx wrangler secret put SUPABASE_JWT_SECRET
+#   npx wrangler secret put SUPABASE_SERVICE_KEY
+#   npx wrangler secret put PORTONE_API_SECRET
+#   npx wrangler secret put STRIPE_SECRET_KEY
+#   npx wrangler secret put STRIPE_WEBHOOK_SECRET
+#   npx wrangler secret put STRIPE_PRICE_PRO     # price_xxx (Stripe 가격 ID, pro 플랜)
+#   npx wrangler secret put STRIPE_PRICE_ULTRA   # price_xxx (Stripe 가격 ID, ultra 플랜)
 [vars]
 # 프론트엔드 배포 URL로 변경하세요 (CORS 허용 오리진)
 # 개발 테스트용: "*"  |  프로덕션: "https://your-app.vercel.app"
 ALLOWED_ORIGIN = "https://leader-s-high.vercel.app"
+# Supabase Project URL (iss 클레임 엄격 검증에 사용 — SUPABASE_SERVICE_KEY와 함께 쓰임)
+SUPABASE_URL = "https://emhroydllqjrbzvuoznh.supabase.co"
 
-# ─── 프로덕션 환경 설정 ─────────────────────────────────────────
-[env.production.vars]
-ALLOWED_ORIGIN = "https://leader-s-high.vercel.app"
-# GEMINI_API_KEY는 절대 여기에 기재하지 말고 시크릿으로 등록할 것
+# Vertex AI (기본 경로)
+# - GCP_PROJECT_ID: Vertex AI 가 활성화된 GCP 프로젝트 ID
+# - VERTEX_LOCATION: Vertex 리전 (us-central1 권장 — 전 지역 수용)
+# - USE_VERTEX="false" 로 설정 시 Gemini Developer API 로 폴백 (롤백용)
+# GCP_PROJECT_ID 는 프로젝트 식별자이므로 변수로 두되, 실제 값은 배포 전 설정하세요.
+GCP_PROJECT_ID  = "leaders-high-prod"
+VERTEX_LOCATION = "us-central1"
+
+# 시크릿(VERTEX_SA_JSON, GEMINI_API_KEY, SUPABASE_JWT_SECRET, STRIPE_*, PORTONE_* 등)은
+# 이 파일에 기재하지 말고 반드시 `wrangler secret put`으로 등록할 것

@@ -37,9 +37,9 @@ export default function Privacy() {
           <section>
             <h2 className="text-white text-lg font-semibold">5. 제3자 서비스</h2>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Google Gemini AI — 대화 분석 및 피드백 생성</li>
+              <li>Google Gemini AI (Vertex AI) — 대화 분석 및 피드백 생성</li>
               <li>Supabase — 데이터 저장 및 인증</li>
-              <li>Stripe — 결제 처리</li>
+              <li>포트원(PortOne) — 결제 처리</li>
               <li>Sentry — 에러 추적 (비식별 데이터만)</li>
             </ul>
           </section>
