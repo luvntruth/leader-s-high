@@ -8,6 +8,7 @@
 
 /// <reference types="vite/client" />
 import { GoogleGenAI } from '@google/genai';
+import { resolveGeminiRuntimeConfig } from './geminiConfig';
 
 const AUTH_TOKEN_KEY = 'leadershigh_auth_token';
 
@@ -22,21 +23,19 @@ export function clearAuthToken() {
 }
 
 export function createGeminiClient(): GoogleGenAI {
-  const proxyUrl = import.meta.env.VITE_GEMINI_PROXY_URL as string | undefined;
+  const runtimeConfig = resolveGeminiRuntimeConfig({
+    proxyUrl: import.meta.env.VITE_GEMINI_PROXY_URL as string | undefined,
+    apiKey: import.meta.env.VITE_API_KEY as string | undefined,
+    hostname: typeof window !== 'undefined' ? window.location.hostname : undefined,
+    authToken: localStorage.getItem(AUTH_TOKEN_KEY),
+  });
 
-  if (proxyUrl) {
-    // 프로덕션: JWT 토큰을 apiKey로 전달 → SDK가 x-goog-api-key 헤더에 설정
-    const token = localStorage.getItem(AUTH_TOKEN_KEY) || 'no-token';
+  if (runtimeConfig.mode === 'proxy') {
     return new GoogleGenAI({
-      apiKey: token,
-      httpOptions: { baseUrl: proxyUrl },
+      apiKey: runtimeConfig.credential,
+      httpOptions: { baseUrl: runtimeConfig.baseUrl },
     });
   }
 
-  // 개발: 직접 API 키 사용
-  const devKey = import.meta.env.VITE_API_KEY as string | undefined;
-  if (!devKey) {
-    throw new Error('[geminiClient] VITE_API_KEY가 설정되지 않았습니다. .env.local을 확인하세요.');
-  }
-  return new GoogleGenAI({ apiKey: devKey });
+  return new GoogleGenAI({ apiKey: runtimeConfig.credential });
 }

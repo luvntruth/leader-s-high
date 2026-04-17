@@ -7,6 +7,7 @@ import { TrustLevelService, TrustLevelOutput, InstantCoachingResult } from '../s
 import { getMissionBriefing, getOpeningLine } from '../services/missionBriefings';
 import { EmotionStateMachine } from '../services/emotionStateMachine';
 import { createGeminiClient } from '../src/lib/geminiClient';
+import { getAiErrorMessage, getInitErrorMessage } from '../src/lib/geminiErrors';
 import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor, getEmotionEmoji, DEFAULT_CHARACTERS } from '../services/characterAvatars';
 import { HPBar, TacticalCircularTimer, StatInline, TacticalTrendChart } from '../components/GameUIComponents';
 import { useAuth } from '../contexts/AuthContext';
@@ -101,7 +102,7 @@ const Simulation: React.FC = () => {
   const [isGeneratingSOS, setIsGeneratingSOS] = useState(false);
   const [sosTip, setSosTip] = useState<SOSTip | null>(null);
   const [sosTipHistory, setSosTipHistory] = useState<{ tip: SOSTip; turnIndex: number; timestamp: string }[]>([]);
-  const [initError, setInitError] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
   const [usageDenied, setUsageDenied] = useState<string | null>(null);
 
   // 사용량 확인 가드 + 시뮬레이션 시작 이벤트
@@ -208,6 +209,7 @@ const Simulation: React.FC = () => {
   const emotionEmoji = useMemo(() => getEmotionEmoji(trustState.trust), [trustState.trust]);
   const emotionData = useMemo(() => getEmotionState(trustState.trust), [trustState.trust]);
   const emotionLabel = emotionData.state;
+  const hpColor = trustState.trust > 70 ? '#4ade80' : trustState.trust > 30 ? '#00f2ff' : '#ef4444';
 
   // Derived State for Analysis Completion
   const isAnalysisComplete = useMemo(() => {
@@ -383,13 +385,10 @@ const Simulation: React.FC = () => {
     } catch (error: any) {
       console.error('[Simulation] sendMessage failed:', error);
       const detail = error?.message || error?.statusText || String(error);
-      const errMsg = error?.status === 401 || error?.status === 403
-        ? `인증 오류: ${detail}`
-        : error?.status === 404
-          ? '모델을 찾을 수 없습니다. 설정을 확인해주세요.'
-          : error?.status === 429
-            ? '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'
-            : `연결 오류: ${detail}`;
+      const errMsg = getAiErrorMessage({
+        status: error?.status,
+        detail,
+      });
       setMessages(prev => [...prev, {
         role: 'model',
         text: errMsg,
@@ -404,7 +403,7 @@ const Simulation: React.FC = () => {
 
   const initializeChat = async () => {
     try {
-      setInitError(false);
+      setInitError(null);
 
       const ai = createGeminiClient();
       const systemInstruction = buildSystemPrompt(config, scenario, trustStateRef.current);
@@ -426,7 +425,7 @@ const Simulation: React.FC = () => {
       });
 
     } catch (err) {
-      setInitError(true);
+      setInitError(getInitErrorMessage(err));
     }
   };
 
@@ -613,10 +612,11 @@ ${recentMsgs}
 
   useEffect(() => {
     if (scrollRef.current) {
-      // composer 가 flex flow 에 들어왔으므로 인위적 오프셋 없이 자연 bottom-align.
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const isDesktop = window.innerWidth >= 640;
+      const offset = isDesktop ? 180 : 0;
+      scrollRef.current.scrollTop = Math.max(0, scrollRef.current.scrollHeight - scrollRef.current.clientHeight + offset);
     }
-  }, [messages, mobileComposerHeight, mobileComposerOffset, inputText, isLoading]);
+  }, [messages, mobileComposerHeight, mobileComposerOffset, inputText]);
 
   useEffect(() => {
     const updateMobileLayout = () => {
@@ -717,86 +717,86 @@ ${recentMsgs}
         </div>
 
         {/* ── LEFT PANEL: TACTICAL STATUS (30%) ── */}
-        <aside className="hidden sm:flex w-full lg:w-[28%] bg-black/40 backdrop-blur-3xl border-r border-white/5 z-20 flex-col shrink-0 min-h-0">
-          <header className="p-6 border-b border-white/5 flex items-center justify-between">
+        <aside className="hidden sm:flex w-full lg:w-[22%] bg-black/40 backdrop-blur-3xl border-r border-white/5 z-20 flex-col shrink-0 min-h-0">
+          <header className="p-4 border-b border-white/5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-slate-500 hover:text-white transition-colors">
                 <span className="material-symbols-outlined">west</span>
               </button>
               <div>
                 <h1 className="text-base lg:text-lg font-black tracking-[0.2em] text-primary uppercase">대화 화면</h1>
-                <p className="text-sm lg:text-[15px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">시나리오: {scenario?.title?.split(' ')[0] || 'LEADER_SIM'}</p>
+                <p className="text-sm lg:text-base font-bold text-slate-500 uppercase tracking-widest mt-0.5">시나리오: {scenario?.title?.split(' ')[0] || 'LEADER_SIM'}</p>
               </div>
             </div>
             <div className="size-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_#00F2FF]" />
           </header>
 
-          <div className="flex-1 min-h-0 overflow-y-auto p-5 lg:p-6 space-y-4 lg:space-y-5 hide-scrollbar">
+          <div className="flex-1 min-h-0 overflow-y-auto p-3.5 lg:p-4 space-y-3 lg:space-y-3.5 hide-scrollbar">
             {/* Target Profile & Trust (웅장하게 복구) */}
             <section>
-              <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-2.5 mb-3.5">
                 <div className="relative group/avatar">
-                  <div className={`size-20 rounded-[1.5rem] overflow-hidden border-2 transition-all duration-700 relative ${avatarGlow.animationClass}`}
+                  <div className={`size-14 rounded-[1rem] overflow-hidden border-2 transition-all duration-700 relative ${avatarGlow.animationClass}`}
                     style={{ borderColor: avatarGlow.borderColor, boxShadow: avatarGlow.shadow }}>
                     <img src={avatarUrl} alt={config.name} className="size-full object-cover scale-110 group-hover/avatar:scale-125 transition-transform duration-1000" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                   </div>
-                  <div className="absolute -bottom-1 -right-1 size-7 bg-[#0f172a] rounded-xl border border-white/20 flex items-center justify-center text-lg shadow-2xl">
+                  <div className="absolute -bottom-1 -right-1 size-5.5 bg-[#0f172a] rounded-lg border border-white/20 flex items-center justify-center text-sm shadow-2xl">
                     {emotionEmoji}
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-[1.7rem] lg:text-[1.9rem] font-black tracking-tight flex items-center gap-2">
+                  <h2 className="text-[1.1rem] lg:text-[1.2rem] font-black tracking-tight flex items-center gap-1.5">
                     {config.name}
-                    <span className="size-2 rounded-full" style={{ backgroundColor: characterInfo.themeColor }} />
+                    <span className="size-1.5 rounded-full" style={{ backgroundColor: characterInfo.themeColor }} />
                   </h2>
-                  <p className="text-base lg:text-[17px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded inline-block mt-1">
+                  <p className="text-[11px] lg:text-[12px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-1.5 py-0.5 rounded inline-block mt-0.5">
                     {characterInfo.role} / {config.generation}
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-6">
-                <div className="[&_*]:!text-base lg:[&_*]:!text-[17px]">
+              <div className="space-y-3">
+                <div className="[&_*]:!text-[11px] lg:[&_*]:!text-[12px]">
                   <HPBar value={trustState.trust} label="신뢰도 레벨" colorClass={trustState.trust > 70 ? 'bg-green-400' : trustState.trust > 30 ? 'bg-primary' : 'bg-red-500'} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="[&_*]:!text-base lg:[&_*]:!text-[17px]"><StatInline icon="psychology" label="정렬도" value={`${trustState.dimensions.understanding_alignment}%`} /></div>
-                  <div className="[&_*]:!text-base lg:[&_*]:!text-[17px]"><StatInline icon="shield" label="심리적 안전감" value={`${trustState.dimensions.psychological_safety}%`} /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="[&_*]:!text-[11px] lg:[&_*]:!text-[12px]"><StatInline icon="psychology" label="정렬도" value={`${trustState.dimensions.understanding_alignment}%`} /></div>
+                  <div className="[&_*]:!text-[11px] lg:[&_*]:!text-[12px]"><StatInline icon="shield" label="심리적 안전감" value={`${trustState.dimensions.psychological_safety}%`} /></div>
                 </div>
               </div>
             </section>
 
             {/* 상태 요약 REPORT (복구) */}
-            <section className="bg-primary/5 border border-primary/20 rounded-2xl p-5 relative overflow-hidden group">
+            <section className="bg-primary/5 border border-primary/20 rounded-2xl p-4 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-3 opacity-10">
                 <span className="material-symbols-outlined text-4xl">analytics</span>
               </div>
-              <h3 className="text-base lg:text-lg font-black text-primary uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-primary/20 pb-2">
+              <h3 className="text-[11px] lg:text-xs font-black text-primary uppercase tracking-widest mb-2 flex items-center gap-2 border-b border-primary/20 pb-1.5">
                 대화 상대 요약
               </h3>
 
-              <div className="space-y-4">
-                <p className="text-[17px] lg:text-lg font-bold text-white leading-relaxed italic border-l-4 border-primary/40 pl-3">
+              <div className="space-y-2.5">
+                <p className="text-[13px] lg:text-[14px] font-bold text-white leading-relaxed italic border-l-4 border-primary/40 pl-2.5">
                   "{missionBriefing.statusSummary.psychState}"
                 </p>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <p className="text-xs font-black text-emerald-500/80 uppercase tracking-widest mb-2">핵심 강점</p>
-                    <ul className="space-y-1.5">
+                    <p className="text-[10px] font-black text-emerald-500/80 uppercase tracking-widest mb-1">핵심 강점</p>
+                    <ul className="space-y-0.5">
                       {missionBriefing.statusSummary.strengths.slice(0, 3).map((s, i) => (
-                        <li key={i} className="text-[15px] text-slate-300 flex items-center gap-2 leading-snug">
+                        <li key={i} className="text-[11px] lg:text-[12px] text-slate-300 flex items-center gap-1.5 leading-snug">
                           <span className="text-xs text-emerald-500">●</span> {s}
                         </li>
                       ))}
                     </ul>
                   </div>
                   <div>
-                    <p className="text-xs font-black text-rose-500/80 uppercase tracking-widest mb-2">취약 요소</p>
-                    <ul className="space-y-1.5">
+                    <p className="text-[10px] font-black text-rose-500/80 uppercase tracking-widest mb-1">취약 요소</p>
+                    <ul className="space-y-0.5">
                       {missionBriefing.statusSummary.weaknesses.slice(0, 3).map((w, i) => (
-                        <li key={i} className="text-[15px] text-slate-300 flex items-center gap-2 leading-snug">
+                        <li key={i} className="text-[11px] lg:text-[12px] text-slate-300 flex items-center gap-1.5 leading-snug">
                           <span className="text-xs text-rose-500">○</span> {w}
                         </li>
                       ))}
@@ -807,16 +807,16 @@ ${recentMsgs}
             </section>
 
             {/* 핵심 수행 과제 — 단계별 클리어 */}
-            <section className="bg-white/5 border border-white/10 rounded-2xl p-5">
-              <h3 className="text-base lg:text-lg font-black text-slate-400 uppercase tracking-widest mb-3">이번 대화에서 볼 포인트</h3>
-              <div className="space-y-3">
+            <section className="bg-white/5 border border-white/10 rounded-2xl p-3">
+              <h3 className="text-[11px] lg:text-xs font-black text-slate-400 uppercase tracking-widest mb-2">이번 대화에서 볼 포인트</h3>
+              <div className="space-y-1.5">
                 {missionBriefing.tasks?.map((task: string, i: number) => {
                   const isCleared = goalAchievements[i] || false;
                   const isActive = !isCleared && (i === 0 || goalAchievements[i - 1] || false);
                   return (
                     <div
                       key={i}
-                      className={`flex gap-3 items-start text-[15px] leading-relaxed rounded-xl px-3 py-2 transition-all duration-700 ${
+                      className={`flex gap-2 items-start text-[11px] lg:text-[12px] leading-relaxed rounded-lg px-2 py-1.5 transition-all duration-700 ${
                         isCleared
                           ? 'bg-emerald-500/10 border border-emerald-500/30'
                           : isActive
@@ -846,54 +846,54 @@ ${recentMsgs}
                               : 'text-slate-600'
                         }`}>{task}</span>
                         {isCleared && (
-                          <span className="ml-2 text-[10px] font-black text-emerald-400 uppercase tracking-widest">Clear</span>
+                          <span className="ml-2 text-xs font-black text-emerald-400 uppercase tracking-widest">Clear</span>
                         )}
                       </div>
                     </div>
                   );
                 })}
               </div>
-              <div className="mt-4 flex items-center gap-2">
+              <div className="mt-3 flex items-center gap-2">
                 <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-primary to-emerald-400 rounded-full transition-all duration-700"
                     style={{ width: `${(goalAchievements.filter(Boolean).length / 3) * 100}%` }}
                   />
                 </div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                <span className="text-xs lg:text-sm font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">
                   {goalAchievements.filter(Boolean).length}/{missionBriefing.tasks?.length || 3} Done
                 </span>
               </div>
             </section>
 
             {/* Analysis Dashboard (웅장하게) */}
-            <div className="space-y-6">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 lg:p-5">
-                <h3 className="text-base lg:text-lg font-black text-slate-500 uppercase tracking-widest mb-3">신뢰도 추이</h3>
+            <div className="space-y-4">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 lg:p-4">
+                <h3 className="text-xs lg:text-sm font-black text-slate-500 uppercase tracking-widest mb-2">신뢰도 추이</h3>
                 <div className="h-24">
                   <TacticalTrendChart data={trustState.trustHistory} color={trustState.trust < 40 ? '#ef4444' : '#00F2FF'} />
                 </div>
               </div>
 
-              <div className="flex flex-col space-y-3">
-                <h3 className="text-base lg:text-lg font-black text-slate-500 uppercase tracking-widest">대화 변화 로그</h3>
-                <div className="space-y-3">
+              <div className="flex flex-col space-y-2.5">
+                <h3 className="text-xs lg:text-sm font-black text-slate-500 uppercase tracking-widest">대화 변화 로그</h3>
+                <div className="space-y-2">
                   {trustState.lastEvents.length > 0 ? trustState.lastEvents.slice(-3).map((event, i) => (
-                    <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
-                      <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${event.impact >= 0 ? 'bg-game-xp/20 text-game-xp' : 'bg-game-hp/20 text-game-hp'}`}>
-                        <span className="material-symbols-outlined">{event.impact >= 0 ? 'trending_up' : 'trending_down'}</span>
+                    <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                      <div className={`size-8 rounded-xl flex items-center justify-center shrink-0 ${event.impact >= 0 ? 'bg-game-xp/20 text-game-xp' : 'bg-game-hp/20 text-game-hp'}`}>
+                        <span className="material-symbols-outlined text-sm">{event.impact >= 0 ? 'trending_up' : 'trending_down'}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-black text-white truncate pr-2 uppercase tracking-wide">{event.reason_short}</span>
-                          <span className={`text-xs font-black ${event.impact >= 0 ? 'text-game-xp' : 'text-game-hp'}`}>{event.impact >= 0 ? `+${event.impact}` : event.impact}</span>
+                          <span className="text-[11px] lg:text-xs font-black text-white truncate pr-2 uppercase tracking-wide">{event.reason_short}</span>
+                          <span className={`text-[11px] lg:text-xs font-black ${event.impact >= 0 ? 'text-game-xp' : 'text-game-hp'}`}>{event.impact >= 0 ? `+${event.impact}` : event.impact}</span>
                         </div>
-                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{event.family}</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{event.family}</p>
                       </div>
                     </div>
                   )) : (
-                    <div className="text-center py-8 border border-dashed border-white/10 rounded-2xl">
-                      <p className="text-sm font-bold text-slate-600 italic">대화 흐름을 분석하는 중입니다...</p>
+                    <div className="text-center py-6 border border-dashed border-white/10 rounded-2xl">
+                      <p className="text-xs font-bold text-slate-600 italic">대화 흐름을 분석하는 중입니다...</p>
                     </div>
                   )}
                 </div>
@@ -1006,18 +1006,25 @@ ${recentMsgs}
             </div>
           </div>
 
-          {/* Message HUD Area
-              — 데스크톱 상단의 "현재 감정 지수" 중복 HUD 는 제거했음 (좌측 패널에서 이미 노출) */}
+          {/* HUD Overlay Info */}
+          <div className="absolute top-6 left-6 right-6 z-30 justify-between pointer-events-none hidden sm:flex">
+            <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 flex items-center gap-3">
+              <span className="text-xs font-black text-slate-500 uppercase tracking-widest">현재 감정 지수</span>
+              <span className="text-sm font-black" style={{ color: hpColor }}>{emotionLabel}</span>
+            </div>
+          </div>
+
+          {/* Message HUD Area */}
           <div
             ref={scrollRef}
-            className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-5 pb-4 sm:pb-4 space-y-4 sm:space-y-5 lg:space-y-3 scroll-smooth hide-scrollbar"
+            className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 lg:px-5 pt-4 sm:pt-[4.5rem] lg:pt-[4rem] sm:pb-24 lg:pb-32 space-y-3 sm:space-y-5 lg:space-y-4 scroll-smooth hide-scrollbar"
             style={{ paddingBottom: window.innerWidth < 640 ? `${mobileComposerHeight + mobileComposerOffset + 20}px` : undefined }}
           >
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className="max-w-[88%] lg:max-w-[68ch] group">
-                  <div className={`flex items-center gap-2 mb-2 lg:mb-1 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <span className={`text-xs lg:text-[11px] font-black uppercase tracking-widest ${msg.role === 'user' ? 'text-primary' : 'text-slate-500'}`}>
+                <div className="max-w-[90%] lg:max-w-[88%] group">
+                  <div className={`flex items-center gap-2 mb-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <span className={`text-xs lg:text-[13px] font-black uppercase tracking-widest ${msg.role === 'user' ? 'text-primary' : 'text-slate-500'}`}>
                       {msg.role === 'user' ? '나' : config.name}
                     </span>
                     <span className="text-[10px] font-bold text-white/20 uppercase tabular-nums">
@@ -1026,13 +1033,13 @@ ${recentMsgs}
                   </div>
 
                   <div className={`
-                  relative p-5 lg:px-4 lg:py-3 rounded-3xl lg:rounded-2xl backdrop-blur-md border transition-all duration-300
+                  relative p-3.5 rounded-[1.35rem] backdrop-blur-md border transition-all duration-300
                   ${msg.role === 'user'
                       ? 'bg-primary/10 border-primary/30 rounded-tr-sm shadow-[0_4px_20px_rgba(0,242,255,0.1)]'
                       : 'bg-white/5 border-white/10 rounded-tl-sm'}
                   ${msg.isError ? 'bg-red-500/10 border-red-500/30 text-red-400' : ''}
                 `}>
-                    <p className="text-[17px] lg:text-[15.5px] leading-relaxed lg:leading-[1.55] whitespace-pre-wrap">{msg.text}</p>
+                    <p className="text-[14px] lg:text-[15px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
 
                     {/* Corner Accents */}
                     <div className={`absolute top-0 ${msg.role === 'user' ? 'right-0' : 'left-0'} p-1.5 opacity-40`}>
@@ -1044,7 +1051,7 @@ ${recentMsgs}
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-white/5 border border-white/10 rounded-3xl rounded-tl-sm p-6 max-w-[85%]">
+                <div className="bg-white/5 border border-white/10 rounded-[1.35rem] rounded-tl-sm p-4 max-w-[88%]">
                   <div className="flex gap-2">
                     <div className="size-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
                     <div className="size-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
@@ -1061,7 +1068,7 @@ ${recentMsgs}
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-amber-400 text-sm">tips_and_updates</span>
-                      <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Instant Coaching</span>
+                      <span className="text-sm font-black text-amber-400 uppercase tracking-widest">Instant Coaching</span>
                     </div>
                     <button onClick={() => setShowCoaching(false)} className="text-slate-500 hover:text-white transition-colors">
                       <span className="material-symbols-outlined text-sm">close</span>
@@ -1107,10 +1114,8 @@ ${recentMsgs}
             )}
           </div>
 
-          {/* ── ACTION INPUT DASHBOARD ──
-              Mobile(<640): fixed bottom + visualViewport 오프셋 (기존 유지)
-              Desktop(≥640): flex flow 에 복귀하여 메시지 영역을 가리지 않음 */}
-          <div ref={composerRef} className="fixed sm:static bottom-0 left-0 right-0 z-40 bg-navy-mid/95 sm:bg-black/30 backdrop-blur-2xl border-t border-white/10 sm:border-l-0 sm:border-r-0 sm:border-b-0 rounded-t-[1.4rem] sm:rounded-none p-3 sm:px-6 sm:py-3 lg:px-8 lg:py-3 flex flex-col gap-2 sm:gap-2 shadow-[0_-10px_30px_rgba(0,0,0,0.25)] sm:shadow-none mt-2 sm:mt-0 pb-[calc(12px+env(safe-area-inset-bottom))] sm:pb-3"
+          {/* ── ACTION INPUT DASHBOARD ── */}
+          <div ref={composerRef} className="fixed sm:static bottom-0 left-0 right-0 z-40 bg-navy-mid/95 sm:bg-black/30 backdrop-blur-2xl border-t border-white/10 sm:border-l-0 sm:border-r-0 sm:border-b-0 rounded-t-[1.2rem] sm:rounded-none p-2 sm:px-6 sm:py-2 lg:px-8 flex flex-col gap-1.5 sm:gap-1.5 shadow-[0_-10px_30px_rgba(0,0,0,0.25)] sm:shadow-none mt-2 sm:mt-0 pb-[calc(8px+env(safe-area-inset-bottom))] sm:pb-2"
             style={{ transform: window.innerWidth < 640 && mobileComposerOffset > 0 ? `translateY(-${mobileComposerOffset}px)` : undefined }}>
 
             {/* Action Suggested / SOS Area */}
@@ -1119,7 +1124,7 @@ ${recentMsgs}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-primary text-sm">auto_fix_high</span>
-                    <span className="text-xs font-black text-primary uppercase tracking-widest italic">전술 지원 추천 (SOS)</span>
+                    <span className="text-sm font-black text-primary uppercase tracking-widest italic">전술 지원 추천 (SOS)</span>
                   </div>
                   <button onClick={() => setShowSOS(false)} className="text-slate-500 hover:text-white transition-colors">
                     <span className="material-symbols-outlined text-sm">close</span>
@@ -1144,86 +1149,52 @@ ${recentMsgs}
             )}
 
             {/* Input Bar */}
-            <div className="flex flex-col gap-2.5 sm:gap-2">
-              <div className="bg-black/40 rounded-[1.4rem] sm:rounded-[1.5rem] border border-white/5 px-3 py-1.5 sm:py-1.5 lg:py-1 flex items-end gap-2 focus-within:border-primary/40 transition-all">
+            <div className="flex flex-col gap-1.5 sm:gap-1">
+              <div className="bg-black/40 rounded-[1.1rem] sm:rounded-[1.15rem] border border-white/5 px-2.5 py-0.5 sm:py-0.5 lg:py-1 flex items-end gap-1.5 focus-within:border-primary/40 transition-all">
                 <textarea
                   ref={textareaRef}
-                  rows={2}
-                  className="flex-1 min-w-0 bg-transparent border-none px-3 py-1.5 sm:py-1.5 lg:py-1.5 text-base lg:text-[15.5px] text-white placeholder-slate-600 outline-none resize-none hide-scrollbar min-h-[52px] sm:min-h-[42px] lg:min-h-[40px] max-h-[120px] leading-relaxed"
+                  rows={window.innerWidth < 640 ? 2 : 1}
+                  className="flex-1 min-w-0 bg-transparent border-none px-2 py-1 sm:py-0.5 lg:py-1 text-[14px] lg:text-[15px] text-white placeholder-slate-600 outline-none resize-none hide-scrollbar min-h-[40px] sm:min-h-[34px] lg:min-h-[38px] max-h-[88px] leading-relaxed"
                   placeholder="메시지를 입력하세요..."
                   value={inputText}
                   disabled={isLoading}
                   onChange={e => setInputText(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend(inputText))}
                 />
-
-                {/* 데스크톱 전용 — SOS / 즉시 코칭 아이콘을 입력바 우측에 편입 */}
-                <button
-                  onClick={handleSOS}
-                  disabled={isGeneratingSOS}
-                  title="SOS 힌트"
-                  aria-label="SOS 힌트"
-                  className={`hidden lg:flex size-10 rounded-xl items-center justify-center transition-all shrink-0 mb-1 ${
-                    isGeneratingSOS
-                      ? 'bg-primary/20 animate-pulse'
-                      : 'bg-primary/15 text-primary hover:bg-primary hover:text-navy-deep'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-base font-black">
-                    {isGeneratingSOS ? 'sync' : 'psychology'}
-                  </span>
-                </button>
-                <button
-                  onClick={handleInstantCoaching}
-                  disabled={isCoachingLoading || messages.filter(m => m.role === 'user').length === 0 || isLoading}
-                  title="즉시 코칭"
-                  aria-label="즉시 코칭"
-                  className={`hidden lg:flex size-10 rounded-xl items-center justify-center transition-all shrink-0 mb-1 ${
-                    isCoachingLoading
-                      ? 'bg-amber-500/20 animate-pulse'
-                      : 'bg-amber-500/15 text-amber-400 hover:bg-amber-500 hover:text-navy-deep disabled:opacity-30'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-base font-black">
-                    {isCoachingLoading ? 'sync' : 'tips_and_updates'}
-                  </span>
-                </button>
-
                 <button
                   onClick={() => handleSend(inputText)}
                   disabled={!inputText.trim() || isLoading}
-                  className="size-11 lg:size-10 bg-white/5 hover:bg-primary hover:text-navy-deep rounded-2xl lg:rounded-xl flex items-center justify-center transition-all disabled:opacity-20 shrink-0 mb-1"
+                  className="size-9 bg-white/5 hover:bg-primary hover:text-navy-deep rounded-lg flex items-center justify-center transition-all disabled:opacity-20 shrink-0 mb-0.5"
                 >
-                  <span className="material-symbols-outlined text-base font-black">send</span>
+                  <span className="material-symbols-outlined text-[14px] font-black">send</span>
                 </button>
               </div>
 
-              {/* 모바일/태블릿 전용 전체폭 액션 버튼 (lg 이상은 입력바 내 아이콘으로 대체) */}
-              <div className="grid grid-cols-2 gap-2 sm:flex sm items-center sm:gap-3 lg:hidden">
+              <div className="grid grid-cols-2 gap-1.5 sm:flex sm:items-center sm:gap-2">
                 <button
                   onClick={handleSOS}
                   disabled={isGeneratingSOS}
-                  className={`h-11 rounded-2xl px-4 flex items-center justify-center gap-2 transition-all ${isGeneratingSOS ? 'bg-primary/20 animate-pulse' : 'bg-primary text-navy-deep shadow-neon-cyan active:scale-95'}`}
+                  className={`h-9 rounded-lg px-3 flex items-center justify-center gap-1 transition-all ${isGeneratingSOS ? 'bg-primary/20 animate-pulse' : 'bg-primary text-navy-deep shadow-neon-cyan active:scale-95'}`}
                 >
-                  <span className="material-symbols-outlined text-lg font-black">
+                  <span className="material-symbols-outlined text-[15px] font-black">
                     {isGeneratingSOS ? 'sync' : 'psychology'}
                   </span>
-                  <span className="text-xs font-black whitespace-nowrap">SOS 힌트</span>
+                  <span className="text-[11px] font-black whitespace-nowrap">SOS 힌트</span>
                 </button>
 
                 <button
                   onClick={handleInstantCoaching}
                   disabled={isCoachingLoading || messages.filter(m => m.role === 'user').length === 0 || isLoading}
-                  className={`h-11 rounded-2xl px-4 flex items-center justify-center gap-2 transition-all ${
+                  className={`h-9 rounded-lg px-3 flex items-center justify-center gap-1 transition-all ${
                     isCoachingLoading
                       ? 'bg-amber-500/20 animate-pulse'
                       : 'bg-amber-500 text-navy-deep shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:shadow-[0_0_25px_rgba(245,158,11,0.5)] active:scale-95 disabled:opacity-30 disabled:shadow-none'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-lg font-black">
+                  <span className="material-symbols-outlined text-[15px] font-black">
                     {isCoachingLoading ? 'sync' : 'tips_and_updates'}
                   </span>
-                  <span className="text-xs font-black whitespace-nowrap">즉시 코칭</span>
+                  <span className="text-[11px] font-black whitespace-nowrap">즉시 코칭</span>
                 </button>
               </div>
             </div>
@@ -1328,7 +1299,8 @@ ${recentMsgs}
                 <span className="material-symbols-outlined text-red-400 text-4xl">warning</span>
               </div>
               <h3 className="text-xl font-black text-white mb-2 uppercase tracking-tight">System Critical Failure</h3>
-              <p className="text-sm text-slate-400 mb-8 leading-relaxed">전술 시스템 연결에 실패했습니다. AI 프로세서와의 동기화를 재시도하십시오.</p>
+              <p className="text-base text-slate-300 mb-4 leading-relaxed">전술 시스템 연결에 실패했습니다. AI 프로세서와의 동기화를 재시도하십시오.</p>
+              <p className="text-sm text-slate-400 mb-8 leading-relaxed break-words">{initError}</p>
               <button
                 onClick={() => { initialized.current = false; initializeChat(); }}
                 className="w-full py-4 bg-red-500 text-white rounded-2xl font-black uppercase tracking-widest active:scale-95 transition-all shadow-[0_0_20px_rgba(239,68,68,0.4)]"
