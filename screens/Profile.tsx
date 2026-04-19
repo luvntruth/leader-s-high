@@ -190,17 +190,15 @@ const Profile: React.FC = () => {
     try {
       const history = DataService.getUserHistory();
       const genAI = createGeminiClient();
-      // @ts-ignore
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       const prompt = `
         리더십 교육 게임 'Leader's High'의 리더십 전문가로서 다음 데이터를 바탕으로 사용자의 리더십 성향 리포트 하단 'Summary & Advice' 섹션에 들어갈 내용을 작성해주세요.
-        
+
         사용자 리더십 타이틀: ${p.title} (${p.titleEn})
         누적 점수: ${p.persona.totalScore}/100
         팀 친화도: ${p.persona.teamAffinity}%
         최근 미션 이력 수: ${history.length}
-        
+
         요청 사항:
         1. "귀하는 이번 RPG 시뮬레이션에서 ~" 로 시작하는 전문적이고 통찰력 있는 문체를 사용하세요.
         2. 구체적인 수치나 구체적인 피드백을 포함하세요.
@@ -209,9 +207,12 @@ const Profile: React.FC = () => {
         5. 약 300자 내외로 구성하세요.
       `;
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      // @google/genai 신 SDK API 로 호출 (구 @google/generative-ai 의 getGenerativeModel 은 제거됨)
+      const response = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+      });
+      const text = response.text;
       setAiAdvice(text || "귀하는 이번 시뮬레이션에서 균형 잡힌 리더십을 보여주었습니다.");
     } catch (e) {
       console.error("AI Advice Fetch Error", e);
