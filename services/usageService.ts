@@ -9,6 +9,9 @@ export interface UsageCheckResult {
 export const usageService = {
   /** 시뮬레이션 시작 가능 여부 확인 */
   async canStartSimulation(userId: string, plan: PlanType): Promise<UsageCheckResult> {
+    // 방어: 빈/없는 userId 는 graceful 하게 "허용" 반환 (게스트는 호출되지 않아야 하나 안전망)
+    if (!userId) return { allowed: true };
+
     const limits = PLAN_LIMITS[plan];
 
     // 무료 플랜: 총 시뮬레이션 횟수 제한
@@ -27,6 +30,7 @@ export const usageService = {
 
   /** 특정 시나리오의 시도 횟수 확인 */
   async canTryScenario(userId: string, scenarioId: string, plan: PlanType): Promise<UsageCheckResult> {
+    if (!userId) return { allowed: true };
     const limits = PLAN_LIMITS[plan];
     const tryCount = await dbService.getScenarioTryCount(userId, scenarioId);
 
@@ -57,6 +61,7 @@ export const usageService = {
 
   /** 사용량 기록 */
   async recordUsage(userId: string, type: 'simulation' | 'coaching' | 'sos'): Promise<void> {
+    if (!userId) return; // 게스트·미인증 상태: DB 증분 스킵
     await dbService.incrementUsage(userId, type);
   },
 };

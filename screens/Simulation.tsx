@@ -944,7 +944,7 @@ ${recentMsgs}
 
                   if (isGuest) {
                     // 게스트: 결과 리포트 → 골든 스크립트 → 요금제 업그레이드 퍼널
-                    navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory, isGuest: true } });
+                    navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory, guest: true } });
                   } else {
                     navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory } });
                   }

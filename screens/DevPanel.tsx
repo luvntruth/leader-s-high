@@ -316,7 +316,7 @@ const DevPanel: React.FC = () => {
             sub="상단 '전문가 코칭 플레이북 구매하기' 배너 확인"
             badge="GUEST"
             onClick={() => navigate('/feedback', {
-              state: { transcript: MOCK_TRANSCRIPT, scenario: MOCK_SCENARIO, sosTipHistory: [], isGuest: true },
+              state: { transcript: MOCK_TRANSCRIPT, scenario: MOCK_SCENARIO, sosTipHistory: [], guest: true },
             })}
           />
           <Btn

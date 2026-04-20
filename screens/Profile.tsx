@@ -1020,7 +1020,13 @@ const Profile: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">이름</span>
-                <span className="text-white">{profile?.display_name || '-'}</span>
+                <span className="text-white">
+                  {profile?.display_name
+                    || (user?.user_metadata as { full_name?: string; name?: string } | undefined)?.full_name
+                    || (user?.user_metadata as { full_name?: string; name?: string } | undefined)?.name
+                    || user?.email
+                    || '-'}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">플랜</span>

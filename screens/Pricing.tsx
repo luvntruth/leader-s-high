@@ -79,7 +79,7 @@ export default function Pricing() {
 
     const res = await paymentService.requestPayment(option, {
       id: user.id,
-      email: user.email || profile.email,
+      email: user.email || profile?.email || '',
     });
 
     setLoading(null);
