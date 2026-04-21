@@ -345,11 +345,11 @@ const Missions: React.FC = () => {
                       </div>
                     )}
 
-                    {/* 잠금 오버레이 */}
+                    {/* 잠금 오버레이 (Spec v3 §5.3: "요금제 업그레이드" 라벨로 변경) */}
                     {isLocked && (
-                      <div className="absolute inset-0 bg-slate-900/60 z-20 flex flex-col items-center justify-center pointer-events-none rounded-[2.5rem]">
-                        <span className="text-3xl mb-2">🔒</span>
-                        <span className="text-xs font-black text-amber-500 bg-amber-500/20 px-3 py-1 rounded-full">PRO</span>
+                      <div className="absolute inset-0 bg-slate-900/60 z-20 flex flex-col items-center justify-center pointer-events-none rounded-[2.5rem] gap-2">
+                        <span className="text-3xl">🔒</span>
+                        <span className="text-[11px] font-black text-amber-400 bg-amber-500/20 border border-amber-500/30 px-3 py-1 rounded-full tracking-wide">요금제 업그레이드</span>
                       </div>
                     )}
 

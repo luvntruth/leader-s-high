@@ -807,17 +807,22 @@ const Feedback: React.FC = () => {
             </div>
           )}
 
-          {/* ── 게스트 전환 유도: 전문가 코칭 플레이북 + 요금제 업그레이드 ── */}
+          {/* ── 게스트 전환 유도: 전문가 코칭 플레이북 + 요금제 업그레이드 ──
+              Spec v3 §5.4: 게스트 Feedback 에 3개 CTA 명시
+              ① 플레이북 단건 구매 (₩3,900) — 즉시 가치 제공, 낮은 가격 진입
+              ② 프로 플랜 구독 — 반복 훈련 유저에게
+              ③ 다음 무료 시나리오 계속 (이미 위쪽 블록에 있음) */}
           {!user ? (
             <div className="space-y-4">
-              {/* 전문가 코칭 플레이북 구매 */}
+              {/* ① 전문가 코칭 플레이북 단건 구매 (₩3,900) */}
               <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/30 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="material-symbols-outlined text-amber-400 text-lg">save</span>
-                  <h3 className="text-amber-400 font-black text-sm">결과 저장하고 이어보기</h3>
+                  <span className="material-symbols-outlined text-amber-400 text-lg">auto_awesome</span>
+                  <h3 className="text-amber-400 font-black text-sm">이번 결과 전문가 코칭 플레이북 받기</h3>
+                  <span className="ml-auto text-amber-300 font-black text-sm">₩3,900</span>
                 </div>
                 <p className="text-slate-400 text-xs mb-4 leading-relaxed">
-                  회원가입하면 이번 결과를 저장하고, 나중에 다시 보거나 다음 시나리오를 이어서 체험할 수 있습니다.
+                  이번 대화의 <span className="text-white font-semibold">3단계 전략·상황별 핵심 문장·심리 트리거 분석·코치 총평</span>을 풀 리포트로 받아보세요. 회원가입 후 바로 구매 가능.
                 </p>
                 <button
                   onClick={() => {
@@ -830,24 +835,26 @@ const Feedback: React.FC = () => {
                   }}
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 text-sm font-black active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
-                  <span className="material-symbols-outlined text-base">person_add</span>
-                  회원가입하고 결과 저장하기
+                  <span className="material-symbols-outlined text-base">credit_card</span>
+                  플레이북 구매하기 (₩3,900)
                 </button>
               </div>
 
-              {/* 요금제 업그레이드 */}
+              {/* ② 프로 플랜 구독 */}
               <div className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border border-cyan-500/20 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="material-symbols-outlined text-cyan-400 text-lg">rocket_launch</span>
-                  <h3 className="text-cyan-400 font-black text-sm">더 연습이 필요하다면</h3>
+                  <h3 className="text-cyan-400 font-black text-sm">반복 훈련이 필요하다면 — 플랜 구독</h3>
                 </div>
-                <p className="text-slate-400 text-xs mb-4">프로 플랜에서 20개 시나리오, 풀 피드백 리포트, 이전 기록 비교까지 이어서 사용할 수 있습니다.</p>
+                <p className="text-slate-400 text-xs mb-4">
+                  프로 플랜은 <span className="text-white font-semibold">20개 시나리오 · 풀 리포트 무제한 · 이전 기록 비교</span>까지 포함됩니다. 단건 구매보다 훨씬 경제적.
+                </p>
                 <button
                   onClick={() => navigate('/pricing')}
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500/80 to-cyan-600/60 text-white text-sm font-black active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-base">arrow_forward</span>
-                  프로 플랜 보기 →
+                  요금제 보기 →
                 </button>
               </div>
 

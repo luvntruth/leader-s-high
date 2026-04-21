@@ -237,10 +237,23 @@ export const PRICING_OPTIONS: PricingOption[] = [
     maxTriesPerScenario: 3,
     priceId: 'price_pro_20d',
   },
+  // Spec v3 §3.3: Ultra 는 30일 단일 옵션 ₩29,900
+  {
+    id: 'ultra-30',
+    plan: 'ultra',
+    name: '울트라 30일',
+    price: 29900,
+    priceLabel: '₩29,900',
+    days: 30,
+    scenarios: 40,
+    maxTriesPerScenario: 5,
+    priceId: 'price_ultra_30d',
+  },
+  // Deprecated legacy options (kept for backward compat, not shown in UI)
   {
     id: 'ultra-15',
     plan: 'ultra',
-    name: '울트라 15일',
+    name: '울트라 15일 (단종)',
     price: 17900,
     priceLabel: '₩17,900',
     days: 15,
@@ -251,7 +264,7 @@ export const PRICING_OPTIONS: PricingOption[] = [
   {
     id: 'ultra-25',
     plan: 'ultra',
-    name: '울트라 25일',
+    name: '울트라 25일 (단종)',
     price: 24500,
     priceLabel: '₩24,500',
     days: 25,

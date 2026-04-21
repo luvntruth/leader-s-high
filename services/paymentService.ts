@@ -35,11 +35,11 @@ export interface PaymentOption {
   days: number;
 }
 
+// Spec v3 §3: Pro 는 10일/20일 유지, Ultra 는 30일 단일 옵션 ₩29,900
 export const PAYMENT_OPTIONS: PaymentOption[] = [
   { id: 'pro-10', plan: 'pro', name: '프로 10일', amount: 8900, days: 10 },
   { id: 'pro-20', plan: 'pro', name: '프로 20일', amount: 13500, days: 20 },
-  { id: 'ultra-15', plan: 'ultra', name: '울트라 15일', amount: 17900, days: 15 },
-  { id: 'ultra-25', plan: 'ultra', name: '울트라 25일', amount: 24500, days: 25 },
+  { id: 'ultra-30', plan: 'ultra', name: '울트라 30일', amount: 29900, days: 30 },
 ];
 
 // ================================================================

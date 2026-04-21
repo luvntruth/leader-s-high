@@ -512,6 +512,12 @@ const Home: React.FC = () => {
                 const isFirst = idx === 0;
                 const originalIndex = SCENARIOS.findIndex(s => s.id === scenario.id);
                 const isLocked = !usageService.canAccessScenario(originalIndex, profile?.plan || 'free');
+                const isCompleted = completedScenarios.has(scenario.id);
+                // Spec v3 §5.2: 무료 플랜은 시나리오당 1회 시도 → 완료 시 재도전 차단.
+                // Pro/Ultra 는 여러 회 시도 가능하므로 완료 배지만 표시.
+                const isExhausted = isCompleted && (profile?.plan ?? 'free') === 'free';
+                // 클릭 시 동작: 잠긴/소진 카드는 업그레이드, 정상은 입장
+                const cardBlocked = isLocked || isExhausted;
                 return (
                   <motion.div
                     key={scenario.id}
@@ -519,22 +525,30 @@ const Home: React.FC = () => {
                     whileInView="visible"
                     initial="hidden"
                     viewport={{ once: true, amount: 0.2 }}
-                    whileHover={{ translateY: isLocked ? 0 : -4 }}
-                    className={`bg-[#111B2E]/60 backdrop-blur-md border border-white/5 rounded-3xl p-6 transition-all group relative overflow-hidden ${isLocked ? 'opacity-80 cursor-pointer' : 'hover:border-primary/20'}`}
-                    onClick={isLocked ? () => navigate('/pricing') : undefined}
+                    whileHover={{ translateY: cardBlocked ? 0 : -4 }}
+                    className={`bg-[#111B2E]/60 backdrop-blur-md border border-white/5 rounded-3xl p-6 transition-all group relative overflow-hidden ${cardBlocked ? 'opacity-70 cursor-pointer' : 'hover:border-primary/20'}`}
+                    onClick={cardBlocked ? () => navigate('/pricing') : undefined}
                   >
-                    {/* Completion badge */}
-                    {!isLocked && completedScenarios.has(scenario.id) && (
+                    {/* Completion badge (유료 플랜 or 아직 재도전 가능할 때) */}
+                    {isCompleted && !isExhausted && !isLocked && (
                       <span className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-[9px] font-bold">
                         ✅ 완료
                       </span>
+                    )}
+                    {/* 무료 소진 overlay (완료했고 재도전 불가) */}
+                    {isExhausted && !isLocked && (
+                      <div className="absolute inset-0 z-20 bg-slate-900/60 rounded-3xl flex flex-col items-center justify-center gap-2 pointer-events-none">
+                        <span className="text-2xl">✅</span>
+                        <span className="px-3 py-1 rounded-lg bg-green-500/20 border border-green-500/30 text-green-400 text-[10px] font-black tracking-widest">완료됨</span>
+                        <span className="text-[10px] text-slate-400 font-semibold">재도전은 요금제 업그레이드</span>
+                      </div>
                     )}
                     {/* Lock overlay for PRO-only scenarios */}
                     {isLocked && (
                       <div className="absolute inset-0 z-20 bg-slate-900/50 rounded-3xl flex items-end justify-center pb-16 pointer-events-none">
                         <div className="flex flex-col items-center gap-2">
                           <span className="text-2xl">🔒</span>
-                          <span className="px-3 py-1 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] font-black tracking-widest">PRO</span>
+                          <span className="px-3 py-1 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] font-black tracking-widest">요금제 업그레이드</span>
                         </div>
                       </div>
                     )}
@@ -610,7 +624,7 @@ const Home: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (isLocked) {
+                          if (cardBlocked) {
                             navigate('/pricing');
                           } else {
                             navigate('/setup', { state: { scenario, ...(!user && { guest: true }) } });
@@ -619,12 +633,14 @@ const Home: React.FC = () => {
                         className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95
                           ${isLocked
                             ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                            : isFirst
-                              ? 'bg-primary text-[#0B1120] hover:shadow-primary/20'
-                              : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'
+                            : isExhausted
+                              ? 'bg-green-500/10 text-green-400 border border-green-500/30'
+                              : isFirst
+                                ? 'bg-primary text-[#0B1120] hover:shadow-primary/20'
+                                : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'
                           }`}
                       >
-                        {isLocked ? '🔒 PRO' : isFirst ? '미션 시작' : '상세 보기'}
+                        {isLocked ? '🔒 업그레이드' : isExhausted ? '✅ 완료됨' : isFirst ? '미션 시작' : '상세 보기'}
                       </button>
                     </div>
                   </motion.div>
