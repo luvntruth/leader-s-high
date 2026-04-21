@@ -302,8 +302,12 @@ const Simulation: React.FC = () => {
           setGoalAchievements(prev => prev.map((achieved, i) => achieved || score.goalAchievements![i] || false));
         }
 
-        // HOSTILE 도달 시 시뮬레이션 강제 종료 (신뢰도 15 이하)
-        if (score.trust <= 15) {
+        // HOSTILE 강제 종료 — 엄격 조건:
+        // (1) 신뢰도 ≤ 5 (거의 대화 단절 수준)
+        // (2) 사용자 발화 ≥ 6턴 이상 진행됨 (광고 유입자의 조기 스코어링 변동으로 인한
+        //     오종료 방지. 기존 trust <= 15 는 S등급 시나리오(initialTrust=25)에서
+        //     첫 스코어링(4턴)에 쉽게 트리거되어 비정상적으로 빨리 종료되던 문제 수정).
+        if (score.trust <= 5 && userMsgCount >= 6) {
           isCompleteRef.current = true;
           setMessages(prev => {
             const failMessages = [...prev, {
@@ -313,7 +317,13 @@ const Simulation: React.FC = () => {
             }];
             setTimeout(() => {
               navigate('/feedback', {
-                state: { transcript: failMessages, scenario, sosTipHistory },
+                state: {
+                  transcript: failMessages,
+                  scenario,
+                  sosTipHistory,
+                  // 게스트 플래그 포함 — AuthGuard 가 비로그인 상태를 통과시키도록
+                  ...(isGuest && { guest: true }),
+                },
               });
             }, 1500);
             return failMessages;
