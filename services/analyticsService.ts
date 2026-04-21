@@ -20,7 +20,12 @@ export type EventName =
   | 'checkout_success'
   | 'report_view'
   | 'report_purchase'
-  | 'share_card';
+  | 'share_card'
+  // Spec v3 §8: 추가 이벤트
+  | 'scenario_selection_start'
+  | 'scenario_selection_complete'
+  | 'ultra_coming_soon_click'
+  | 'abandon_limit_reached';
 
 export type TrackingProperties = Record<string, unknown>;
 

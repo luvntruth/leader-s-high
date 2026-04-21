@@ -322,7 +322,11 @@ const Missions: React.FC = () => {
               const isCleared = completedIds.has(scenario.id);
               const catIcon = getCategoryIcon(scenario.category);
               const originalIndex = SCENARIOS.findIndex(s => s.id === scenario.id);
-              const isLocked = !usageService.canAccessScenario(originalIndex, profile?.plan || 'free');
+              const isLocked = !usageService.canAccessScenarioById(
+                scenario.id,
+                profile?.plan || 'free',
+                profile?.selected_scenarios,
+              );
 
               return (
                 <div

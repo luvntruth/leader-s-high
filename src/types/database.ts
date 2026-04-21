@@ -55,6 +55,8 @@ export interface Profile {
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   onboarding_completed: boolean;
+  /** Spec v3 §7.1: Pro 플랜 사용자가 선택한 20개 시나리오 ID 배열. Free/Ultra 는 []. */
+  selected_scenarios: string[];
   created_at: string;
   updated_at: string;
 }

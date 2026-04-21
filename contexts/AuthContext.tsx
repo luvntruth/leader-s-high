@@ -52,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             stripe_customer_id: null,
             stripe_subscription_id: null,
             onboarding_completed: false,
+            selected_scenarios: [],
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });
@@ -72,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           stripe_customer_id: null,
           stripe_subscription_id: null,
           onboarding_completed: false,
+          selected_scenarios: [],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });

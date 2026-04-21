@@ -304,35 +304,72 @@ const Profile: React.FC = () => {
         </button>
       </header>
 
-      {/* ── 탭 네비게이션 ── */}
+      {/* ── 탭 네비게이션 (Spec v3 §5.6: 무료 플랜은 status/leadership/skills 잠금) ── */}
       <div className="sticky top-[65px] z-10 bg-[#060B18]/90 backdrop-blur-xl border-b border-white/5 px-4 py-2">
         <div className="flex gap-1 bg-white/5 rounded-2xl p-1">
-          {[
-            { key: 'status' as const, label: '리더 프로필', icon: 'person' },
-            { key: 'leadership' as const, label: '리더십 분석', icon: 'insights' },
-            { key: 'skills' as const, label: '스킬 트리', icon: 'auto_awesome' },
-            { key: 'badges' as const, label: '배지', icon: 'workspace_premium' },
-            { key: 'account' as const, label: '계정', icon: 'settings' },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.key
-                ? 'bg-[#F2B90D]/15 text-[#F2B90D] border border-[#F2B90D]/20'
-                : 'text-slate-600 hover:text-slate-400'
-                }`}
-            >
-              <span className="material-symbols-outlined text-sm">{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
+          {(() => {
+            const isFreePlan = (profile?.plan ?? 'free') === 'free';
+            const PAID_ONLY_TABS: Array<'status' | 'leadership' | 'skills'> = ['status', 'leadership', 'skills'];
+            const tabs = [
+              { key: 'status' as const, label: '리더 프로필', icon: 'person' },
+              { key: 'leadership' as const, label: '리더십 분석', icon: 'insights' },
+              { key: 'skills' as const, label: '스킬 트리', icon: 'auto_awesome' },
+              { key: 'badges' as const, label: '배지', icon: 'workspace_premium' },
+              { key: 'account' as const, label: '계정', icon: 'settings' },
+            ];
+            return tabs.map((tab) => {
+              const isLocked = isFreePlan && PAID_ONLY_TABS.includes(tab.key as any);
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => isLocked ? navigate('/pricing') : setActiveTab(tab.key)}
+                  title={isLocked ? '프로 플랜부터 이용 가능' : undefined}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.key
+                    ? 'bg-[#F2B90D]/15 text-[#F2B90D] border border-[#F2B90D]/20'
+                    : isLocked
+                      ? 'text-slate-700 hover:text-amber-400'
+                      : 'text-slate-600 hover:text-slate-400'
+                    }`}
+                >
+                  <span className="material-symbols-outlined text-sm">{isLocked ? 'lock' : tab.icon}</span>
+                  {tab.label}
+                </button>
+              );
+            });
+          })()}
         </div>
       </div>
 
       <main className="flex-1 p-5 pb-28 space-y-6 relative z-10">
 
-        {/* ════════ 스테이터스 탭 (리더 프로필 복구) ════════ */}
-        {activeTab === 'status' && (
+        {/* ════════ 스테이터스 탭 (리더 프로필) ════════
+            Spec v3 §5.6: 프로/울트라 유저라도 시뮬레이션 3개 이상 완주 시에만 리더 프로필 생성
+            (데이터 부족 시 부정확한 프로파일 생성 방지) */}
+        {activeTab === 'status' && simCount < 3 && (
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center animate-in fade-in duration-500">
+            <div className="size-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-5">
+              <span className="material-symbols-outlined text-amber-400 text-3xl">timeline</span>
+            </div>
+            <h2 className="text-white font-black text-xl mb-2">리더 프로필 준비 중</h2>
+            <p className="text-slate-400 text-sm leading-relaxed max-w-xs mb-6">
+              시뮬레이션을 <span className="text-amber-400 font-bold">3회 이상 완료</span>하면,<br />
+              누적 대화 데이터를 기반으로 당신만의<br />
+              리더십 프로필이 자동 생성됩니다.
+            </p>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6">
+              <span className="text-slate-500 text-xs">현재 진행도</span>
+              <span className="text-amber-400 font-black text-sm">{simCount} / 3</span>
+            </div>
+            <button
+              onClick={() => navigate('/missions')}
+              className="px-6 py-3 rounded-xl bg-amber-500 text-slate-900 font-bold text-sm active:scale-95 transition-all"
+            >
+              시뮬레이션 시작하기 →
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'status' && simCount >= 3 && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* ── RPG 랭크 요약 (상단 미니 칩) ── */}
             {rank && (
@@ -1075,7 +1112,11 @@ const Profile: React.FC = () => {
               구매한 플레이북
             </h3>
             {purchasedPlaybooks.length === 0 ? (
-              <p className="text-slate-500 text-xs">구매한 플레이북이 없습니다.</p>
+              <p className="text-slate-500 text-xs leading-relaxed">
+                구매한 플레이북이 없습니다.
+                <br />
+                <span className="text-slate-600">유료 플랜 구독 시 상세 피드백 리포트를 무제한 이용할 수 있습니다.</span>
+              </p>
             ) : (
               <ul className="space-y-2">
                 {purchasedPlaybooks.map(p => (

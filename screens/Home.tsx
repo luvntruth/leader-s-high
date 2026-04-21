@@ -510,8 +510,12 @@ const Home: React.FC = () => {
               {questScenarios.map((scenario, idx) => {
                 const meta = getQuestMeta(scenario.intensity);
                 const isFirst = idx === 0;
-                const originalIndex = SCENARIOS.findIndex(s => s.id === scenario.id);
-                const isLocked = !usageService.canAccessScenario(originalIndex, profile?.plan || 'free');
+                // Spec v3 §5.2/§7: Pro 플랜은 selected_scenarios 기반 제한
+                const isLocked = !usageService.canAccessScenarioById(
+                  scenario.id,
+                  profile?.plan || 'free',
+                  profile?.selected_scenarios,
+                );
                 const isCompleted = completedScenarios.has(scenario.id);
                 // Spec v3 §5.2: 무료 플랜은 시나리오당 1회 시도 → 완료 시 재도전 차단.
                 // Pro/Ultra 는 여러 회 시도 가능하므로 완료 배지만 표시.

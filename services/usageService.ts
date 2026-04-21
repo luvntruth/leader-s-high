@@ -6,6 +6,9 @@ export interface UsageCheckResult {
   reason?: string;
 }
 
+/** Spec v3 §2·§5.2: 비로그인/무료 플랜 전용 체험 시나리오 3개 (고정) */
+export const FREE_SCENARIO_IDS = ['late-comer', 'boundaries', 'team-clash'] as const;
+
 export const usageService = {
   /** 시뮬레이션 시작 가능 여부 확인 */
   async canStartSimulation(userId: string, plan: PlanType): Promise<UsageCheckResult> {
@@ -54,9 +57,28 @@ export const usageService = {
     return PLAN_LIMITS[plan].voice;
   },
 
-  /** 시나리오 접근 가능 여부 (인덱스 기준) */
+  /** 시나리오 접근 가능 여부 (인덱스 기준, 레거시 유지)
+   *  Spec v3 §5: 새로 구현하는 곳은 canAccessScenarioById 사용 권장 */
   canAccessScenario(scenarioIndex: number, plan: PlanType): boolean {
     return scenarioIndex < PLAN_LIMITS[plan].scenarios;
+  },
+
+  /** Spec v3 §7: 시나리오 ID + 사용자 선택 기반 접근 판정
+   *  - Ultra: 전체 허용
+   *  - Pro: selected_scenarios 에 포함된 ID 만 허용. 선택 미완료 상태면 아직 결제 직후로 간주해 전체 허용(선택 화면으로 유도 전제)
+   *  - Free: FREE_SCENARIO_IDS 만 허용
+   */
+  canAccessScenarioById(
+    scenarioId: string,
+    plan: PlanType,
+    selectedScenarios?: string[] | null,
+  ): boolean {
+    if (plan === 'ultra') return true;
+    if (plan === 'pro') {
+      if (!selectedScenarios || selectedScenarios.length === 0) return true;
+      return selectedScenarios.includes(scenarioId);
+    }
+    return (FREE_SCENARIO_IDS as readonly string[]).includes(scenarioId);
   },
 
   /** 사용량 기록 */

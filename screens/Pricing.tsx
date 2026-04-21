@@ -116,7 +116,9 @@ export default function Pricing() {
         user.id,
       );
       await refreshProfile();
-      setTimeout(() => navigate('/'), 2000);
+      // Spec v3 §4-B: Pro 는 결제 후 시나리오 선택 화면으로, Ultra/기타는 홈으로
+      const nextPath = option.plan === 'pro' ? '/select-scenarios' : '/';
+      setTimeout(() => navigate(nextPath), 2000);
     }
   };
 
