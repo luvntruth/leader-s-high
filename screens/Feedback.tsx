@@ -58,7 +58,9 @@ const Feedback: React.FC = () => {
   const location = useLocation();
   const { user, profile } = useAuth();
   const { transcript, scenario, sosTipHistory } = location.state || {};
-  const isPaidPlan = profile?.plan !== 'free';
+  // Spec v3 §5.4/§5.5: 게스트(profile=null) 는 반드시 간략 리포트.
+  // 과거 `profile?.plan !== 'free'` 는 게스트에게 true 를 반환해 풀 리포트가 노출되던 버그.
+  const isPaidPlan = !!profile && profile.plan !== 'free';
 
   const [isFullReport, setIsFullReport] = useState(isPaidPlan);
   const [isAnalysing, setIsAnalysing] = useState(true);
@@ -714,15 +716,16 @@ const Feedback: React.FC = () => {
                 </div>
               </div>
 
-              {/* 오버레이 — 게스트는 /signup 으로 직결(아래 카드와 동일 intent) */}
+              {/* 오버레이 — 게스트는 플레이북 구매 경로(아래 하단 카드와 완전 일치)
+                  Spec v3 §5.4: "가입하고 전체 보기" 가 하단 "플레이북 구매" 와 동일 기능이라 혼란 → 라벨 통일 */}
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-[2px]">
                 <div className="text-4xl mb-3">🔒</div>
                 <h4 className="text-white font-bold text-lg mb-1">
-                  {user ? '풀 리포트로 더 깊이 분석하세요' : '가입하고 전체 결과 받기'}
+                  {user ? '풀 리포트로 더 깊이 분석하세요' : '전체 결과는 플레이북 구매로'}
                 </h4>
                 <p className="text-slate-400 text-xs mb-4 text-center max-w-xs">
                   모범 스크립트, 5차원 역량 분석, 과학적 근거까지<br/>
-                  {user ? '프로 플랜에서 확인하세요' : '가입 20초 · 이번 결과 영구 저장 · 다음 시나리오 이어가기'}
+                  {user ? '프로 플랜에서 확인하세요' : '₩3,900 · 이 시뮬레이션의 풀 리포트 즉시 제공'}
                 </p>
                 {user ? (
                   <button onClick={() => navigate('/pricing')} className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors">
@@ -740,8 +743,8 @@ const Feedback: React.FC = () => {
                     }}
                     className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors inline-flex items-center gap-1.5"
                   >
-                    <span className="material-symbols-outlined text-base">person_add</span>
-                    가입하고 전체 보기 →
+                    <span className="material-symbols-outlined text-base">credit_card</span>
+                    플레이북 구매하기 (₩3,900)
                   </button>
                 )}
                 {!user && (
