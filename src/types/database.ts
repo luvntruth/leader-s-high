@@ -94,6 +94,8 @@ export interface SimulationRecord {
   communication_pattern: CommunicationPattern | null;
   memo: string;
   tags: string[];
+  /** Spec v3 §3·§7.2: 12턴 완주(true) vs 중단(false). 중단 카운팅에 사용. */
+  completed: boolean;
   created_at: string;
 }
 
@@ -155,6 +157,8 @@ export interface PlanLimits {
   fullReport: boolean;
   historyCompare: boolean;
   peerCompare: boolean;
+  /** Spec v3 §3: 무료=총 5회, 유료=시나리오당 10회 */
+  abandonLimit: number;
 }
 
 export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
@@ -167,6 +171,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     fullReport: false,
     historyCompare: false,
     peerCompare: false,
+    abandonLimit: 5, // Spec v3 §3.1: 누적 5회 중단 시 무료 체험 종료
   },
   pro: {
     scenarios: 20,
@@ -177,6 +182,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     fullReport: true,
     historyCompare: true,
     peerCompare: false,
+    abandonLimit: 10, // Spec v3 §3.2: 시나리오당 10회 중단 시 해당 시나리오 종료
   },
   ultra: {
     scenarios: 40,
@@ -187,6 +193,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     fullReport: true,
     historyCompare: true,
     peerCompare: true,
+    abandonLimit: 10, // Spec v3 §3.3: 시나리오당 10회 중단 시 해당 시나리오 종료
   },
 };
 

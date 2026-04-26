@@ -3,6 +3,9 @@ import { supabase } from '../src/lib/supabase';
 // 세션 ID: 탭 단위로 고유 (새 탭 = 새 세션)
 const SESSION_ID = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+// Spec v3 §8: 랜딩 variant + UTM 첫 진입값을 sessionStorage 에 보존 → 모든 이벤트에 자동 첨부
+const ATTRIBUTION_STORAGE_KEY = 'lh_attribution';
+
 export type EventName =
   | 'landing_view'
   | 'landing_variant_view'
@@ -40,15 +43,19 @@ export type GrowthAttribution = {
 };
 
 export const analyticsService = {
-  /** fire-and-forget 이벤트 전송 */
+  /** fire-and-forget 이벤트 전송. Spec v3 §8: 모든 이벤트에 attribution 자동 첨부. */
   track(eventName: EventName, properties: TrackingProperties = {}, userId?: string) {
+    const enriched = {
+      ...this.getAttribution(),
+      ...properties, // 호출자 명시 값이 우선
+    };
     supabase
       .from('analytics_events')
       .insert({
         user_id: userId || null,
         session_id: SESSION_ID,
         event_name: eventName,
-        properties,
+        properties: enriched,
       })
       .then(() => {}, () => {});
   },
@@ -58,19 +65,27 @@ export const analyticsService = {
     return SESSION_ID;
   },
 
-  /** 현재 URL의 UTM/landing variant 정보 읽기
-   *  HashRouter 방어: window.location.search와 hash 내부 query params 모두 확인
-   *  - ?lp=v1#/onboarding → search에서 읽힘
-   *  - #/onboarding?lp=v1 → hash 내부에서 읽힘
-   */
-  getAttribution(search?: string): GrowthAttribution {
-    // 명시적 search가 없으면 window.location.search + hash 내부 params 병합
+  /** 첫 진입 시 호출 — URL 의 lp/utm 을 sessionStorage 에 1회 저장.
+   *  이후 페이지 이동으로 URL 에서 사라져도 모든 이벤트에 자동 첨부됨. */
+  captureAttribution(): void {
+    if (typeof window === 'undefined') return;
+    // 이미 저장된 attribution 이 있으면 덮어쓰지 않음 (첫 진입값 보존)
+    if (sessionStorage.getItem(ATTRIBUTION_STORAGE_KEY)) return;
+
+    const fromUrl = this.parseAttributionFromUrl();
+    const hasAny = Object.values(fromUrl).some(v => v !== undefined);
+    if (!hasAny) return; // lp/utm 없으면 저장 스킵
+
+    sessionStorage.setItem(ATTRIBUTION_STORAGE_KEY, JSON.stringify(fromUrl));
+  },
+
+  /** URL 에서 attribution parameters 파싱 (HashRouter 방어 포함) */
+  parseAttributionFromUrl(search?: string): GrowthAttribution {
     let params: URLSearchParams;
     if (search) {
       params = new URLSearchParams(search);
     } else {
       params = new URLSearchParams(window.location.search);
-      // HashRouter 방어: hash 내부에 ?가 있으면 그 params도 병합 (search 우선)
       const hashQuery = window.location.hash.split('?')[1];
       if (hashQuery) {
         const hashParams = new URLSearchParams(hashQuery);
@@ -90,6 +105,19 @@ export const analyticsService = {
     };
   },
 
+  /** Attribution 조회 — sessionStorage 우선, URL fallback */
+  getAttribution(search?: string): GrowthAttribution {
+    if (typeof window === 'undefined') return {};
+    // 1순위: sessionStorage 에 보존된 첫 진입값
+    const stored = sessionStorage.getItem(ATTRIBUTION_STORAGE_KEY);
+    if (stored && !search) {
+      try { return JSON.parse(stored) as GrowthAttribution; } catch { /* fallthrough */ }
+    }
+    // 2순위: 현재 URL
+    return this.parseAttributionFromUrl(search);
+  },
+
+  /** Legacy helper — track() 가 자동 첨부하므로 더 이상 필수 아님. 호출처 호환 유지. */
   withAttribution(properties: TrackingProperties = {}, search?: string): TrackingProperties {
     return {
       ...this.getAttribution(search),

@@ -4,26 +4,82 @@ import { PLAN_LIMITS, type PlanType } from '../src/types/database';
 export interface UsageCheckResult {
   allowed: boolean;
   reason?: string;
+  /** abandon limit 도달 시 true — UI 에서 차단 메시지/Pricing 유도에 사용 */
+  abandonBlocked?: boolean;
 }
 
 /** Spec v3 §2·§5.2: 비로그인/무료 플랜 전용 체험 시나리오 3개 (고정) */
 export const FREE_SCENARIO_IDS = ['late-comer', 'boundaries', 'team-clash'] as const;
 
-export const usageService = {
-  /** 시뮬레이션 시작 가능 여부 확인 */
-  async canStartSimulation(userId: string, plan: PlanType): Promise<UsageCheckResult> {
-    // 방어: 빈/없는 userId 는 graceful 하게 "허용" 반환 (게스트는 호출되지 않아야 하나 안전망)
-    if (!userId) return { allowed: true };
+/** Spec v3 §3.1: 게스트 중단 카운트 (sessionStorage 기반).
+ *  로그인 사용자는 simulation_history.completed 로 카운트. */
+const GUEST_ABANDON_KEY = 'lh_guest_abandon_count';
 
+export const usageService = {
+  /** 게스트 중단 카운트 읽기 */
+  getGuestAbandonCount(): number {
+    if (typeof window === 'undefined') return 0;
+    const raw = sessionStorage.getItem(GUEST_ABANDON_KEY);
+    return raw ? parseInt(raw, 10) || 0 : 0;
+  },
+
+  /** 게스트 중단 카운트 증가 */
+  incrementGuestAbandonCount(): number {
+    if (typeof window === 'undefined') return 0;
+    const next = this.getGuestAbandonCount() + 1;
+    sessionStorage.setItem(GUEST_ABANDON_KEY, String(next));
+    return next;
+  },
+
+  /** 게스트 중단 카운트 리셋 (가입/결제 시 호출) */
+  resetGuestAbandonCount(): void {
+    if (typeof window === 'undefined') return;
+    sessionStorage.removeItem(GUEST_ABANDON_KEY);
+  },
+
+  /** 시뮬레이션 시작 가능 여부 확인 (Spec v3 §3 abandon limit 포함) */
+  async canStartSimulation(userId: string, plan: PlanType, scenarioId?: string): Promise<UsageCheckResult> {
     const limits = PLAN_LIMITS[plan];
 
-    // 무료 플랜: 총 시뮬레이션 횟수 제한
+    // 게스트 (userId 없음): 총 5회 중단 시 차단 → 가입/Pro 유도
+    if (!userId) {
+      const guestAbandon = this.getGuestAbandonCount();
+      if (guestAbandon >= limits.abandonLimit) {
+        return {
+          allowed: false,
+          abandonBlocked: true,
+          reason: `무료 체험에서 ${limits.abandonLimit}회 이상 중단하셨어요. 계속 연습하시려면 요금제를 업그레이드해주세요.`,
+        };
+      }
+      return { allowed: true };
+    }
+
+    // 로그인 사용자
     if (plan === 'free') {
+      // 무료: 총 시뮬레이션 횟수 + 누적 중단 5회 검증
       const totalCount = await dbService.getSimulationCount(userId);
       if (totalCount >= limits.scenarios) {
         return {
           allowed: false,
           reason: `무료 체험 ${limits.scenarios}개 시나리오를 모두 사용했습니다.`,
+        };
+      }
+      const abandonCount = await dbService.getAbandonCount(userId);
+      if (abandonCount >= limits.abandonLimit) {
+        return {
+          allowed: false,
+          abandonBlocked: true,
+          reason: `무료 체험에서 ${limits.abandonLimit}회 이상 중단하셨어요. 계속 연습하시려면 요금제를 업그레이드해주세요.`,
+        };
+      }
+    } else if (scenarioId) {
+      // Pro/Ultra: 시나리오당 10회 중단 시 해당 시나리오 차단
+      const abandonCount = await dbService.getAbandonCount(userId, scenarioId);
+      if (abandonCount >= limits.abandonLimit) {
+        return {
+          allowed: false,
+          abandonBlocked: true,
+          reason: `이 시나리오에서 ${limits.abandonLimit}회 이상 중단하셨어요. 다른 시나리오에 도전해보세요.`,
         };
       }
     }

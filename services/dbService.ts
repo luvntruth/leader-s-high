@@ -82,6 +82,20 @@ export const dbService = {
     return count || 0;
   },
 
+  /** Spec v3 §3·§7.2: 중단 횟수 조회.
+   *  scenarioId 없으면 전체 중단(Free 의 누적 5회 검증), 있으면 시나리오별(Pro/Ultra 10회 검증). */
+  async getAbandonCount(userId: string, scenarioId?: string): Promise<number> {
+    let query = supabase
+      .from('simulation_history')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('completed', false);
+    if (scenarioId) query = query.eq('scenario_id', scenarioId);
+    const { count, error } = await query;
+    if (error) return 0;
+    return count || 0;
+  },
+
   async getRadarStats(userId: string): Promise<Record<string, number> | null> {
     const { data, error } = await supabase
       .from('simulation_history')

@@ -41,6 +41,34 @@ interface EvaluationData {
     decision: number;
     strategy: number;
   };
+  // ── Spec v3 §6: 풀 리포트(플레이북) 전용 필드 — 풀 리포트 모드에서만 생성됨 ──
+  /** Section 2: 3단계 대화 전략 분석 (도입/본론/마무리) */
+  phaseStrategy?: {
+    intro: { userQuote: string; analysis: string; improvement: string };
+    mainPoint: { userQuote: string; analysis: string; improvement: string };
+    closing: { userQuote: string; analysis: string; improvement: string };
+  };
+  /** Section 3: Golden Scripts — 결정적 순간 3개 */
+  goldenScripts?: {
+    situation: string;       // 어떤 상황이었는지
+    userSaid: string;        // 사용자가 실제로 한 말 인용
+    betterAlternative: string; // 더 강력한 대안 발화
+    whyStronger: string;     // 왜 이게 더 강한가 (심리적 근거)
+  }[];
+  /** Section 4: 심리 트리거 분석 */
+  psychTriggers?: {
+    /** 신뢰도 급상승 구간 (turn, userSaid, trustDelta, trigger) */
+    reactionTurnpoints: { turn: number; userSaid: string; trustChange: string; trigger: string }[];
+    /** 놓친 기회 (turn, situation, idealResponse) */
+    lostOpportunities: { turn: number; situation: string; idealResponse: string }[];
+  };
+  /** Section 5: 전문가 코치 총평 */
+  coachOverview?: {
+    /** 강점 프로파일 — 점수 기반 핵심 3가지 */
+    strengthProfile: { skill: string; score: number; evidence: string }[];
+    /** 다음에 반드시 연습해야 할 3가지 (현재 vs 목표 + 추천 시나리오) */
+    nextPracticeTop3: { focus: string; current: string; goal: string; recommendedScenario: string }[];
+  };
 }
 
 const getRank = (v: number) => {
@@ -104,8 +132,35 @@ const Feedback: React.FC = () => {
         - scienceInsight: null 대신 빈 객체 생성 (theoryName, scienceBase, practicalApply 모두 빈 문자열)
         - coachingSkills: 기본값으로 모두 50
         - radarChart: 기본값으로 모두 50
+        - phaseStrategy, goldenScripts, psychTriggers, coachOverview: 모두 생략 (풀 리포트 전용)
         - 풀 리포트는 프로 플랜에서 이용 가능합니다.
-      ` : '';
+      ` : `
+        [풀 리포트 (플레이북) 모드 — Spec v3 §6]
+        유료 사용자/단건 구매자입니다. 아래 5개 추가 필드를 모두 충실히 채우세요:
+
+        15. phaseStrategy: 12턴 대화를 도입(턴 1-3)/본론(턴 4-9)/마무리(턴 10-12) 3단계로 분석.
+            - 각 단계마다 userQuote(해당 단계에서 사용자의 가장 결정적 발화 1개 인용),
+              analysis(왜 효과적/비효과적이었는지 2-3문장 분석),
+              improvement(개선 가능한 1가지 제안 1-2문장)
+            - 비난조 금지, 코치적 어조 유지
+
+        16. goldenScripts: 이번 대화에서 결정적 순간 3개를 골라 각각:
+            - situation: "팀원이 ~ 식으로 방어할 때" 같은 상황 묘사
+            - userSaid: 사용자가 실제로 한 말 그대로 인용 ("..." 형태)
+            - betterAlternative: 그 자리에서 쓸 수 있는 더 강력한 실전 발화 (2-3문장)
+            - whyStronger: 왜 이 대안이 더 강한지 심리학/리더십 이론으로 설명 (2-3문장)
+
+        17. psychTriggers: 심리 트리거 분석
+            - reactionTurnpoints: 신뢰도가 급상승한 순간 2-3개. 각 항목 { turn(번호), userSaid(인용), trustChange(예: "+13"), trigger(이름: "팀 관점 전환" 등) }
+            - lostOpportunities: 더 잘할 수 있었던 순간 1-2개. 각 항목 { turn, situation, idealResponse(이상적 대응) }
+
+        18. coachOverview: 전문가 코치 총평
+            - strengthProfile: 강점 3가지. 각 { skill(예: "공감적 경청"), score(0-100), evidence(대화 기록 인용 근거) }
+            - nextPracticeTop3: 다음에 반드시 연습해야 할 3가지. 각 { focus(연습 영역), current(현재 수준 1문장), goal(목표 수준 1문장), recommendedScenario(추천 시나리오 ID 또는 한국어 명칭) }
+
+        19. 새 필드의 모든 인용("...") 은 transcript 의 실제 사용자 발화에서 가져오세요. 가공/생성 금지.
+        20. 새 필드의 어조는 "전문 리더십 코치" 톤. 평가가 아닌 코칭 관점.
+      `;
 
       const prompt = `
         당신은 대한민국 최고의 리더십 코치입니다. 리더를 위한 시뮬레이션 결과 리포트를 생성하세요.
@@ -235,7 +290,106 @@ const Feedback: React.FC = () => {
                   listeningRatio: { type: Type.NUMBER },
                 },
                 required: ['questionRatio', 'empathyRatio', 'directiveRatio', 'listeningRatio']
-              }
+              },
+              // ── Spec v3 §6: 풀 리포트 전용 필드 (모두 optional) ──
+              phaseStrategy: {
+                type: Type.OBJECT,
+                properties: {
+                  intro: {
+                    type: Type.OBJECT,
+                    properties: {
+                      userQuote: { type: Type.STRING },
+                      analysis: { type: Type.STRING },
+                      improvement: { type: Type.STRING },
+                    },
+                  },
+                  mainPoint: {
+                    type: Type.OBJECT,
+                    properties: {
+                      userQuote: { type: Type.STRING },
+                      analysis: { type: Type.STRING },
+                      improvement: { type: Type.STRING },
+                    },
+                  },
+                  closing: {
+                    type: Type.OBJECT,
+                    properties: {
+                      userQuote: { type: Type.STRING },
+                      analysis: { type: Type.STRING },
+                      improvement: { type: Type.STRING },
+                    },
+                  },
+                },
+              },
+              goldenScripts: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    situation: { type: Type.STRING },
+                    userSaid: { type: Type.STRING },
+                    betterAlternative: { type: Type.STRING },
+                    whyStronger: { type: Type.STRING },
+                  },
+                  required: ['situation', 'userSaid', 'betterAlternative', 'whyStronger'],
+                },
+              },
+              psychTriggers: {
+                type: Type.OBJECT,
+                properties: {
+                  reactionTurnpoints: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        turn: { type: Type.INTEGER },
+                        userSaid: { type: Type.STRING },
+                        trustChange: { type: Type.STRING },
+                        trigger: { type: Type.STRING },
+                      },
+                    },
+                  },
+                  lostOpportunities: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        turn: { type: Type.INTEGER },
+                        situation: { type: Type.STRING },
+                        idealResponse: { type: Type.STRING },
+                      },
+                    },
+                  },
+                },
+              },
+              coachOverview: {
+                type: Type.OBJECT,
+                properties: {
+                  strengthProfile: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        skill: { type: Type.STRING },
+                        score: { type: Type.INTEGER },
+                        evidence: { type: Type.STRING },
+                      },
+                    },
+                  },
+                  nextPracticeTop3: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        focus: { type: Type.STRING },
+                        current: { type: Type.STRING },
+                        goal: { type: Type.STRING },
+                        recommendedScenario: { type: Type.STRING },
+                      },
+                    },
+                  },
+                },
+              },
             },
             required: ['summary', 'strengths', 'improvements', 'modelAnswers', 'theoryInsight', 'actionItems', 'coachingSkills', 'metrics', 'radarChart', 'leadershipType', 'communicationPattern']
           }
@@ -630,6 +784,184 @@ const Feedback: React.FC = () => {
             ))}
           </div>
         </section>
+
+        {/* ── Section 2: 3단계 대화 전략 (Spec v3 §6) — 풀 리포트 전용 ── */}
+        {isFullReport && evaluation.phaseStrategy && (
+          <section className="bg-navy-card p-7 rounded-[2.5rem] border border-white/10">
+            <h3 className="font-black text-[11px] uppercase tracking-widest mb-5 flex items-center gap-2 text-white">
+              <span className="size-7 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+                <span className="material-symbols-outlined text-sm">timeline</span>
+              </span>
+              3단계 대화 전략 분석
+            </h3>
+            <div className="space-y-5">
+              {[
+                { key: 'intro', label: 'Phase 1 · 도입 (신뢰 구축)', turns: '턴 1-3', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
+                { key: 'mainPoint', label: 'Phase 2 · 본론 (핵심 메시지 전달)', turns: '턴 4-9', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
+                { key: 'closing', label: 'Phase 3 · 마무리 (합의·다음 스텝)', turns: '턴 10-12', color: 'text-purple-400 border-purple-500/30 bg-purple-500/10' },
+              ].map(({ key, label, turns, color }) => {
+                const phase = (evaluation.phaseStrategy as any)?.[key];
+                if (!phase) return null;
+                return (
+                  <div key={key} className={`rounded-2xl border p-5 ${color}`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[11px] font-black uppercase tracking-widest">{label}</p>
+                      <span className="text-[10px] font-bold opacity-70">{turns}</span>
+                    </div>
+                    {phase.userQuote && (
+                      <div className="mb-3 bg-white/5 rounded-xl p-3">
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">당신이 한 말</p>
+                        <p className="text-xs text-white italic leading-relaxed">"{phase.userQuote}"</p>
+                      </div>
+                    )}
+                    {phase.analysis && (
+                      <div className="mb-2">
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">AI 분석</p>
+                        <p className="text-xs text-slate-300 leading-relaxed">{phase.analysis}</p>
+                      </div>
+                    )}
+                    {phase.improvement && (
+                      <div>
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">개선 여지</p>
+                        <p className="text-xs text-slate-400 leading-relaxed">{phase.improvement}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ── Section 3: Golden Scripts — 결정적 순간 3개 (풀 리포트 전용) ── */}
+        {isFullReport && evaluation.goldenScripts && evaluation.goldenScripts.length > 0 && (
+          <section className="bg-navy-card p-7 rounded-[2.5rem] border border-amber-500/20">
+            <h3 className="font-black text-[11px] uppercase tracking-widest mb-5 flex items-center gap-2 text-amber-400">
+              <span className="size-7 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                <span className="material-symbols-outlined text-sm">auto_awesome</span>
+              </span>
+              Golden Scripts · 결정적 순간 실전 문장
+            </h3>
+            <div className="space-y-5">
+              {evaluation.goldenScripts.map((g, i) => (
+                <div key={i} className="rounded-2xl border border-amber-500/15 bg-[#1C1F26] p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="size-7 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-400 text-xs font-black">{i + 1}</span>
+                    <p className="text-xs font-bold text-amber-300">{g.situation}</p>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="bg-white/5 rounded-xl p-3">
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">당신이 한 말</p>
+                      <p className="text-xs text-slate-300 italic leading-relaxed">"{g.userSaid}"</p>
+                    </div>
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+                      <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest mb-1">더 강력한 대안</p>
+                      <p className="text-xs text-white font-bold leading-relaxed">"{g.betterAlternative}"</p>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <span className="material-symbols-outlined text-amber-400 text-sm mt-0.5 shrink-0">lightbulb</span>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">{g.whyStronger}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Section 4: 심리 트리거 분석 (풀 리포트 전용) ── */}
+        {isFullReport && evaluation.psychTriggers && (
+          <section className="bg-navy-card p-7 rounded-[2.5rem] border border-pink-500/20">
+            <h3 className="font-black text-[11px] uppercase tracking-widest mb-5 flex items-center gap-2 text-pink-400">
+              <span className="size-7 rounded-lg bg-pink-500/20 flex items-center justify-center">
+                <span className="material-symbols-outlined text-sm">psychology_alt</span>
+              </span>
+              심리 트리거 분석
+            </h3>
+            {evaluation.psychTriggers.reactionTurnpoints && evaluation.psychTriggers.reactionTurnpoints.length > 0 && (
+              <div className="mb-6">
+                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-3">반응 전환점 · 신뢰도 급상승</p>
+                <div className="space-y-2">
+                  {evaluation.psychTriggers.reactionTurnpoints.map((t, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+                      <span className="text-[10px] font-black text-emerald-400 mt-0.5 shrink-0">턴 {t.turn}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-slate-200 italic mb-1 truncate">"{t.userSaid}"</p>
+                        <p className="text-[10px] text-slate-500">트리거: <span className="text-emerald-400 font-bold">{t.trigger}</span> · {t.trustChange}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {evaluation.psychTriggers.lostOpportunities && evaluation.psychTriggers.lostOpportunities.length > 0 && (
+              <div>
+                <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-3">놓친 기회 · 더 잘할 수 있었던 순간</p>
+                <div className="space-y-3">
+                  {evaluation.psychTriggers.lostOpportunities.map((l, i) => (
+                    <div key={i} className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/15">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] font-black text-amber-400">턴 {l.turn}</span>
+                        <span className="text-[10px] text-slate-400">{l.situation}</span>
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        <span className="text-amber-400 font-bold">이상적 대응: </span>"{l.idealResponse}"
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ── Section 5: 코치 총평 (풀 리포트 전용) ── */}
+        {isFullReport && evaluation.coachOverview && (
+          <section className="bg-navy-card p-7 rounded-[2.5rem] border border-purple-500/20">
+            <h3 className="font-black text-[11px] uppercase tracking-widest mb-5 flex items-center gap-2 text-purple-400">
+              <span className="size-7 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                <span className="material-symbols-outlined text-sm">workspace_premium</span>
+              </span>
+              전문가 코치 총평
+            </h3>
+            {evaluation.coachOverview.strengthProfile && evaluation.coachOverview.strengthProfile.length > 0 && (
+              <div className="mb-6">
+                <p className="text-[10px] font-black text-purple-300 uppercase tracking-widest mb-3">강점 프로파일</p>
+                <div className="space-y-2">
+                  {evaluation.coachOverview.strengthProfile.map((s, i) => (
+                    <div key={i} className="p-3 rounded-xl bg-white/5 border border-white/10">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm font-black text-white">{s.skill}</p>
+                        <span className="text-sm font-black text-purple-400">{s.score}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">{s.evidence}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {evaluation.coachOverview.nextPracticeTop3 && evaluation.coachOverview.nextPracticeTop3.length > 0 && (
+              <div>
+                <p className="text-[10px] font-black text-purple-300 uppercase tracking-widest mb-3">다음에 반드시 연습해야 할 3가지</p>
+                <div className="space-y-3">
+                  {evaluation.coachOverview.nextPracticeTop3.map((n, i) => (
+                    <div key={i} className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/15">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="size-6 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-300 text-[10px] font-black">{i + 1}</span>
+                        <p className="text-sm font-bold text-white">{n.focus}</p>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mb-1">현재: <span className="text-slate-300">{n.current}</span></p>
+                      <p className="text-[11px] text-slate-400 mb-2">목표: <span className="text-purple-300">{n.goal}</span></p>
+                      {n.recommendedScenario && (
+                        <p className="text-[10px] text-slate-500">추천 시나리오: <span className="text-amber-400 font-bold">{n.recommendedScenario}</span></p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* ── NEW SKILL UNLOCKED (이론 인사이트) ── */}
         <section className="bg-gradient-to-br from-[#0D1525] to-[#161D2F] border border-primary/30 p-8 rounded-[2.5rem] relative overflow-hidden animate-skill-unlock">

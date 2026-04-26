@@ -89,6 +89,7 @@ export default function PurchasePlaybook() {
         communication_pattern: null,
         memo: '',
         tags: [],
+        completed: true, // 단건 구매 → 완주된 시뮬레이션의 풀 리포트로 간주
       });
 
       if (!simId) throw new Error('시뮬레이션 저장에 실패했습니다. 다시 시도해주세요.');

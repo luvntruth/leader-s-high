@@ -42,7 +42,7 @@ export default function Login() {
       if (msg.includes('Invalid login') || msg.includes('invalid_credentials')) {
         setError('이메일 또는 비밀번호가 올바르지 않습니다.');
       } else if (msg.includes('Email not confirmed')) {
-        setError('이메일 인증이 필요합니다. Supabase 대시보드에서 Confirm email을 OFF로 설정하세요.');
+        setError('이메일 인증이 필요합니다. 가입 시 발송된 인증 메일을 확인하신 후 다시 로그인해 주세요.');
       } else {
         setError(msg || '로그인에 실패했습니다.');
       }

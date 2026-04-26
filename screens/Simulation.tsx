@@ -105,18 +105,35 @@ const Simulation: React.FC = () => {
   const [initError, setInitError] = useState<string | null>(null);
   const [usageDenied, setUsageDenied] = useState<string | null>(null);
 
-  // 사용량 확인 가드 + 시뮬레이션 시작 이벤트
+  // 사용량 확인 가드 + 시뮬레이션 시작 이벤트 (Spec v3 §3 abandon limit 포함)
   useEffect(() => {
+    // 게스트: sessionStorage 기반 abandon limit 체크
     if (!user || !profile) {
-      // 게스트 모드: 사용량 체크 없이 sim_start 이벤트만 기록
       if (isGuest) {
-        analyticsService.track('sim_start', analyticsService.withAttribution({ scenario_id: scenario?.id, plan: 'free', guest: true }));
+        usageService.canStartSimulation('', 'free', scenario?.id).then(result => {
+          if (!result.allowed) {
+            setUsageDenied(result.reason || '무료 체험 한도에 도달했습니다.');
+            if (result.abandonBlocked) {
+              analyticsService.track('abandon_limit_reached', analyticsService.withAttribution({
+                scenario_id: scenario?.id, plan: 'free', guest: true,
+              }));
+            }
+          } else {
+            analyticsService.track('sim_start', analyticsService.withAttribution({ scenario_id: scenario?.id, plan: 'free', guest: true }));
+          }
+        });
       }
       return;
     }
-    usageService.canStartSimulation(user.id, profile.plan).then(result => {
+    // 로그인 사용자: scenarioId 전달 → Pro/Ultra 시나리오별 abandon 검증
+    usageService.canStartSimulation(user.id, profile.plan, scenario?.id).then(result => {
       if (!result.allowed) {
         setUsageDenied(result.reason || '사용 제한에 도달했습니다.');
+        if (result.abandonBlocked) {
+          analyticsService.track('abandon_limit_reached', analyticsService.withAttribution({
+            scenario_id: scenario?.id, plan: profile.plan,
+          }), user.id);
+        }
       } else {
         usageService.recordUsage(user.id, 'simulation').catch(() => {});
         analyticsService.track('sim_start', analyticsService.withAttribution({ scenario_id: scenario?.id, plan: profile.plan }), user.id);
@@ -186,18 +203,64 @@ const Simulation: React.FC = () => {
   const lastUserMessageRef = useRef<string>('');
   const firstTurnTrackedRef = useRef(false);
 
-  // Cleanup on unmount — 시뮬레이션 이탈 트래킹
+  // Cleanup on unmount — 시뮬레이션 이탈 트래킹 + Spec v3 §3 중단 카운팅
   const isCompleteRef = useRef(false);
+  // 클로저 stale 방지: 최신값을 ref 로 보존
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+  const trustRef = useRef(trustState.trust);
+  trustRef.current = trustState.trust;
   useEffect(() => {
     return () => {
       mountedRef.current = false;
-      if (!isCompleteRef.current) {
-        analyticsService.track('sim_abandon', analyticsService.withAttribution({
-          scenario_id: scenario?.id,
-          message_count: messages.length,
-          last_trust: trustState.trust,
-          guest: isGuest,
-        }), user?.id);
+      if (isCompleteRef.current) return;
+
+      const lastMessages = messagesRef.current;
+      const lastTrust = trustRef.current;
+
+      analyticsService.track('sim_abandon', analyticsService.withAttribution({
+        scenario_id: scenario?.id,
+        message_count: lastMessages.length,
+        last_trust: lastTrust,
+        guest: isGuest,
+      }), user?.id);
+
+      if (user) {
+        // 로그인 사용자: simulation_history 에 completed=false 로 저장 → DB 카운팅 가능
+        const durationSec = Math.round((Date.now() - simulationStartTime.current) / 1000);
+        dbService.saveSimulation({
+          user_id: user.id,
+          org_id: profile?.org_id || null,
+          scenario_id: scenario?.id || 'unknown',
+          scenario_title: scenario?.title || '',
+          scenario_category: scenario?.category || null,
+          character_name: config.name,
+          character_generation: config.generation || null,
+          transcript: lastMessages.map(m => ({ role: m.role, text: m.text })),
+          message_count: lastMessages.length,
+          duration_seconds: durationSec,
+          final_trust: lastTrust,
+          trust_history: trustState.trustHistory,
+          trust_dimensions: trustState.dimensions || null,
+          feedback: null,
+          coaching_skills: null,
+          radar_chart: null,
+          leadership_type: null,
+          communication_pattern: null,
+          memo: '',
+          tags: [],
+          completed: false,
+        }).catch(err => console.error('중단 시뮬레이션 저장 실패:', err));
+      } else {
+        // 게스트: sessionStorage 카운트 증가 → 5회 도달 시 다음 시뮬레이션 시작 차단
+        const next = usageService.incrementGuestAbandonCount();
+        if (next >= 5) {
+          analyticsService.track('abandon_limit_reached', analyticsService.withAttribution({
+            scenario_id: scenario?.id,
+            count: next,
+            guest: true,
+          }));
+        }
       }
     };
   }, []);
@@ -657,9 +720,10 @@ ${recentMsgs}
     };
   }, [inputText, showSOS, sosTip, isGeneratingSOS, showCoaching, instantCoaching]);
 
-  // 사용량 제한 — 무료 플랜 소진 시 업그레이드 유도
+  // 사용량 제한 — 무료 플랜/abandon limit 도달 시 업그레이드 유도 (Spec v3 §3)
   if (usageDenied) {
-    if (profile?.plan === 'free') {
+    // 무료 시나리오 3개 소진(abandon limit 아닌 경우): 기존 UpgradePrompt 화면으로
+    if (profile?.plan === 'free' && !usageDenied.includes('중단')) {
       navigate('/upgrade', { replace: true });
       return null;
     }
@@ -667,11 +731,13 @@ ${recentMsgs}
       <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <div className="text-4xl mb-4">🔒</div>
-          <h2 className="text-xl font-bold text-white mb-2">사용 제한</h2>
+          <h2 className="text-xl font-bold text-white mb-2">{isGuest || profile?.plan === 'free' ? '무료 체험 종료' : '시나리오 잠시 닫힘'}</h2>
           <p className="text-slate-400 text-sm mb-6">{usageDenied}</p>
           <div className="flex gap-3 justify-center">
             <button onClick={() => navigate('/')} className="px-5 py-2.5 rounded-xl bg-slate-800 text-white text-sm">홈으로</button>
-            <button onClick={() => navigate('/pricing')} className="px-5 py-2.5 rounded-xl bg-amber-500 text-slate-900 font-semibold text-sm">플랜 업그레이드</button>
+            {(isGuest || profile?.plan !== 'ultra') && (
+              <button onClick={() => navigate('/pricing')} className="px-5 py-2.5 rounded-xl bg-amber-500 text-slate-900 font-semibold text-sm">요금제 업그레이드</button>
+            )}
           </div>
         </div>
       </div>
@@ -940,6 +1006,7 @@ ${recentMsgs}
                       communication_pattern: null,
                       memo: '',
                       tags: [],
+                      completed: true, // Spec v3 §3·§7.2: 12턴 완주
                     }).catch(err => console.error('시뮬레이션 DB 저장 실패:', err));
                   }
                   isCompleteRef.current = true;

@@ -130,6 +130,7 @@ const DevPanel: React.FC = () => {
         communication_pattern: null,
         memo: '',
         tags: ['dev-test'],
+        completed: true,
       });
       setDbTestResult({ status: 'ok', msg: `✓ 저장 성공! ID: ${simId?.slice(0, 8)}…` });
     } catch (err: any) {
