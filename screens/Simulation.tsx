@@ -424,6 +424,7 @@ const Simulation: React.FC = () => {
   const handleSend = async (text: string, isSilent = false) => {
     if (!text.trim() || !chatRef.current) return;
     if (!isSilent && isLoading) return;
+    if (!isSilent && isAnalysisComplete) return;
 
     if (!isSilent) {
       lastUserMessageRef.current = text;
@@ -1231,16 +1232,16 @@ ${recentMsgs}
                 <textarea
                   ref={textareaRef}
                   rows={window.innerWidth < 640 ? 2 : 1}
-                  className="flex-1 min-w-0 bg-transparent border-none px-2 py-1 sm:py-0.5 lg:py-1 text-[14px] lg:text-[15px] text-white placeholder-slate-600 outline-none resize-none hide-scrollbar min-h-[40px] sm:min-h-[34px] lg:min-h-[38px] max-h-[88px] leading-relaxed"
-                  placeholder="메시지를 입력하세요..."
+                  className="flex-1 min-w-0 bg-transparent border-none px-2 py-1 sm:py-0.5 lg:py-1 text-[14px] lg:text-[15px] text-white placeholder-slate-600 outline-none resize-none hide-scrollbar min-h-[40px] sm:min-h-[34px] lg:min-h-[38px] max-h-[88px] leading-relaxed disabled:opacity-40 disabled:cursor-not-allowed"
+                  placeholder={isAnalysisComplete ? '12턴을 모두 사용했어요. 결과 리포트를 확인하세요.' : '메시지를 입력하세요...'}
                   value={inputText}
-                  disabled={isLoading}
+                  disabled={isLoading || isAnalysisComplete}
                   onChange={e => setInputText(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend(inputText))}
                 />
                 <button
                   onClick={() => handleSend(inputText)}
-                  disabled={!inputText.trim() || isLoading}
+                  disabled={!inputText.trim() || isLoading || isAnalysisComplete}
                   className="size-9 bg-white/5 hover:bg-primary hover:text-navy-deep rounded-lg flex items-center justify-center transition-all disabled:opacity-20 shrink-0 mb-0.5"
                 >
                   <span className="material-symbols-outlined text-[14px] font-black">send</span>
@@ -1250,8 +1251,8 @@ ${recentMsgs}
               <div className="grid grid-cols-2 gap-1.5 sm:flex sm:items-center sm:gap-2">
                 <button
                   onClick={handleSOS}
-                  disabled={isGeneratingSOS}
-                  className={`h-9 rounded-lg px-3 flex items-center justify-center gap-1 transition-all ${isGeneratingSOS ? 'bg-primary/20 animate-pulse' : 'bg-primary text-navy-deep shadow-neon-cyan active:scale-95'}`}
+                  disabled={isGeneratingSOS || isAnalysisComplete}
+                  className={`h-9 rounded-lg px-3 flex items-center justify-center gap-1 transition-all disabled:opacity-30 disabled:cursor-not-allowed ${isGeneratingSOS ? 'bg-primary/20 animate-pulse' : 'bg-primary text-navy-deep shadow-neon-cyan active:scale-95'}`}
                 >
                   <span className="material-symbols-outlined text-[15px] font-black">
                     {isGeneratingSOS ? 'sync' : 'psychology'}
