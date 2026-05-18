@@ -74,7 +74,7 @@ const AuthCallback = React.lazy(() => import('./screens/AuthCallback'));
 
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const noNavPaths = ['/simulation', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/reset-password', '/upgrade', '/landing', '/onboarding', '/dev', '/dev/playbook-sample', '/purchase/playbook', '/select-scenarios'];
+  const noNavPaths = ['/', '/simulation', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/reset-password', '/upgrade', '/landing', '/onboarding', '/dev', '/dev/playbook-sample', '/purchase/playbook', '/select-scenarios'];
   const showNav = !noNavPaths.includes(location.pathname);
 
   return (

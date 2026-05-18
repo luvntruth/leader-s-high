@@ -173,8 +173,14 @@ export default function Landing() {
   const variant = LANDING_VARIANTS[variantKey];
 
   useEffect(() => {
-    if (user) navigate('/', { replace: true });
-  }, [user, navigate]);
+    if (!user) return;
+
+    const nextParams = new URLSearchParams();
+    Object.entries({ ...attribution, lp: variantKey, cta: 'auto-auth' }).forEach(([key, value]) => {
+      if (value) nextParams.set(key, String(value));
+    });
+    navigate(`/onboarding?${nextParams.toString()}`, { replace: true });
+  }, [user, navigate, attribution, variantKey]);
 
   useEffect(() => {
     analyticsService.track('landing_variant_view', {
