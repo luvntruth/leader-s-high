@@ -33,7 +33,7 @@ export default function ResetPassword() {
         {/* 로고 */}
         <div className="text-center mb-8">
           <div className="text-3xl font-bold text-white mb-1">
-            <span className="text-amber-500">Leader's</span> High
+            <span className="text-amber-500">Letmefree</span>
           </div>
           <p className="text-slate-400 text-sm">비밀번호 재설정</p>
         </div>

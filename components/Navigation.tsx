@@ -40,7 +40,7 @@ const Navigation: React.FC = () => {
               <div className="absolute -top-1 -right-1 size-3 bg-accent-neon rounded-full pulse-cyan" />
             </div>
             <div>
-              <h1 className="text-lg font-black italic tracking-tighter group-hover/logo:text-primary transition-colors">LEADER'S HIGH</h1>
+              <h1 className="text-lg font-black italic tracking-tighter group-hover/logo:text-primary transition-colors">LETMEFREE</h1>
               <p className="text-[8px] font-black text-slate-600 uppercase tracking-[0.3em]">Command System v2</p>
             </div>
           </div>

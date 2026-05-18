@@ -1,5 +1,5 @@
 /**
- * Leader's High — Gemini API 백엔드 프록시 (Cloudflare Worker)
+ * Letmefree — Gemini API 백엔드 프록시 (Cloudflare Worker)
  *
  * 아키텍처:
  *   프로덕션 기본 = Vertex AI 경로 (us-central1-aiplatform.googleapis.com).

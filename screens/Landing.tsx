@@ -99,7 +99,7 @@ function DemoChatCard() {
       <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/85 shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
         <div className="border-b border-white/10 bg-white/[0.03] px-5 py-4 flex items-center justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500 font-bold">Leader&apos;s High</p>
+            <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500 font-bold">Letmefree</p>
             <p className="text-sm text-slate-200 font-semibold mt-1">리허설 콘솔</p>
           </div>
           <div className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[10px] font-bold text-amber-300">
@@ -168,15 +168,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const attribution = useMemo(() => {
-    const params = new URLSearchParams(window.location.search);
-    return {
-      lp: params.get('lp') || undefined,
-      utm_source: params.get('utm_source') || undefined,
-      utm_campaign: params.get('utm_campaign') || undefined,
-      utm_content: params.get('utm_content') || undefined,
-    };
-  }, []);
+  const attribution = useMemo(() => analyticsService.getAttribution(), []);
   const variantKey: LandingVariantKey = (attribution.lp && attribution.lp in LANDING_VARIANTS ? attribution.lp : 'practice') as LandingVariantKey;
   const variant = LANDING_VARIANTS[variantKey];
 
@@ -193,6 +185,31 @@ export default function Landing() {
     });
   }, [variantKey, attribution]);
 
+  useEffect(() => {
+    const trackedDepths = new Set<number>();
+    const thresholds = [25, 50, 75, 90] as const;
+
+    const trackScrollDepth = () => {
+      const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (scrollableHeight <= 0) return;
+      const depth = Math.round((window.scrollY / scrollableHeight) * 100);
+      thresholds.forEach(threshold => {
+        if (depth >= threshold && !trackedDepths.has(threshold)) {
+          trackedDepths.add(threshold);
+          analyticsService.track(`scroll_depth_${threshold}` as const, {
+            ...attribution,
+            variant: variantKey,
+            depth: threshold,
+          });
+        }
+      });
+    };
+
+    window.addEventListener('scroll', trackScrollDepth, { passive: true });
+    trackScrollDepth();
+    return () => window.removeEventListener('scroll', trackScrollDepth);
+  }, [variantKey, attribution]);
+
   const handlePrimaryCta = (placement: 'hero' | 'bottom') => {
     analyticsService.track('cta_click', {
       ...attribution,
@@ -200,7 +217,25 @@ export default function Landing() {
       placement,
       target: '/onboarding',
     });
-    navigate('/onboarding');
+    const nextParams = new URLSearchParams();
+    Object.entries({ ...attribution, lp: variantKey, cta: placement }).forEach(([key, value]) => {
+      if (value) nextParams.set(key, String(value));
+    });
+    navigate(`/onboarding?${nextParams.toString()}`);
+  };
+
+  const handlePricingCta = (placement: 'hero' | 'bottom') => {
+    analyticsService.track('cta_click', {
+      ...attribution,
+      variant: variantKey,
+      placement: `${placement}-pricing`,
+      target: '/pricing',
+    });
+    const nextParams = new URLSearchParams();
+    Object.entries({ ...attribution, lp: variantKey, cta: `${placement}-pricing` }).forEach(([key, value]) => {
+      if (value) nextParams.set(key, String(value));
+    });
+    navigate(`/pricing?${nextParams.toString()}`);
   };
 
   return (
@@ -245,9 +280,12 @@ export default function Landing() {
               >
                 {variant.primaryCta}
               </button>
-              <div className="px-5 py-4 rounded-2xl border border-white/10 bg-white/[0.03] text-sm text-slate-300 min-h-[52px] flex items-center justify-center">
-                {variant.secondaryText}
-              </div>
+              <button
+                onClick={() => handlePricingCta('hero')}
+                className="px-5 py-4 rounded-2xl border border-white/10 bg-white/[0.03] text-sm text-slate-300 hover:text-white hover:border-amber-500/30 transition-colors min-h-[52px] flex items-center justify-center"
+              >
+                바로 결제하기
+              </button>
             </div>
           </motion.div>
 
@@ -282,7 +320,7 @@ export default function Landing() {
                   <span className="text-slate-500 text-sm line-through decoration-slate-700">{point.left}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-amber-500/70 uppercase tracking-[0.18em] block mb-1">Leader&apos;s High</span>
+                  <span className="text-[10px] text-amber-500/70 uppercase tracking-[0.18em] block mb-1">Letmefree</span>
                   <span className="text-white text-sm lg:text-base font-semibold">{point.right}</span>
                 </div>
               </motion.div>
@@ -330,12 +368,20 @@ export default function Landing() {
           <p className="text-[11px] uppercase tracking-[0.24em] text-amber-300/80 font-bold mb-3">Ready to rehearse</p>
           <h2 className="text-2xl lg:text-3xl font-bold text-white mb-3">{variant.bottomTitle}</h2>
           <p className="text-slate-300 text-sm lg:text-base mb-7 max-w-2xl mx-auto">{variant.bottomDescription}</p>
-          <button
-            onClick={() => handlePrimaryCta('bottom')}
-            className="px-8 py-4 bg-amber-500 text-slate-950 font-black rounded-2xl text-sm hover:bg-amber-400 active:scale-95 transition-all shadow-[0_10px_40px_rgba(245,158,11,0.28)] min-h-[52px]"
-          >
-            {variant.bottomCta}
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => handlePrimaryCta('bottom')}
+              className="px-8 py-4 bg-amber-500 text-slate-950 font-black rounded-2xl text-sm hover:bg-amber-400 active:scale-95 transition-all shadow-[0_10px_40px_rgba(245,158,11,0.28)] min-h-[52px]"
+            >
+              {variant.bottomCta}
+            </button>
+            <button
+              onClick={() => handlePricingCta('bottom')}
+              className="px-8 py-4 border border-white/10 bg-white/[0.03] text-slate-200 font-black rounded-2xl text-sm hover:border-amber-500/30 hover:text-white active:scale-95 transition-all min-h-[52px]"
+            >
+              요금제 보고 결제하기 →
+            </button>
+          </div>
         </motion.div>
       </section>
 

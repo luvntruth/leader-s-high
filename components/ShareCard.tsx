@@ -82,7 +82,7 @@ export default function ShareCard({ radarChart, leadershipType, userId }: ShareC
         const file = new File([blob], 'leadership-score.png', { type: 'image/png' });
         if (navigator.canShare({ files: [file] })) {
           await navigator.share({
-            title: "나의 리더십 분석 - Leader's High",
+            title: "나의 리더십 분석 - Letmefree",
             files: [file],
           });
           setIsGenerating(false);
@@ -131,7 +131,7 @@ export default function ShareCard({ radarChart, leadershipType, userId }: ShareC
           <p className="text-slate-500 text-[10px] tracking-wider uppercase">Leadership Score</p>
           <div className="mt-3 flex items-center justify-center gap-1.5">
             <span className="text-amber-500 text-xs">★</span>
-            <span className="text-slate-600 text-[9px] font-semibold tracking-widest uppercase">Leader's High</span>
+            <span className="text-slate-600 text-[9px] font-semibold tracking-widest uppercase">Letmefree</span>
           </div>
         </div>
       </div>

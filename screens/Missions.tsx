@@ -102,7 +102,7 @@ const Missions: React.FC = () => {
         const ai = createGeminiClient();
 
         const prompt = `
-          리더십 교육 게임 'Leader's High'의 AI 리더십 코치 역할을 해주세요.
+          리더십 교육 게임 'Letmefree'의 AI 리더십 코치 역할을 해주세요.
           사용자의 취약 역량: ${weakAreaInfo.area} (카테고리: ${weakAreaInfo.category}, 현재 점수: ${weakAreaInfo.score})
           추천된 미션: ${targetScenario.title}
           미션 설명: ${targetScenario.description}
@@ -160,7 +160,7 @@ const Missions: React.FC = () => {
         <div className="flex items-center gap-10">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/home')}>
             <div className="size-8 rounded-lg bg-orange-500 flex items-center justify-center font-black text-black">L</div>
-            <span className="font-black tracking-tight text-lg">Leader's High</span>
+            <span className="font-black tracking-tight text-lg">Letmefree</span>
           </div>
           <div className="flex items-center gap-8">
             {navItems.map(item => (

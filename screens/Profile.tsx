@@ -192,7 +192,7 @@ const Profile: React.FC = () => {
       const genAI = createGeminiClient();
 
       const prompt = `
-        리더십 교육 게임 'Leader's High'의 리더십 전문가로서 다음 데이터를 바탕으로 사용자의 리더십 성향 리포트 하단 'Summary & Advice' 섹션에 들어갈 내용을 작성해주세요.
+        리더십 교육 게임 'Letmefree'의 리더십 전문가로서 다음 데이터를 바탕으로 사용자의 리더십 성향 리포트 하단 'Summary & Advice' 섹션에 들어갈 내용을 작성해주세요.
 
         사용자 리더십 타이틀: ${p.title} (${p.titleEn})
         누적 점수: ${p.persona.totalScore}/100
@@ -1095,7 +1095,7 @@ const Profile: React.FC = () => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `leadershigh-data-${new Date().toISOString().slice(0, 10)}.json`;
+                a.download = `letmefree-data-${new Date().toISOString().slice(0, 10)}.json`;
                 a.click();
                 URL.revokeObjectURL(url);
               }}

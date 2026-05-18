@@ -72,7 +72,7 @@ export default function Login() {
         {/* 로고 */}
         <div className="text-center mb-8">
           <div className="text-3xl font-bold text-white mb-1">
-            <span className="text-amber-500">Leader's</span> High
+            <span className="text-amber-500">Letmefree</span>
           </div>
           <p className="text-slate-400 text-sm">AI 리더십 훈련 플랫폼</p>
         </div>

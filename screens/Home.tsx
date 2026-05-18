@@ -216,7 +216,7 @@ const Home: React.FC = () => {
               <ShieldCheck className={iconClasses.primary} />
             </div>
             <div className="leading-tight">
-              <p className="text-sm font-black tracking-wider text-white uppercase">Leader's High</p>
+              <p className="text-sm font-black tracking-wider text-white uppercase">Letmefree</p>
               <p className="text-[8px] font-bold text-slate-500 tracking-[0.25em]">지휘 센터</p>
             </div>
           </div>
