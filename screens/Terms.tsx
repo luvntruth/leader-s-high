@@ -1,49 +1,108 @@
 import { useNavigate } from 'react-router-dom';
+import PolicyFooter from '../components/PolicyFooter';
+import { BUSINESS_INFO, PAID_PRODUCTS } from '../src/lib/businessInfo';
 
 export default function Terms() {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-slate-950 pb-24 lg:pb-8">
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        <h1 className="text-2xl font-bold text-white mb-8">이용약관</h1>
-        <div className="prose prose-invert prose-sm max-w-none space-y-6 text-slate-300">
+    <div className="min-h-screen bg-slate-950 text-slate-300">
+      <main className="mx-auto max-w-3xl px-4 py-12 pb-16">
+        <h1 className="mb-8 text-2xl font-bold text-white">이용약관</h1>
+        <div className="space-y-7 text-sm leading-7 text-slate-300">
           <section>
-            <h2 className="text-white text-lg font-semibold">1. 서비스 개요</h2>
-            <p>Letmefree(이하 "서비스")는 AI 기반 리더십 훈련 시뮬레이션 플랫폼입니다. 사용자는 AI 팀원과의 대화를 통해 리더십 역량을 향상시킬 수 있습니다.</p>
+            <h2 className="mb-2 text-lg font-semibold text-white">1. 서비스 개요</h2>
+            <p>
+              {BUSINESS_INFO.serviceName}(이하 “서비스”)는 AI 기반 리더십 대화 시뮬레이션, 피드백 리포트, 전문가 코칭 플레이북을 제공하는 디지털 훈련 서비스입니다.
+              사용자는 AI 팀원과의 대화를 통해 리더십 커뮤니케이션을 연습하고, 대화 결과에 대한 피드백을 확인할 수 있습니다.
+            </p>
           </section>
+
           <section>
-            <h2 className="text-white text-lg font-semibold">2. 이용 자격</h2>
-            <p>만 14세 이상의 개인 또는 법인이 서비스를 이용할 수 있습니다.</p>
-          </section>
-          <section>
-            <h2 className="text-white text-lg font-semibold">3. 구독 및 결제</h2>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>무료(스타터) 플랜: 월 5회 시뮬레이션, 기본 기능</li>
-              <li>프로 플랜: 월 ₩9,900, 자동 갱신</li>
-              <li>엔터프라이즈: 별도 문의</li>
-              <li>구독 취소는 다음 결제일 전까지 가능하며, 잔여 기간 동안 서비스를 이용할 수 있습니다.</li>
+            <h2 className="mb-2 text-lg font-semibold text-white">2. 이용 자격과 계정</h2>
+            <ul className="list-disc space-y-1 pl-5">
+              <li>만 14세 이상의 개인 또는 법인이 서비스를 이용할 수 있습니다.</li>
+              <li>회원은 본인의 정확한 이메일과 계정 정보를 사용해야 하며, 계정 관리 책임은 회원에게 있습니다.</li>
+              <li>타인의 계정을 도용하거나 서비스를 부정하게 이용하는 행위는 제한될 수 있습니다.</li>
             </ul>
           </section>
+
           <section>
-            <h2 className="text-white text-lg font-semibold">4. 사용 제한</h2>
-            <p>각 플랜에 따라 일일/월간 시뮬레이션 횟수가 제한됩니다. 서비스를 악의적으로 사용하거나 API를 무단으로 호출하는 행위는 금지됩니다.</p>
+            <h2 className="mb-2 text-lg font-semibold text-white">3. 유료서비스와 결제</h2>
+            <p className="mb-3">서비스는 무료 체험과 아래 유료 상품을 제공합니다.</p>
+            <div className="overflow-x-auto rounded-2xl border border-white/10">
+              <table className="w-full min-w-[620px] text-left text-xs">
+                <thead className="bg-white/[0.04] text-slate-400">
+                  <tr>
+                    <th className="px-4 py-3">상품</th>
+                    <th className="px-4 py-3">가격</th>
+                    <th className="px-4 py-3">제공 기간</th>
+                    <th className="px-4 py-3">주요 내용</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {PAID_PRODUCTS.map(product => (
+                    <tr key={product.name} className="border-t border-white/[0.06]">
+                      <td className="px-4 py-3 font-semibold text-white">{product.name}</td>
+                      <td className="px-4 py-3">{product.price}</td>
+                      <td className="px-4 py-3">{product.period}</td>
+                      <td className="px-4 py-3">{product.description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <ul className="mt-3 list-disc space-y-1 pl-5">
+              <li>유료 상품은 별도 표시가 없는 한 자동 갱신되지 않는 기간제 또는 단건 상품입니다.</li>
+              <li>결제는 포트원, 토스페이먼츠 등 결제대행사를 통해 처리될 수 있습니다.</li>
+              <li>결제 완료 후 이용권은 회원 계정에 반영되며, 플레이북은 구매한 계정 내에서 확인할 수 있습니다.</li>
+            </ul>
           </section>
+
           <section>
-            <h2 className="text-white text-lg font-semibold">5. AI 생성 콘텐츠</h2>
-            <p>서비스에서 생성되는 AI 피드백, 코칭 결과는 참고용이며, 전문 상담이나 법적 조언을 대체하지 않습니다.</p>
+            <h2 className="mb-2 text-lg font-semibold text-white">4. 환불과 청약철회</h2>
+            <ul className="list-disc space-y-1 pl-5">
+              <li>환불은 별도 <a href="#/refund" className="text-amber-400 hover:underline">환불정책</a>에 따릅니다.</li>
+              <li>기간제 이용권은 결제 후 이용 여부, 경과 기간, 제공 완료된 콘텐츠를 기준으로 환불 가능 여부와 금액이 산정됩니다.</li>
+              <li>AI 리포트, 전문가 코칭 플레이북 등 디지털 콘텐츠가 생성·열람·저장 완료된 경우 콘텐츠 특성상 환불이 제한될 수 있습니다.</li>
+              <li>서비스 장애나 기술 오류로 유료 콘텐츠가 정상 제공되지 않은 경우 재제공 또는 환불을 요청할 수 있습니다.</li>
+            </ul>
           </section>
+
           <section>
-            <h2 className="text-white text-lg font-semibold">6. 면책 조항</h2>
-            <p>서비스는 "있는 그대로" 제공되며, AI 분석 결과의 정확성을 보장하지 않습니다. 서비스 사용으로 인한 직간접적 손해에 대해 책임을 지지 않습니다.</p>
+            <h2 className="mb-2 text-lg font-semibold text-white">5. AI 생성 콘텐츠</h2>
+            <p>
+              서비스에서 생성되는 AI 피드백, 코칭 결과, 플레이북은 리더십 훈련을 위한 참고 자료입니다. AI 결과의 완전성·정확성을 보장하지 않으며,
+              법률, 의료, 심리상담, 인사노무 자문 등 전문적 판단을 대체하지 않습니다.
+            </p>
           </section>
+
           <section>
-            <h2 className="text-white text-lg font-semibold">7. 문의</h2>
-            <p>서비스 관련 문의: <a href="mailto:support@letmefree.app" className="text-amber-500">support@letmefree.app</a></p>
+            <h2 className="mb-2 text-lg font-semibold text-white">6. 사용 제한</h2>
+            <p>
+              회사는 서비스 악용, 비정상적인 자동화 접근, 타인 권리 침해, 불법적 목적의 사용, 시스템 안정성을 해치는 행위를 제한할 수 있습니다.
+              각 플랜의 시나리오 수, 시도 횟수, 이용 기간은 상품 안내에 따릅니다.
+            </p>
           </section>
-          <p className="text-slate-500 text-xs">최종 업데이트: 2026년 3월 21일</p>
+
+          <section>
+            <h2 className="mb-2 text-lg font-semibold text-white">7. 약관 변경</h2>
+            <p>
+              약관이 변경되는 경우 서비스 화면 또는 이메일 등 적절한 방법으로 고지합니다. 변경 약관의 효력 발생 후에도 서비스를 계속 이용하면 변경에 동의한 것으로 봅니다.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-2 text-lg font-semibold text-white">8. 문의</h2>
+            <p>
+              서비스, 결제, 환불 관련 문의: <a href={`mailto:${BUSINESS_INFO.customerSupportEmail}`} className="text-amber-400 hover:underline">{BUSINESS_INFO.customerSupportEmail}</a>
+            </p>
+          </section>
+
+          <p className="text-xs text-slate-500">최종 업데이트: {BUSINESS_INFO.policyUpdatedAt}</p>
         </div>
-        <button onClick={() => navigate(-1)} className="mt-8 text-slate-500 text-sm hover:text-slate-400">← 돌아가기</button>
-      </div>
+        <button onClick={() => navigate(-1)} className="mt-8 text-sm text-slate-500 transition-colors hover:text-slate-300">← 돌아가기</button>
+      </main>
+      <PolicyFooter />
     </div>
   );
 }

@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { paymentService, PAYMENT_OPTIONS } from '../services/paymentService';
+import { paymentService, PAYMENT_OPTIONS, REPORT_PAYMENT_OPTION } from '../services/paymentService';
 import { analyticsService } from '../services/analyticsService';
+import PolicyFooter from '../components/PolicyFooter';
 
 // Spec v3 §3: 3단 플랜 (Free / Pro / Ultra). Ultra 의 Coming Soon 기능은 카드에 명시
 const PLAN_SUMMARY = {
@@ -122,7 +123,7 @@ export default function Pricing() {
     }
   };
 
-  const proOption = PAYMENT_OPTIONS.find(o => o.plan === 'pro' && o.days === 10) || PAYMENT_OPTIONS.find(o => o.plan === 'pro');
+  const proOptions = PAYMENT_OPTIONS.filter(o => o.plan === 'pro');
   // Spec v3 §3.3: Ultra 30일 단일 옵션
   const ultraOption = PAYMENT_OPTIONS.find(o => o.plan === 'ultra' && o.days === 30) || PAYMENT_OPTIONS.find(o => o.plan === 'ultra');
 
@@ -214,22 +215,22 @@ export default function Pricing() {
             </div>
 
             <div className="space-y-3 mb-6">
-              {proOption && (
+              {proOptions.map(option => (
                 <button
-                  key={proOption.id}
-                  onClick={() => handlePurchase(proOption.id)}
-                  disabled={loading === proOption.id}
+                  key={option.id}
+                  onClick={() => handlePurchase(option.id)}
+                  disabled={loading === option.id}
                   className="w-full flex items-center justify-between p-4 rounded-2xl border border-amber-500/20 hover:border-amber-500/45 bg-slate-950/40 hover:bg-amber-500/10 transition-all group"
                 >
                   <div className="text-left">
-                    <span className="text-white text-base font-bold">₩{proOption.amount.toLocaleString()}</span>
-                    <span className="text-slate-400 text-sm ml-2">/ {proOption.days}일</span>
+                    <span className="text-white text-base font-bold">₩{option.amount.toLocaleString()}</span>
+                    <span className="text-slate-400 text-sm ml-2">/ {option.days}일</span>
                   </div>
                   <span className="text-amber-300 text-xs font-semibold group-hover:translate-x-0.5 transition-transform">
-                    {loading === proOption.id ? '처리 중...' : '프로 시작하기 →'}
+                    {loading === option.id ? '처리 중...' : `${option.days}일 시작하기 →`}
                   </span>
                 </button>
-              )}
+              ))}
             </div>
 
             <ul className="space-y-3">
@@ -335,12 +336,52 @@ export default function Pricing() {
           </div>
         </motion.div>
 
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="mt-8 rounded-[28px] border border-amber-500/20 bg-amber-500/[0.05] p-6 lg:p-8 max-w-5xl mx-auto"
+        >
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-amber-300/80 font-bold mb-3">One-time Playbook</p>
+              <h2 className="text-xl lg:text-2xl font-bold text-white mb-3">전문가 코칭 플레이북 단건 구매</h2>
+              <p className="text-slate-300 text-sm leading-7">
+                시뮬레이션 완료 후 더 깊은 대화 전략이 필요할 때, 완료한 대화 1건에 대한 3단계 전략·상황별 핵심 문장·심리적 트리거 분석·코치 총평을 구매할 수 있습니다.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+              <div className="flex items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
+                <span className="text-slate-300 text-sm font-semibold">전문가 코칭 플레이북 1건</span>
+                <span className="text-amber-300 text-xl font-black">₩{REPORT_PAYMENT_OPTION.amount.toLocaleString()}</span>
+              </div>
+              <ul className="mt-4 space-y-2 text-sm text-slate-400">
+                <li>✓ 결제 후 계정 내 구매 플레이북으로 저장</li>
+                <li>✓ 디지털 콘텐츠 생성·열람 완료 후 환불 제한 가능</li>
+                <li>✓ 자세한 기준은 환불정책에서 확인</li>
+              </ul>
+            </div>
+          </div>
+        </motion.section>
+
+        <section className="max-w-5xl mx-auto mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-400 leading-7">
+          <h2 className="text-white font-bold mb-2">결제·환불 안내</h2>
+          <p>
+            유료 상품은 별도 표시가 없는 한 자동 갱신되지 않는 기간제 또는 단건 상품입니다. 결제 후 이용권은 회원 계정에 반영되며,
+            환불은 이용 여부, 이용 기간, 생성·열람 완료된 디지털 콘텐츠 제공 여부에 따라 처리됩니다.
+          </p>
+          <button onClick={() => navigate('/refund')} className="mt-3 text-amber-400 hover:text-amber-300 font-semibold">
+            환불정책 자세히 보기 →
+          </button>
+        </section>
+
         <div className="text-center mt-8">
           <button onClick={() => navigate(-1)} className="text-slate-500 text-sm hover:text-slate-300 transition-colors">
             ← 돌아가기
           </button>
         </div>
       </div>
+      <PolicyFooter />
     </div>
   );
 }

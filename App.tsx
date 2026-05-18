@@ -68,13 +68,14 @@ const Onboarding = React.lazy(() => import('./screens/Onboarding'));
 const DevPanel = React.lazy(() => import('./screens/DevPanel'));
 const PlaybookSample = React.lazy(() => import('./screens/PlaybookSample'));
 const PurchasePlaybook = React.lazy(() => import('./screens/PurchasePlaybook'));
+const Refund = React.lazy(() => import('./screens/Refund'));
 // Spec v3 §5.9: Pro 결제 후 20개 시나리오 선택 화면
 const SelectScenarios = React.lazy(() => import('./screens/SelectScenarios'));
 const AuthCallback = React.lazy(() => import('./screens/AuthCallback'));
 
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const noNavPaths = ['/', '/simulation', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/reset-password', '/upgrade', '/landing', '/onboarding', '/dev', '/dev/playbook-sample', '/purchase/playbook', '/select-scenarios'];
+  const noNavPaths = ['/', '/simulation', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/refund', '/reset-password', '/upgrade', '/landing', '/onboarding', '/dev', '/dev/playbook-sample', '/purchase/playbook', '/select-scenarios'];
   const showNav = !noNavPaths.includes(location.pathname);
 
   return (
@@ -117,6 +118,7 @@ const App: React.FC = () => {
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
+              <Route path="/refund" element={<Refund />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/upgrade" element={<UpgradePrompt />} />
               <Route path="/landing" element={<Landing />} />

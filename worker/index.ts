@@ -540,9 +540,8 @@ async function handleCreateCheckout(request: Request, env: Env, auth: { userId?:
   }
 
   // returnUrl 화이트리스트 검증 (오픈 리다이렉트 방지)
-  const allowedOrigin = env.ALLOWED_ORIGIN;
   try {
-    if (!allowedOrigin || !returnUrl || new URL(returnUrl).origin !== allowedOrigin) {
+    if (!returnUrl || !isOriginAllowed(new URL(returnUrl).origin, env)) {
       throw new Error('origin mismatch');
     }
   } catch {
@@ -592,9 +591,8 @@ async function handleCustomerPortal(request: Request, env: Env, auth: { userId?:
   const { returnUrl } = await request.json() as { returnUrl: string };
 
   // returnUrl 화이트리스트 검증 (오픈 리다이렉트 방지)
-  const allowedOrigin = env.ALLOWED_ORIGIN;
   try {
-    if (!allowedOrigin || !returnUrl || new URL(returnUrl).origin !== allowedOrigin) {
+    if (!returnUrl || !isOriginAllowed(new URL(returnUrl).origin, env)) {
       throw new Error('origin mismatch');
     }
   } catch {
@@ -649,6 +647,35 @@ async function handleCustomerPortal(request: Request, env: Env, auth: { userId?:
 // ────────────────────────────────────────────────────────────────
 // 포트원 결제 검증 + 플랜/리포트 활성화
 // ────────────────────────────────────────────────────────────────
+type VerifiedPurchase =
+  | { type: 'plan'; plan: 'pro' | 'ultra'; days: number; amount: number }
+  | { type: 'report'; amount: number };
+
+const PLAN_PURCHASE_CATALOG: Array<Extract<VerifiedPurchase, { type: 'plan' }>> = [
+  { type: 'plan', plan: 'pro', days: 10, amount: 8900 },
+  { type: 'plan', plan: 'pro', days: 20, amount: 13500 },
+  { type: 'plan', plan: 'ultra', days: 30, amount: 29900 },
+];
+const REPORT_PURCHASE: Extract<VerifiedPurchase, { type: 'report' }> = { type: 'report', amount: 3900 };
+
+function resolveExpectedPurchase(input: {
+  type: 'plan' | 'report';
+  plan?: string;
+  days?: number;
+  amount?: number;
+  simulationId?: string;
+}): VerifiedPurchase | null {
+  if (input.type === 'plan') {
+    return PLAN_PURCHASE_CATALOG.find(
+      option => option.plan === input.plan && option.days === input.days && option.amount === input.amount,
+    ) || null;
+  }
+  if (input.type === 'report' && input.simulationId && input.amount === REPORT_PURCHASE.amount) {
+    return REPORT_PURCHASE;
+  }
+  return null;
+}
+
 async function handleVerifyPayment(
   request: Request, env: Env, auth: { userId?: string }
 ): Promise<Response> {
@@ -667,6 +694,14 @@ async function handleVerifyPayment(
     simulationId?: string;
     amount: number;
   };
+
+  const expectedPurchase = resolveExpectedPurchase({ type, plan, days, amount, simulationId });
+  if (!expectedPurchase) {
+    return new Response(JSON.stringify({ error: '유효하지 않은 결제 상품입니다.' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
+    });
+  }
 
   // 1. 포트원 API로 결제 상태 검증
   const verifyRes = await fetch(`https://api.portone.io/payments/${encodeURIComponent(paymentId)}`, {
@@ -693,8 +728,8 @@ async function handleVerifyPayment(
     });
   }
 
-  // 금액 검증
-  if (payment.amount?.total !== amount) {
+  // 금액 검증: 클라이언트 입력이 아니라 서버측 상품 카탈로그 금액 기준으로 확인
+  if (payment.amount?.total !== expectedPurchase.amount) {
     return new Response(JSON.stringify({ error: '결제 금액이 일치하지 않습니다.' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
@@ -707,14 +742,8 @@ async function handleVerifyPayment(
 
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      if (type === 'plan' && plan && days) {
-        // 플랜 활성화 — plan 화이트리스트 재검증
-        const ALLOWED_PLANS = ['pro', 'ultra'];
-        if (!ALLOWED_PLANS.includes(plan)) {
-          lastError = `Invalid plan: ${plan}`;
-          break;
-        }
-
+      if (expectedPurchase.type === 'plan') {
+        const { plan, days } = expectedPurchase;
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + days);
 
@@ -774,7 +803,7 @@ async function handleVerifyPayment(
             break;
           }
         }
-      } else if (type === 'report' && simulationId) {
+      } else if (expectedPurchase.type === 'report' && simulationId) {
         // 리포트 구매 기록
         const res = await fetch(
           `${env.SUPABASE_URL}/rest/v1/report_purchases`,
@@ -790,7 +819,7 @@ async function handleVerifyPayment(
               user_id: auth.userId,
               simulation_id: simulationId,
               payment_id: paymentId,
-              amount,
+              amount: expectedPurchase.amount,
             }),
           }
         );
@@ -856,8 +885,8 @@ export default {
     // ALLOWED_ORIGIN = '*' 설정 시에만 Origin 없는 요청 허용 (개발용)
     const origin = request.headers.get('Origin') || '';
     const allowed = env.ALLOWED_ORIGIN;
-    if (allowed && allowed !== '*') {
-      if (!origin || origin !== allowed) {
+    if (allowed && !getAllowedOrigins(env).includes('*')) {
+      if (!origin || !isOriginAllowed(origin, env)) {
         return new Response('Forbidden: origin not allowed', { status: 403 });
       }
     }
@@ -1061,9 +1090,28 @@ async function handleWebSocket(request: Request, env: Env, url: URL): Promise<Re
 // ────────────────────────────────────────────────────────────────
 // CORS 헤더 생성
 // ────────────────────────────────────────────────────────────────
-function corsHeaders(env: Env, request: Request): Record<string, string> {
+function getAllowedOrigins(env: Env): string[] {
+  return (env.ALLOWED_ORIGIN || '')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+}
+
+function isOriginAllowed(origin: string, env: Env): boolean {
+  const allowedOrigins = getAllowedOrigins(env);
+  return allowedOrigins.includes('*') || allowedOrigins.includes(origin);
+}
+
+function getCorsOrigin(env: Env, request: Request): string {
   const origin = request.headers.get('Origin') || '';
-  const allowedOrigin = env.ALLOWED_ORIGIN === '*' ? '*' : (origin || env.ALLOWED_ORIGIN);
+  const allowedOrigins = getAllowedOrigins(env);
+  if (allowedOrigins.includes('*')) return '*';
+  if (origin && allowedOrigins.includes(origin)) return origin;
+  return allowedOrigins[0] || origin;
+}
+
+function corsHeaders(env: Env, request: Request): Record<string, string> {
+  const allowedOrigin = getCorsOrigin(env, request);
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',

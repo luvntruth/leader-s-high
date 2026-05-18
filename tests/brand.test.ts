@@ -9,12 +9,12 @@ describe('brand identity', () => {
     expect(BRAND_NAME_FULL).toBe('Letmefree 렛미프리');
   });
 
-  it('uses letmefree.xyz as the production app origin', () => {
-    expect(APP_ORIGIN).toBe('https://letmefree.xyz');
+  it('uses www.letmefree.xyz as the production app origin', () => {
+    expect(APP_ORIGIN).toBe('https://www.letmefree.xyz');
   });
 
-  it('uses Letmefree contact emails for public policy pages', () => {
-    expect(SUPPORT_EMAIL).toBe('support@letmefree.app');
-    expect(PRIVACY_EMAIL).toBe('privacy@letmefree.app');
+  it('uses the current minimal-launch contact email for public policy pages', () => {
+    expect(SUPPORT_EMAIL).toBe('smilelikegod@gmail.com');
+    expect(PRIVACY_EMAIL).toBe('smilelikegod@gmail.com');
   });
 });
