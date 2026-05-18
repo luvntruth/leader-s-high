@@ -7,7 +7,7 @@ describe('resolveGeminiRuntimeConfig', () => {
     expect(resolveGeminiRuntimeConfig({
       proxyUrl: 'https://proxy.example.com',
       apiKey: 'direct-key',
-      hostname: 'leader-s-high.vercel.app',
+      hostname: 'letmefree.xyz',
       authToken: 'jwt-token',
     })).toEqual({
       mode: 'proxy',
@@ -32,7 +32,7 @@ describe('resolveGeminiRuntimeConfig', () => {
     expect(() => resolveGeminiRuntimeConfig({
       proxyUrl: undefined,
       apiKey: 'expired-key',
-      hostname: 'leader-s-high.vercel.app',
+      hostname: 'letmefree.xyz',
       authToken: null,
     })).toThrow(/VITE_GEMINI_PROXY_URL/);
   });

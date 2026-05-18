@@ -9,7 +9,7 @@ export default function Terms() {
         <div className="prose prose-invert prose-sm max-w-none space-y-6 text-slate-300">
           <section>
             <h2 className="text-white text-lg font-semibold">1. 서비스 개요</h2>
-            <p>Leader's High(이하 "서비스")는 AI 기반 리더십 훈련 시뮬레이션 플랫폼입니다. 사용자는 AI 팀원과의 대화를 통해 리더십 역량을 향상시킬 수 있습니다.</p>
+            <p>Letmefree(이하 "서비스")는 AI 기반 리더십 훈련 시뮬레이션 플랫폼입니다. 사용자는 AI 팀원과의 대화를 통해 리더십 역량을 향상시킬 수 있습니다.</p>
           </section>
           <section>
             <h2 className="text-white text-lg font-semibold">2. 이용 자격</h2>
@@ -38,7 +38,7 @@ export default function Terms() {
           </section>
           <section>
             <h2 className="text-white text-lg font-semibold">7. 문의</h2>
-            <p>서비스 관련 문의: <a href="mailto:support@leadershigh.app" className="text-amber-500">support@leadershigh.app</a></p>
+            <p>서비스 관련 문의: <a href="mailto:support@letmefree.app" className="text-amber-500">support@letmefree.app</a></p>
           </section>
           <p className="text-slate-500 text-xs">최종 업데이트: 2026년 3월 21일</p>
         </div>

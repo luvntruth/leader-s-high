@@ -41,11 +41,11 @@ const Onboarding: React.FC = () => {
   const firstScenario = SCENARIOS.find(s => s.id === 'late-comer');
 
   React.useEffect(() => {
-    analyticsService.track('onboarding_start', {
+    analyticsService.track('onboarding_start', analyticsService.withAttribution({
       screen: 'onboarding',
       guest: !user,
       free_scenarios: FREE_SCENARIO_IDS,
-    }, user?.id);
+    }), user?.id);
   }, [user]);
 
   return (

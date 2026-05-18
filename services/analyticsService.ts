@@ -10,6 +10,10 @@ export type EventName =
   | 'landing_view'
   | 'landing_variant_view'
   | 'cta_click'
+  | 'scroll_depth_25'
+  | 'scroll_depth_50'
+  | 'scroll_depth_75'
+  | 'scroll_depth_90'
   | 'guest_sim_start'
   | 'onboarding_start'
   | 'sim_start'
@@ -35,9 +39,11 @@ export type TrackingProperties = Record<string, unknown>;
 export type GrowthAttribution = {
   lp?: string;
   utm_source?: string;
+  utm_medium?: string;
   utm_campaign?: string;
   utm_adset?: string;
   utm_content?: string;
+  utm_term?: string;
   persona?: string;
   angle?: string;
 };
@@ -97,9 +103,11 @@ export const analyticsService = {
     return {
       lp: params.get('lp') || undefined,
       utm_source: params.get('utm_source') || undefined,
+      utm_medium: params.get('utm_medium') || undefined,
       utm_campaign: params.get('utm_campaign') || undefined,
       utm_adset: params.get('utm_adset') || undefined,
       utm_content: params.get('utm_content') || undefined,
+      utm_term: params.get('utm_term') || undefined,
       persona: params.get('persona') || undefined,
       angle: params.get('angle') || undefined,
     };

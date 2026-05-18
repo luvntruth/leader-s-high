@@ -37,7 +37,7 @@ id = "b0b03186782842d892656e01782b78e8"
 [vars]
 # 프론트엔드 배포 URL로 변경하세요 (CORS 허용 오리진)
 # 개발 테스트용: "*"  |  프로덕션: "https://your-app.vercel.app"
-ALLOWED_ORIGIN = "https://leader-s-high.vercel.app"
+ALLOWED_ORIGIN = "https://letmefree.xyz"
 # Supabase Project URL (iss 클레임 엄격 검증에 사용 — SUPABASE_SERVICE_KEY와 함께 쓰임)
 SUPABASE_URL = "https://emhroydllqjrbzvuoznh.supabase.co"
 

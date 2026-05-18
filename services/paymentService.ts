@@ -177,7 +177,7 @@ export const paymentService = {
     user: { id: string; email: string }
   ): Promise<{ success: boolean; message: string }> {
     const result = await this.requestPay(
-      `Leader's High ${option.name}`,
+      `Letmefree ${option.name}`,
       option.amount,
       user.email,
     );
@@ -207,7 +207,7 @@ export const paymentService = {
     const option = REPORT_PAYMENT_OPTION;
 
     const result = await this.requestPay(
-      `Leader's High ${option.name}`,
+      `Letmefree ${option.name}`,
       option.amount,
       user.email,
     );

@@ -9,7 +9,7 @@ export default function Privacy() {
         <div className="prose prose-invert prose-sm max-w-none space-y-6 text-slate-300">
           <section>
             <h2 className="text-white text-lg font-semibold">1. 수집하는 개인정보</h2>
-            <p>Leader's High는 서비스 제공을 위해 다음 정보를 수집합니다:</p>
+            <p>Letmefree는 서비스 제공을 위해 다음 정보를 수집합니다:</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>이메일 주소 (회원가입 및 로그인)</li>
               <li>이름 (프로필 표시)</li>
@@ -45,7 +45,7 @@ export default function Privacy() {
           </section>
           <section>
             <h2 className="text-white text-lg font-semibold">6. 문의</h2>
-            <p>개인정보 관련 문의: <a href="mailto:privacy@leadershigh.app" className="text-amber-500">privacy@leadershigh.app</a></p>
+            <p>개인정보 관련 문의: <a href="mailto:privacy@letmefree.app" className="text-amber-500">privacy@letmefree.app</a></p>
           </section>
           <p className="text-slate-500 text-xs">최종 업데이트: 2026년 3월 21일</p>
         </div>

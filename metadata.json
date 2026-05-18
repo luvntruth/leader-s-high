@@ -1,5 +1,5 @@
 {
-  "name": "Leader's High (실전용 리더십 훈련소)_v2(20260208)",
+  "name": "Letmefree (실전용 리더십 훈련소)_v2(20260208)",
   "description": "리더십 시뮬레이션 및 AI 코칭 플랫폼. Gemini 2.5 Live API를 통한 실시간 음성 대화 시뮬레이션을 제공합니다.",
   "requestFramePermissions": [
     "microphone"
