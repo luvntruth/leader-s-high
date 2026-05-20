@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { analyticsService } from '../services/analyticsService';
+import PolicyFooter from '../components/PolicyFooter';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -391,17 +392,7 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      <footer className="relative max-w-4xl mx-auto px-6 pb-10 text-center">
-        <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-600">
-          <button onClick={() => navigate('/login')} className="hover:text-slate-400 transition-colors">로그인</button>
-          <span>·</span>
-          <button onClick={() => navigate('/signup')} className="hover:text-slate-400 transition-colors">회원가입</button>
-          <span>·</span>
-          <button onClick={() => navigate('/privacy')} className="hover:text-slate-400 transition-colors">개인정보처리방침</button>
-          <span>·</span>
-          <button onClick={() => navigate('/terms')} className="hover:text-slate-400 transition-colors">이용약관</button>
-        </div>
-      </footer>
+      <PolicyFooter />
     </motion.div>
   );
 }
