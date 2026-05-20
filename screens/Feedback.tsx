@@ -69,6 +69,37 @@ interface EvaluationData {
     /** 다음에 반드시 연습해야 할 3가지 (현재 vs 목표 + 추천 시나리오) */
     nextPracticeTop3: { focus: string; current: string; goal: string; recommendedScenario: string }[];
   };
+  // ── Tier 1 고도화 (2026-05) — 풀 리포트 깊이 강화 ──
+  /** Section 6: 7일 행동 플랜 — 매일 1개 구체 행동 */
+  weekActionPlan?: {
+    day1: { focus: string; action: string };
+    day2: { focus: string; action: string };
+    day3: { focus: string; action: string };
+    day4: { focus: string; action: string };
+    day5: { focus: string; action: string };
+    day6: { focus: string; action: string };
+    day7: { focus: string; action: string };
+  };
+  /** Section 7: 재도전 가이드 — 같은 시나리오 재플레이 시 */
+  retryGuide?: {
+    oneThingToChange: string;
+    expectedOutcome: string;
+    watchOutFor: string;
+  };
+  /** Section 8: 다음 시나리오 추천 + 추천 이유 */
+  recommendedNextScenario?: {
+    scenarioTitle: string;
+    whyThisOne: string;
+    difficulty: string;
+  };
+  /** Section 9: 이론 깊이 적용 — 2-3개 이론 교차 적용 */
+  theoryDeepDive?: {
+    theories: {
+      name: string;
+      applied: string;
+      nextTime: string;
+    }[];
+  };
 }
 
 const getRank = (v: number) => {
@@ -160,6 +191,26 @@ const Feedback: React.FC = () => {
 
         19. 새 필드의 모든 인용("...") 은 transcript 의 실제 사용자 발화에서 가져오세요. 가공/생성 금지.
         20. 새 필드의 어조는 "전문 리더십 코치" 톤. 평가가 아닌 코칭 관점.
+
+        21. weekActionPlan: 7일 행동 플랜. day1(월) 부터 day7(일) 까지 매일 1가지 구체적 연습 행동.
+            - 각 day: { focus(짧은 영역 이름, 5단어 이내), action(구체 행동 1문장. "내일 회의에서 첫 30초를 침묵으로 시작해보세요" 처럼 즉시 실천 가능한 행동) }
+            - 7일 모두 다른 영역/다른 행동. 점진적 난이도 상승 (월: 가벼운 관찰 → 일: 어려운 실전 대화).
+            - 이번 시뮬레이션의 약점(improvements) 과 연결된 영역 우선 선택.
+
+        22. retryGuide: 같은 시나리오를 다시 한다면 가이드
+            - oneThingToChange: 이번 대화에서 단 1가지만 바꾼다면 가장 임팩트 큰 1개. 구체적 발화/행동 (2-3문장)
+            - expectedOutcome: 그것을 바꿨을 때 상대방의 반응이 어떻게 달라질지 예측 (2-3문장)
+            - watchOutFor: 재도전 시 빠지기 쉬운 함정 1개 (1-2문장)
+
+        23. recommendedNextScenario: 이 사용자의 약점을 고려한 다음 추천 시뮬레이션
+            - scenarioTitle: 시나리오 제목 (한국어. 예: "원격근무 동기부여 저하", "신입사원 온보딩")
+            - whyThisOne: 왜 이 시나리오가 이 사용자에게 필요한지 (2-3문장. 이번 약점과 연결)
+            - difficulty: "쉬움" / "보통" / "도전" 중 하나
+
+        24. theoryDeepDive: 2-3개의 심리학/리더십 이론을 교차 적용
+            - 단일 이론(theoryInsight) 보다 다층 분석. 서로 다른 관점의 이론 선택.
+            - theories 배열에 2개 이상. 각 항목: { name(이론명 한국어), applied(이번 대화에서 어떻게 작용/실패했는지 2-3문장), nextTime(다음에 의도적으로 적용하는 구체적 방법 2-3문장) }
+            - 예: "심리적 안전감 이론", "자기결정성 이론", "변혁적 리더십", "SBI 피드백 모델", "비폭력 대화(NVC)"
       `;
 
       const prompt = `
@@ -386,6 +437,52 @@ const Feedback: React.FC = () => {
                         goal: { type: Type.STRING },
                         recommendedScenario: { type: Type.STRING },
                       },
+                    },
+                  },
+                },
+              },
+              // ── Tier 1 고도화 (2026-05) — 풀 리포트 깊이 강화 ──
+              weekActionPlan: {
+                type: Type.OBJECT,
+                properties: {
+                  day1: { type: Type.OBJECT, properties: { focus: { type: Type.STRING }, action: { type: Type.STRING } } },
+                  day2: { type: Type.OBJECT, properties: { focus: { type: Type.STRING }, action: { type: Type.STRING } } },
+                  day3: { type: Type.OBJECT, properties: { focus: { type: Type.STRING }, action: { type: Type.STRING } } },
+                  day4: { type: Type.OBJECT, properties: { focus: { type: Type.STRING }, action: { type: Type.STRING } } },
+                  day5: { type: Type.OBJECT, properties: { focus: { type: Type.STRING }, action: { type: Type.STRING } } },
+                  day6: { type: Type.OBJECT, properties: { focus: { type: Type.STRING }, action: { type: Type.STRING } } },
+                  day7: { type: Type.OBJECT, properties: { focus: { type: Type.STRING }, action: { type: Type.STRING } } },
+                },
+              },
+              retryGuide: {
+                type: Type.OBJECT,
+                properties: {
+                  oneThingToChange: { type: Type.STRING },
+                  expectedOutcome: { type: Type.STRING },
+                  watchOutFor: { type: Type.STRING },
+                },
+              },
+              recommendedNextScenario: {
+                type: Type.OBJECT,
+                properties: {
+                  scenarioTitle: { type: Type.STRING },
+                  whyThisOne: { type: Type.STRING },
+                  difficulty: { type: Type.STRING },
+                },
+              },
+              theoryDeepDive: {
+                type: Type.OBJECT,
+                properties: {
+                  theories: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        name: { type: Type.STRING },
+                        applied: { type: Type.STRING },
+                        nextTime: { type: Type.STRING },
+                      },
+                      required: ['name', 'applied', 'nextTime'],
                     },
                   },
                 },
@@ -960,6 +1057,150 @@ const Feedback: React.FC = () => {
                 </div>
               </div>
             )}
+          </section>
+        )}
+
+        {/* ── Section 6: 7일 행동 플랜 (Tier 1 고도화) — 풀 리포트 전용 ── */}
+        {isFullReport && evaluation.weekActionPlan && (
+          <section className="bg-navy-card p-7 rounded-[2.5rem] border border-indigo-500/20">
+            <h3 className="font-black text-[11px] uppercase tracking-widest mb-5 flex items-center gap-2 text-indigo-300">
+              <span className="size-7 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <span className="material-symbols-outlined text-sm">calendar_month</span>
+              </span>
+              7일 행동 플랜 · 다음 주 매일 실천
+            </h3>
+            <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+              한 번에 다 바꾸려 하지 마세요. 매일 하나씩, 작은 행동을 반복해야 습관이 됩니다.
+            </p>
+            <div className="space-y-2">
+              {[
+                { key: 'day1', label: '월요일', dim: '#7C8AFF' },
+                { key: 'day2', label: '화요일', dim: '#8BA2FF' },
+                { key: 'day3', label: '수요일', dim: '#9BB8FF' },
+                { key: 'day4', label: '목요일', dim: '#A5C5FF' },
+                { key: 'day5', label: '금요일', dim: '#B0D2FF' },
+                { key: 'day6', label: '토요일', dim: '#BBDFFF' },
+                { key: 'day7', label: '일요일', dim: '#C5EAFF' },
+              ].map(({ key, label, dim }) => {
+                const day = (evaluation.weekActionPlan as any)?.[key];
+                if (!day) return null;
+                return (
+                  <div key={key} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                    <div className="shrink-0 w-12 text-center">
+                      <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: dim }}>{label}</p>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {day.focus && (
+                        <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">{day.focus}</p>
+                      )}
+                      {day.action && (
+                        <p className="text-xs text-slate-200 leading-relaxed">{day.action}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ── Section 7: 재도전 가이드 (Tier 1 고도화) — 풀 리포트 전용 ── */}
+        {isFullReport && evaluation.retryGuide && (
+          <section className="bg-navy-card p-7 rounded-[2.5rem] border border-orange-500/20">
+            <h3 className="font-black text-[11px] uppercase tracking-widest mb-5 flex items-center gap-2 text-orange-300">
+              <span className="size-7 rounded-lg bg-orange-500/20 flex items-center justify-center text-orange-400">
+                <span className="material-symbols-outlined text-sm">refresh</span>
+              </span>
+              같은 시나리오 재도전 가이드
+            </h3>
+            <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+              이번 대화에서 단 1가지만 바꾼다면 — 가장 임팩트가 큰 1개를 추렸습니다.
+            </p>
+            <div className="space-y-4">
+              {evaluation.retryGuide.oneThingToChange && (
+                <div className="p-4 rounded-2xl bg-orange-500/5 border border-orange-500/15">
+                  <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-2">바꿀 단 1가지</p>
+                  <p className="text-sm text-white font-bold leading-relaxed">{evaluation.retryGuide.oneThingToChange}</p>
+                </div>
+              )}
+              {evaluation.retryGuide.expectedOutcome && (
+                <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/15">
+                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">예상되는 변화</p>
+                  <p className="text-xs text-slate-200 leading-relaxed">{evaluation.retryGuide.expectedOutcome}</p>
+                </div>
+              )}
+              {evaluation.retryGuide.watchOutFor && (
+                <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/15 flex gap-3 items-start">
+                  <span className="material-symbols-outlined text-amber-400 text-base mt-0.5 shrink-0">warning</span>
+                  <div>
+                    <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">주의할 함정</p>
+                    <p className="text-xs text-slate-300 leading-relaxed">{evaluation.retryGuide.watchOutFor}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ── Section 8: 다음 추천 시나리오 (Tier 1 고도화) — 풀 리포트 전용 ── */}
+        {isFullReport && evaluation.recommendedNextScenario && (
+          <section className="bg-navy-card p-7 rounded-[2.5rem] border border-teal-500/20">
+            <h3 className="font-black text-[11px] uppercase tracking-widest mb-5 flex items-center gap-2 text-teal-300">
+              <span className="size-7 rounded-lg bg-teal-500/20 flex items-center justify-center text-teal-400">
+                <span className="material-symbols-outlined text-sm">trending_flat</span>
+              </span>
+              다음 추천 시나리오
+            </h3>
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-teal-500/10 to-cyan-500/5 border border-teal-500/20">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-base font-black text-white">{evaluation.recommendedNextScenario.scenarioTitle}</p>
+                {evaluation.recommendedNextScenario.difficulty && (
+                  <span className="text-[10px] font-black px-2 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                    {evaluation.recommendedNextScenario.difficulty}
+                  </span>
+                )}
+              </div>
+              {evaluation.recommendedNextScenario.whyThisOne && (
+                <p className="text-xs text-slate-300 leading-relaxed">{evaluation.recommendedNextScenario.whyThisOne}</p>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ── Section 9: 이론 깊이 적용 (Tier 1 고도화) — 풀 리포트 전용 ── */}
+        {isFullReport && evaluation.theoryDeepDive && evaluation.theoryDeepDive.theories && evaluation.theoryDeepDive.theories.length > 0 && (
+          <section className="bg-navy-card p-7 rounded-[2.5rem] border border-emerald-500/20">
+            <h3 className="font-black text-[11px] uppercase tracking-widest mb-5 flex items-center gap-2 text-emerald-300">
+              <span className="size-7 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <span className="material-symbols-outlined text-sm">stacks</span>
+              </span>
+              이론 깊이 적용 · 다층 관점
+            </h3>
+            <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+              하나의 이론만으로는 부족합니다. 같은 대화를 여러 렌즈로 본 분석입니다.
+            </p>
+            <div className="space-y-4">
+              {evaluation.theoryDeepDive.theories.map((t, i) => (
+                <div key={i} className="rounded-2xl border border-emerald-500/15 bg-[#0E1820] p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="size-7 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400 text-xs font-black">{i + 1}</span>
+                    <p className="text-sm font-black text-emerald-300">{t.name}</p>
+                  </div>
+                  {t.applied && (
+                    <div className="mb-3 bg-white/[0.03] rounded-xl p-3">
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">이번 대화에 적용 시</p>
+                      <p className="text-xs text-slate-200 leading-relaxed">{t.applied}</p>
+                    </div>
+                  )}
+                  {t.nextTime && (
+                    <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-3">
+                      <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-1">다음에 의도적으로 쓰는 법</p>
+                      <p className="text-xs text-white font-bold leading-relaxed">{t.nextTime}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </section>
         )}
 
