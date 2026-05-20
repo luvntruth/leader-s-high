@@ -14,8 +14,12 @@ describe('payment review readiness content', () => {
   });
 
   it('centralizes public business and policy contact fields', () => {
-    expect(BUSINESS_INFO.companyName).toBeTruthy();
+    expect(BUSINESS_INFO.companyName).toBe('휴머니스틱');
+    expect(BUSINESS_INFO.serviceName).toBe('Letmefree');
     expect(BUSINESS_INFO.representative).toBeTruthy();
+    expect(BUSINESS_INFO.mailOrderSalesNumber).toBe('제 2026-서울양천-0626 호');
+    expect(BUSINESS_INFO.mailOrderSalesNumber).not.toContain('진행 중');
+    expect(BUSINESS_INFO.businessAddress).toContain('서울특별시 양천구 목동동로12길 60');
     expect(BUSINESS_INFO.customerSupportEmail).toContain('@');
     expect(BUSINESS_INFO.privacyEmail).toContain('@');
     expect(BUSINESS_INFO.refundRequestEmail).toBe(BUSINESS_INFO.customerSupportEmail);

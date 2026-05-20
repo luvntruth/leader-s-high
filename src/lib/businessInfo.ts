@@ -1,12 +1,12 @@
 import { APP_ORIGIN, PRIVACY_EMAIL, SUPPORT_EMAIL } from './brand';
 
 export const BUSINESS_INFO = {
-  serviceName: 'Letmefree 렛미프리',
-  companyName: '리더스하이',
+  serviceName: 'Letmefree',
+  companyName: '휴머니스틱',
   representative: '이석진',
   businessRegistrationNumber: '101-23-09282',
-  mailOrderSalesNumber: '신고 절차 진행 중',
-  businessAddress: '서울시 목동동로 12길 60, 103-1202',
+  mailOrderSalesNumber: '제 2026-서울양천-0626 호',
+  businessAddress: '서울특별시 양천구 목동동로12길 60, 103동 1202호 (신정동, 목동현대아파트)',
   customerSupportEmail: SUPPORT_EMAIL,
   customerSupportPhone: '010-4488-9517',
   privacyEmail: PRIVACY_EMAIL,

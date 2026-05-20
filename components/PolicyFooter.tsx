@@ -14,6 +14,7 @@ export default function PolicyFooter() {
 
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           <p><span className="text-slate-400">상호</span> {BUSINESS_INFO.companyName}</p>
+          <p><span className="text-slate-400">서비스명</span> {BUSINESS_INFO.serviceName}</p>
           <p><span className="text-slate-400">대표자</span> {BUSINESS_INFO.representative}</p>
           <p><span className="text-slate-400">사업자등록번호</span> {BUSINESS_INFO.businessRegistrationNumber}</p>
           <p><span className="text-slate-400">통신판매업 신고번호</span> {BUSINESS_INFO.mailOrderSalesNumber}</p>
