@@ -44,6 +44,7 @@ export type GrowthAttribution = {
   utm_adset?: string;
   utm_content?: string;
   utm_term?: string;
+  cta?: string;
   persona?: string;
   angle?: string;
 };
@@ -108,6 +109,7 @@ export const analyticsService = {
       utm_adset: params.get('utm_adset') || undefined,
       utm_content: params.get('utm_content') || undefined,
       utm_term: params.get('utm_term') || undefined,
+      cta: params.get('cta') || undefined,
       persona: params.get('persona') || undefined,
       angle: params.get('angle') || undefined,
     };

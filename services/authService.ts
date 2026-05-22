@@ -1,21 +1,37 @@
 import { supabase } from '../src/lib/supabase';
+import { resolveSupabaseAuthConfig } from '../src/lib/supabaseAuthConfig';
 import type { Profile } from '../src/types/database';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const SUPABASE_AUTH_CONFIG = resolveSupabaseAuthConfig({
+  url: import.meta.env.VITE_SUPABASE_URL as string | undefined,
+  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined,
+});
+
+function assertSupabaseAuthConfig() {
+  if (SUPABASE_AUTH_CONFIG.ok === false) {
+    throw new Error(SUPABASE_AUTH_CONFIG.message);
+  }
+  return SUPABASE_AUTH_CONFIG;
+}
 
 /** fetch로 직접 Supabase Auth API 호출 (JS 클라이언트 우회) */
 async function authFetch(path: string, body: Record<string, unknown>) {
-  const res = await fetch(`${SUPABASE_URL}/auth/v1${path}`, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_ANON_KEY,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.msg || data.error_description || 'Auth error');
+  const config = assertSupabaseAuthConfig();
+  let res: Response;
+  try {
+    res = await fetch(`${config.url}/auth/v1${path}`, {
+      method: 'POST',
+      headers: {
+        'apikey': config.anonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new Error('인증 서버에 연결할 수 없습니다. Supabase/Vercel 환경변수와 네트워크 상태를 확인해 주세요.');
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.msg || data.error_description || data.error || 'Auth error');
   return data;
 }
 
