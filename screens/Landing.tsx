@@ -69,8 +69,8 @@ const DEMO_MESSAGES = [
 
 const DIFF_POINTS = [
   { left: '항상 협조적인 AI', right: '적대적→설득됨 감정 흐름 반영', icon: '🎭' },
-  { left: '채점 없음', right: '신뢰도와 대화 흐름 실시간 분석', icon: '📊' },
-  { left: '대화 후 끝', right: '피드백과 성장 포인트까지 연결', icon: '📈' },
+  { left: '채점 없음', right: '신뢰도·대화 흐름 변화 시각화', icon: '📊' },
+  { left: '대화 후 끝', right: '대화 후 피드백·성장 포인트 (Pro: 풀 리포트)', icon: '📈' },
 ];
 
 const VALUE_PILLS = [
@@ -104,7 +104,7 @@ function DemoChatCard() {
             <p className="text-sm text-slate-200 font-semibold mt-1">리허설 콘솔</p>
           </div>
           <div className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[10px] font-bold text-amber-300">
-            LIVE FEEDBACK
+            LIVE TRUST
           </div>
         </div>
 
@@ -345,9 +345,9 @@ export default function Landing() {
           <div className="max-w-3xl mx-auto mb-6 rounded-[24px] border border-amber-500/15 bg-amber-500/[0.06] p-5 text-left">
             <p className="text-amber-300 text-sm font-bold mb-2">먼저 여기까지만 보면 됩니다</p>
             <ul className="space-y-2 text-sm text-slate-300">
-              <li>• 무료 시나리오 3개 체험</li>
+              <li>• 무료 시나리오 3개 · 시나리오당 12턴 · 대화 후 간략 리포트</li>
               <li>• 가입 없이 바로 시작</li>
-              <li>• 체험 후 필요할 때만 프로 플랜 검토</li>
+              <li>• 즉시 코칭·SOS·풀 리포트가 필요해지면 Pro로 확장</li>
             </ul>
           </div>
 
@@ -355,7 +355,7 @@ export default function Landing() {
             <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-6 text-center">
               <p className="text-slate-400 text-xs mb-2 uppercase tracking-[0.18em]">무료 체험</p>
               <p className="text-3xl font-black text-white mb-1">₩0</p>
-              <p className="text-slate-500 text-sm">3개 시나리오 · 가입 없이 시작</p>
+              <p className="text-slate-500 text-sm">3개 시나리오 · 12턴 · 간략 리포트</p>
             </div>
 
             <div className="rounded-[24px] border border-amber-500/30 bg-amber-500/[0.08] p-6 text-center relative shadow-[0_12px_40px_rgba(245,158,11,0.12)]">
@@ -364,7 +364,7 @@ export default function Landing() {
               </span>
               <p className="text-amber-300 text-xs mb-2 uppercase tracking-[0.18em]">프로</p>
               <p className="text-3xl font-black text-white mb-1">₩8,900</p>
-              <p className="text-slate-300 text-sm">20개 시나리오 · 10일 반복 훈련</p>
+              <p className="text-slate-300 text-sm">즉시 코칭·SOS·풀 리포트 + 20개 시나리오</p>
             </div>
           </div>
         </motion.div>
