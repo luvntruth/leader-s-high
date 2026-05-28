@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { usageService } from '../services/usageService';
 import { dbService } from '../services/dbService';
 import Onboarding from './Onboarding';
+import VoiceIntakePanel from '../components/letmefree/VoiceIntakePanel';
 import {
   ShieldCheck,
   BellRing,
@@ -298,40 +299,7 @@ const Home: React.FC = () => {
             transition={shimmerMotion.heroGlow}
           />
 
-          <div className="relative z-10">
-            <motion.span
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-6"
-            >
-              <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              오늘의 임무가 당신을 바꾼다
-            </motion.span>
-
-            <motion.h1
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="text-3xl lg:text-5xl font-black tracking-tight text-white mb-5 leading-[1.1]"
-            >
-              어려운 대화,<br /><span className="text-primary italic">지금 연습하세요</span>
-            </motion.h1>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              <p className="text-slate-400 text-sm lg:text-base leading-relaxed max-w-xl mb-1 font-medium">
-                팀원과의 갈등, 피드백, 동기부여...
-                <span className="text-white font-bold underline decoration-primary/50 underline-offset-4"> 그 순간이 진짜 리더를 만듭니다.</span>
-              </p>
-              <p className="text-slate-500 text-xs lg:text-sm font-medium tracking-wide">
-                AI 시뮬레이션으로 당신만의 리더십 언어를 찾아보세요.
-              </p>
-            </motion.div>
-          </div>
+          <VoiceIntakePanel />
 
           {/* Decorative gradient shape */}
           <div className="absolute -bottom-24 -right-24 size-64 bg-primary/20 rounded-full blur-[100px]" />
