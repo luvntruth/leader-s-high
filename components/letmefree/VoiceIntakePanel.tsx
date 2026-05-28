@@ -67,7 +67,10 @@ const VoiceIntakePanel: React.FC = () => {
             {VOICE_FIRST_HOME_COPY.subcopy}
           </p>
           <div className="flex flex-wrap gap-3 mb-5">
-            <button className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary text-slate-950 text-sm font-black shadow-[0_0_24px_rgba(242,185,13,0.24)] active:scale-95 transition-transform">
+            <button
+              onClick={() => { window.location.hash = '#/voice-coach'; }}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary text-slate-950 text-sm font-black shadow-[0_0_24px_rgba(242,185,13,0.24)] active:scale-95 transition-transform"
+            >
               <span aria-hidden="true">●</span>
               {VOICE_FIRST_HOME_COPY.primaryAction}
             </button>

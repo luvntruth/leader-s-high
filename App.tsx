@@ -42,6 +42,7 @@ const ErrorFallback: React.FC<{ error: unknown; resetError: () => void }> = ({ e
 
 // Lazy-loaded screen components
 const Home = React.lazy(() => import('./screens/Home'));
+const VoiceCoach = React.lazy(() => import('./screens/VoiceCoach'));
 const Missions = React.lazy(() => import('./screens/Missions'));
 const Setup = React.lazy(() => import('./screens/Setup'));
 const Simulation = React.lazy(() => import('./screens/Simulation'));
@@ -75,7 +76,7 @@ const AuthCallback = React.lazy(() => import('./screens/AuthCallback'));
 
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const noNavPaths = ['/', '/simulation', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/refund', '/reset-password', '/upgrade', '/landing', '/onboarding', '/dev', '/dev/playbook-sample', '/purchase/playbook', '/select-scenarios'];
+  const noNavPaths = ['/', '/voice-coach', '/simulation', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/refund', '/reset-password', '/upgrade', '/landing', '/onboarding', '/dev', '/dev/playbook-sample', '/purchase/playbook', '/select-scenarios'];
   const showNav = !noNavPaths.includes(location.pathname);
 
   return (
@@ -123,6 +124,7 @@ const App: React.FC = () => {
               <Route path="/upgrade" element={<UpgradePrompt />} />
               <Route path="/landing" element={<Landing />} />
               <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/voice-coach" element={<VoiceCoach />} />
               <Route path="/dev" element={<DevPanel />} />
               <Route path="/dev/playbook-sample" element={<PlaybookSample />} />
 
