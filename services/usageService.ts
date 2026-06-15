@@ -121,7 +121,8 @@ export const usageService = {
 
   /** Spec v3 §7: 시나리오 ID + 사용자 선택 기반 접근 판정
    *  - Ultra: 전체 허용
-   *  - Pro: selected_scenarios 에 포함된 ID 만 허용. 선택 미완료 상태면 아직 결제 직후로 간주해 전체 허용(선택 화면으로 유도 전제)
+   *  - Pro: 무료 체험 3개(보너스) + selected_scenarios 20개 = 총 23개 허용.
+   *          선택 미완료 상태면 결제 직후로 간주해 전체 허용(선택 화면으로 유도 전제)
    *  - Free: FREE_SCENARIO_IDS 만 허용
    */
   canAccessScenarioById(
@@ -131,6 +132,8 @@ export const usageService = {
   ): boolean {
     if (plan === 'ultra') return true;
     if (plan === 'pro') {
+      // 무료 체험 3개는 Pro 에서도 항상 제공(보너스). 선택한 20개는 이와 별도.
+      if ((FREE_SCENARIO_IDS as readonly string[]).includes(scenarioId)) return true;
       if (!selectedScenarios || selectedScenarios.length === 0) return true;
       return selectedScenarios.includes(scenarioId);
     }

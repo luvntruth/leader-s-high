@@ -7,6 +7,7 @@ import { SCENARIOS } from '../constants';
 import { getCharacterAvatar } from '../services/characterAvatars';
 import { supabase } from '../src/lib/supabase';
 import { analyticsService } from '../services/analyticsService';
+import { FREE_SCENARIO_IDS } from '../services/usageService';
 
 /**
  * Spec v3 §4-B, §5.9: Pro 플랜 결제 직후 사용자가 40개 중 20개를 선택하는 화면.
@@ -20,6 +21,10 @@ import { analyticsService } from '../services/analyticsService';
  *  - 완료 시 /onboarding 로 이동
  */
 const SELECT_TARGET = 20;
+
+// 무료 체험 3개는 Pro 에서도 보너스로 항상 제공되므로 선택 대상에서 제외.
+// → 무료 제외 37개 중에서 20개를 직접 선택 (총 23개 이용).
+const SELECTABLE_SCENARIOS = SCENARIOS.filter((s: any) => !(FREE_SCENARIO_IDS as readonly string[]).includes(s.id));
 
 const intensityMeta = (intensity?: string) => {
   if (intensity === 'high') return { grade: 'S', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' };
@@ -55,13 +60,13 @@ const SelectScenarios: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('전체');
   const categories = useMemo(() => {
     const set = new Set<string>();
-    SCENARIOS.forEach((s: any) => set.add(s.category));
+    SELECTABLE_SCENARIOS.forEach((s: any) => set.add(s.category));
     return ['전체', ...Array.from(set)];
   }, []);
 
   const filtered = useMemo(() => {
-    if (activeCategory === '전체') return SCENARIOS;
-    return SCENARIOS.filter((s: any) => s.category === activeCategory);
+    if (activeCategory === '전체') return SELECTABLE_SCENARIOS;
+    return SELECTABLE_SCENARIOS.filter((s: any) => s.category === activeCategory);
   }, [activeCategory]);
 
   const toggle = (id: string) => {
@@ -117,9 +122,12 @@ const SelectScenarios: React.FC = () => {
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-300/80 mb-0.5">
                 프로 플랜 시나리오 선택
               </p>
-              <h1 className="text-lg sm:text-xl font-black text-white">
-                앞으로 {SELECT_TARGET}일 동안 훈련할 시나리오를 선택하세요
+              <h1 className="text-lg sm:text-xl font-black text-white break-keep">
+                직접 훈련할 시나리오 {SELECT_TARGET}개를 선택하세요
               </h1>
+              <p className="text-[11px] text-slate-400 mt-1 break-keep">
+                무료 체험 3개는 그대로 이용 가능 · 고른 {SELECT_TARGET}개를 더해 총 {SELECT_TARGET + 3}개
+              </p>
             </div>
             <div className="text-right">
               <div className="text-[11px] text-slate-500 font-bold">선택</div>

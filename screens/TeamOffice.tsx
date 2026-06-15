@@ -144,8 +144,7 @@ const TeamOffice: React.FC = () => {
       <main className="flex-1 overflow-y-auto px-4 py-4 sm:p-6 relative z-10 hide-scrollbar">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {members.map(({ scenario, info, thought, avatarUrl, intensity }, idx) => {
-            const originalIndex = SCENARIOS.findIndex(s => s.id === scenario.id);
-            const isLocked = !usageService.canAccessScenario(originalIndex, profile?.plan || 'free');
+            const isLocked = !usageService.canAccessScenarioById(scenario.id, profile?.plan || 'free', profile?.selected_scenarios);
             return (
             <button
               key={scenario.id}
@@ -284,8 +283,7 @@ const TeamOffice: React.FC = () => {
                 </div>
                 <button
                   onClick={() => {
-                    const selIndex = SCENARIOS.findIndex(s => s.id === selected.scenario.id);
-                    const selLocked = !usageService.canAccessScenario(selIndex, profile?.plan || 'free');
+                    const selLocked = !usageService.canAccessScenarioById(selected.scenario.id, profile?.plan || 'free', profile?.selected_scenarios);
                     if (selLocked) { navigate('/pricing'); } else { navigate('/setup', { state: { scenario: selected.scenario } }); }
                   }}
                   className="flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-sm transition-all active:scale-95 shrink-0"
