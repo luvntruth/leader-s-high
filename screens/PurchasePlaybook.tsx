@@ -35,19 +35,36 @@ export default function PurchasePlaybook() {
   const [savedSimId, setSavedSimId] = useState<string | null>(null);
 
   useEffect(() => {
-    // location.state 우선, 없으면 sessionStorage
+    // 결제 데이터 로드: location.state 우선, 없으면 sessionStorage
     const state = location.state as any;
+    let loaded: PurchaseData | null = null;
     if (state?.transcript) {
-      setData(state as PurchaseData);
+      loaded = state as PurchaseData;
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } else {
       const stored = sessionStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setData(JSON.parse(stored));
-      } else {
-        navigate('/', { replace: true });
-      }
+      if (stored) loaded = JSON.parse(stored);
     }
+
+    // 모바일 결제 redirect 복귀 처리
+    (async () => {
+      const r = await paymentService.completeRedirectedPayment();
+      if (r.handled) {
+        // 복귀 query 정리
+        window.history.replaceState(null, '', `${window.location.origin}/#/purchase/playbook`);
+        if (loaded) setData(loaded);
+        if (r.success) {
+          sessionStorage.removeItem(STORAGE_KEY);
+          setSuccess(true);
+        } else {
+          setPurchaseError(r.message || '결제에 실패했습니다.');
+        }
+        return;
+      }
+      // 일반 진입
+      if (loaded) setData(loaded);
+      else navigate('/', { replace: true });
+    })();
   }, []);
 
   const handlePurchase = async () => {

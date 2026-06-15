@@ -75,6 +75,23 @@ export default function Pricing() {
     );
   }, [currentPlan, user]);
 
+  // 모바일 결제 redirect 복귀 처리 — 결제 후 이 화면으로 돌아오면 query 를 읽어 검증
+  useEffect(() => {
+    (async () => {
+      const r = await paymentService.completeRedirectedPayment();
+      if (!r.handled) return;
+      window.history.replaceState(null, '', `${window.location.origin}/#/pricing`);
+      setResult({ ok: !!r.success, msg: r.message || '' });
+      if (r.success) {
+        await refreshProfile();
+        // Spec v3 §4-B: Pro 는 결제 후 시나리오 선택 화면으로, 그 외는 홈으로
+        const nextPath = r.plan === 'pro' ? '/select-scenarios' : '/';
+        setTimeout(() => navigate(nextPath), 2000);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handlePurchase = async (optionId: string) => {
     if (!user || !profile) {
       navigate('/login', { state: { from: '/pricing' } });
