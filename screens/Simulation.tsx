@@ -517,6 +517,53 @@ const Simulation: React.FC = () => {
     handleSend(lastUserMessageRef.current, true);
   };
 
+  // 결과 리포트 보기 — 데스크톱 사이드바 버튼 + 모바일 하단 버튼이 공용으로 호출
+  const handleViewReport = async () => {
+    if (!isAnalysisComplete) return;
+    // DB에 시뮬레이션 결과 저장 (인증된 사용자)
+    if (user) {
+      const durationSec = Math.round((Date.now() - simulationStartTime.current) / 1000);
+      await dbService.saveSimulation({
+        user_id: user.id,
+        org_id: profile?.org_id || null,
+        scenario_id: scenario?.id || 'unknown',
+        scenario_title: scenario?.title || '',
+        scenario_category: scenario?.category || null,
+        character_name: config.name,
+        character_generation: config.generation || null,
+        transcript: messages.map(m => ({ role: m.role, text: m.text })),
+        message_count: messages.length,
+        duration_seconds: durationSec,
+        final_trust: trustState.trust,
+        trust_history: trustState.trustHistory,
+        trust_dimensions: trustState.dimensions || null,
+        feedback: null,
+        coaching_skills: null,
+        radar_chart: null,
+        leadership_type: null,
+        communication_pattern: null,
+        memo: '',
+        tags: [],
+        completed: true, // Spec v3 §3·§7.2: 12턴 완주
+      }).catch(err => console.error('시뮬레이션 DB 저장 실패:', err));
+    }
+    isCompleteRef.current = true;
+    const durationMs = Date.now() - simulationStartTime.current;
+    analyticsService.track('sim_complete', analyticsService.withAttribution({
+      scenario_id: scenario?.id,
+      duration: Math.round(durationMs / 1000),
+      final_trust: trustState.trust,
+      message_count: messages.length,
+      guest: isGuest,
+    }), user?.id);
+
+    if (isGuest) {
+      navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory, guest: true } });
+    } else {
+      navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory } });
+    }
+  };
+
   const handleInstantCoaching = async () => {
     if (isCoachingLoading) return;
 
@@ -982,51 +1029,7 @@ ${recentMsgs}
             <TacticalCircularTimer value={messages.filter(m => m.role === 'user').length * (100 / ANALYSIS_COMPLETE_THRESHOLD)} label={`${messages.filter(m => m.role === 'user').length}/${ANALYSIS_COMPLETE_THRESHOLD}`} subLabel="대화 수" />
             <div className="flex-1">
               <button
-                onClick={async () => {
-                  // DB에 시뮬레이션 결과 저장 (인증된 사용자)
-                  if (user) {
-                    const durationSec = Math.round((Date.now() - simulationStartTime.current) / 1000);
-                    await dbService.saveSimulation({
-                      user_id: user.id,
-                      org_id: profile?.org_id || null,
-                      scenario_id: scenario?.id || 'unknown',
-                      scenario_title: scenario?.title || '',
-                      scenario_category: scenario?.category || null,
-                      character_name: config.name,
-                      character_generation: config.generation || null,
-                      transcript: messages.map(m => ({ role: m.role, text: m.text })),
-                      message_count: messages.length,
-                      duration_seconds: durationSec,
-                      final_trust: trustState.trust,
-                      trust_history: trustState.trustHistory,
-                      trust_dimensions: trustState.dimensions || null,
-                      feedback: null,
-                      coaching_skills: null,
-                      radar_chart: null,
-                      leadership_type: null,
-                      communication_pattern: null,
-                      memo: '',
-                      tags: [],
-                      completed: true, // Spec v3 §3·§7.2: 12턴 완주
-                    }).catch(err => console.error('시뮬레이션 DB 저장 실패:', err));
-                  }
-                  isCompleteRef.current = true;
-                  const durationMs = Date.now() - simulationStartTime.current;
-                  analyticsService.track('sim_complete', analyticsService.withAttribution({
-                    scenario_id: scenario?.id,
-                    duration: Math.round(durationMs / 1000),
-                    final_trust: trustState.trust,
-                    message_count: messages.length,
-                    guest: isGuest,
-                  }), user?.id);
-
-                  if (isGuest) {
-                    // 게스트: 결과 리포트 → 골든 스크립트 → 요금제 업그레이드 퍼널
-                    navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory, guest: true } });
-                  } else {
-                    navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory } });
-                  }
-                }}
+                onClick={handleViewReport}
                 disabled={!isAnalysisComplete}
                 className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${isAnalysisComplete
                   ? 'bg-primary text-black shadow-neon-cyan hover:scale-[1.05] active:scale-[0.95]'
@@ -1224,6 +1227,16 @@ ${recentMsgs}
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* 모바일: 12턴 완료 시 결과 리포트 버튼 (데스크톱은 좌측 사이드바에 표시됨) */}
+            {isAnalysisComplete && (
+              <button
+                onClick={handleViewReport}
+                className="sm:hidden w-full py-4 mb-2 rounded-2xl bg-primary text-black font-black text-sm uppercase tracking-widest shadow-neon-cyan active:scale-[0.97] transition-all"
+              >
+                결과 리포트 보기 →
+              </button>
             )}
 
             {/* Input Bar */}
