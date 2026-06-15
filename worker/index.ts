@@ -77,39 +77,43 @@ async function verifyAuth(request: Request, env: Env): Promise<{
     return { valid: false, error: 'Missing Authorization header' };
   }
 
-  // JWT Secret 미설정 시 서버 설정 오류로 거부
-  if (!env.SUPABASE_JWT_SECRET) {
-    return { valid: false, error: 'Server misconfiguration: JWT secret not set' };
-  }
-
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return { valid: false, error: 'Invalid token format' };
 
     // alg 헤더 엄격 검증 (alg="none" 공격 및 알고리즘 혼동 차단)
-    let header: { alg?: string; typ?: string };
+    let header: { alg?: string; typ?: string; kid?: string };
     try {
       header = JSON.parse(atob(parts[0].replace(/-/g, '+').replace(/_/g, '/')));
     } catch {
       return { valid: false, error: 'Invalid token header' };
     }
-    if (header.alg !== 'HS256') {
+
+    // 서명 검증: HS256(legacy 공유 시크릿) 또는 ES256(Supabase 비대칭 JWKS) 지원
+    // Supabase 는 비대칭 서명 키(ES256, P-256)로 전환됨 — JWKS 공개키로 검증.
+    const signatureInput = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
+    const signature = base64UrlDecode(parts[2]);
+    let isValid = false;
+
+    if (header.alg === 'HS256') {
+      // HMAC-SHA256 서명 검증 (legacy 공유 시크릿)
+      if (!env.SUPABASE_JWT_SECRET) {
+        return { valid: false, error: 'Server misconfiguration: JWT secret not set' };
+      }
+      const key = await crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(env.SUPABASE_JWT_SECRET),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['verify']
+      );
+      isValid = await crypto.subtle.verify('HMAC', key, signature, signatureInput);
+    } else if (header.alg === 'ES256') {
+      // ECDSA P-256 서명 검증 (Supabase JWKS 공개키)
+      isValid = await verifyEs256WithJwks(signature, signatureInput, header.kid, env);
+    } else {
       return { valid: false, error: `Unsupported alg: ${header.alg}` };
     }
-
-    // HMAC-SHA256 서명 검증
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(env.SUPABASE_JWT_SECRET),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['verify']
-    );
-
-    const signatureInput = encoder.encode(`${parts[0]}.${parts[1]}`);
-    const signature = base64UrlDecode(parts[2]);
-    const isValid = await crypto.subtle.verify('HMAC', key, signature, signatureInput);
 
     if (!isValid) {
       return { valid: false, error: 'Invalid token signature' };
@@ -166,6 +170,58 @@ function base64UrlDecode(str: string): ArrayBuffer {
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes.buffer;
+}
+
+// ── Supabase JWKS (ES256 비대칭 서명 키) ─────────────────────────
+// Supabase 가 비대칭 JWT 서명(ES256/P-256)으로 전환됨에 따라 공개키로 검증.
+// 모듈 스코프 캐시 — 같은 Worker 인스턴스의 연속 요청에 재사용 (10분).
+interface SupabaseJwk { kty?: string; crv?: string; kid?: string; x?: string; y?: string; alg?: string }
+let cachedJwks: { keys: SupabaseJwk[]; exp: number } | null = null;
+
+async function getSupabaseJwks(env: Env): Promise<SupabaseJwk[]> {
+  const now = Date.now();
+  if (cachedJwks && cachedJwks.exp > now) return cachedJwks.keys;
+  if (!env.SUPABASE_URL) return [];
+  const res = await fetch(`${env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`);
+  if (!res.ok) throw new Error('JWKS fetch failed');
+  const data = await res.json() as { keys?: SupabaseJwk[] };
+  const keys = data.keys || [];
+  cachedJwks = { keys, exp: now + 10 * 60 * 1000 };
+  return keys;
+}
+
+async function verifyEs256WithJwks(
+  signature: ArrayBuffer,
+  signatureInput: Uint8Array,
+  kid: string | undefined,
+  env: Env,
+): Promise<boolean> {
+  const keys = await getSupabaseJwks(env);
+  // kid 가 있으면 정확히 매칭, 없으면 P-256 EC 키 중 첫 매칭 시도
+  const candidates = keys.filter(
+    k => k.kty === 'EC' && k.crv === 'P-256' && k.x && k.y && (!kid || k.kid === kid),
+  );
+  for (const jwk of candidates) {
+    try {
+      const key = await crypto.subtle.importKey(
+        'jwk',
+        { kty: 'EC', crv: 'P-256', x: jwk.x, y: jwk.y },
+        { name: 'ECDSA', namedCurve: 'P-256' },
+        false,
+        ['verify'],
+      );
+      const ok = await crypto.subtle.verify(
+        { name: 'ECDSA', hash: 'SHA-256' },
+        key,
+        signature,
+        signatureInput,
+      );
+      if (ok) return true;
+    } catch {
+      // 이 키로 실패 시 다음 후보 시도
+    }
+  }
+  return false;
 }
 
 // ────────────────────────────────────────────────────────────────

@@ -100,6 +100,8 @@ export const paymentService = {
     const paymentId = `payment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     try {
+      // 카카오페이 채널은 간편결제(EASY_PAY)로 요청해야 함 (CARD 불가).
+      // 채널이 카카오페이 단독이므로 easyPayProvider 는 채널이 자동 결정.
       const response = await window.PortOne.requestPayment({
         storeId: STORE_ID,
         channelKey: CHANNEL_KEY,
@@ -107,7 +109,7 @@ export const paymentService = {
         orderName,
         totalAmount: amount,
         currency: 'KRW',
-        payMethod: 'CARD',
+        payMethod: 'EASY_PAY',
         customer: { email: userEmail },
       });
 

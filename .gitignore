@@ -6,6 +6,9 @@ node_modules/
 
 # Testing
 coverage/
+test-results/
+playwright-report/
+/4/
 
 # Production
 dist/

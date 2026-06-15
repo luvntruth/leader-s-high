@@ -6,8 +6,7 @@ import { SCENARIOS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { getCharacterAvatar } from '../services/characterAvatars';
 import { analyticsService } from '../services/analyticsService';
-
-const FREE_SCENARIO_IDS = ['late-comer', 'boundaries', 'team-clash'];
+import { FREE_SCENARIO_IDS } from '../services/usageService';
 
 const CURATED = [
   { id: 'late-comer', grade: 'B', difficulty: '쉬움', color: '#10B981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.4)' },
