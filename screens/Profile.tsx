@@ -72,15 +72,29 @@ interface SkillNode {
   y: number;
 }
 
-const SKILL_DATA: SkillNode[] = [
-  { id: 'listen', name: '경청의 달인', nameEn: 'ACTIVE LISTENING', icon: 'hearing', category: 'communication', level: 2, maxLevel: 5, x: 20, y: 30, description: '팀원의 발언 뒤에 숨겨진 의도와 감정을 정확히 파악하는 능력입니다.', effect: '심리 분석 정확도 +20%', nextXp: 120 },
-  { id: 'empathy', name: '공감적 대화', nameEn: 'EMPATHIC TALK', icon: 'diversity_3', category: 'communication', level: 1, maxLevel: 5, x: 20, y: 50, description: '상대방의 감정에 공감하며 신뢰를 쌓는 대화 기술입니다.', effect: '신뢰도 회복 속도 +15%', nextXp: 150, dependencies: ['listen'] },
-  { id: 'nonverbal', name: '비언어적 소통', nameEn: 'BODY LANGUAGE', icon: 'emoji_people', category: 'communication', level: 0, maxLevel: 5, x: 20, y: 70, description: '말하지 않아도 표정과 몸짓으로 전해지는 메시지를 읽습니다.', effect: '돌발 대사 해금 확률 +10%', nextXp: 200, dependencies: ['empathy'] },
-  { id: 'command', name: '카리스마 지시', nameEn: 'CHARISMA', icon: 'record_voice_over', category: 'leadership', level: 3, maxLevel: 5, x: 50, y: 30, description: '강력한 장악력으로 팀원에게 명확한 방향을 제시하는 능력입니다.', effect: '지시 수용률 +25%', nextXp: 180 },
-  { id: 'decisive', name: '전략적 의사결정', nameEn: 'STRATEGIC', icon: 'psychology', category: 'leadership', level: 1, maxLevel: 5, x: 50, y: 50, description: '복잡한 상황에서도 최적의 루트를 빠르게 판단하여 결정합니다.', effect: '갈등 해결 보너스 XP +20%', nextXp: 220, dependencies: ['command'] },
-  { id: 'mentor', name: '성장 멘토링', nameEn: 'MENTORING', icon: 'school', category: 'development', level: 2, maxLevel: 5, x: 80, y: 30, description: '팀원의 잠재력을 끌어내어 전문성을 강화시키는 육성 능력입니다.', effect: '팀원 성장속도 +30%', nextXp: 140 },
-  { id: 'safety', name: '심리적 안전감', nameEn: 'PSY SAFETY', icon: 'shield_with_heart', category: 'development', level: 0, maxLevel: 5, x: 80, y: 50, description: '팀원들이 실패를 두려워하지 않고 아이디어를 낼 수 있는 환경을 만듭니다.', effect: '팀 번아웃 확률 -15%', nextXp: 250, dependencies: ['mentor'] },
+// 스킬 레벨은 모두 0(잠금)으로 초기화 — 하드코딩 진행값 없음
+// 실제 해금은 computeSkillLevels()가 Supabase 완주 횟수로 계산
+const SKILL_DATA_BASE: Omit<SkillNode, 'level'>[] = [
+  { id: 'listen', name: '경청의 달인', nameEn: 'ACTIVE LISTENING', icon: 'hearing', category: 'communication', maxLevel: 5, x: 20, y: 30, description: '팀원의 발언 뒤에 숨겨진 의도와 감정을 정확히 파악하는 능력입니다.', effect: '심리 분석 정확도 +20%', nextXp: 120 },
+  { id: 'empathy', name: '공감적 대화', nameEn: 'EMPATHIC TALK', icon: 'diversity_3', category: 'communication', maxLevel: 5, x: 20, y: 50, description: '상대방의 감정에 공감하며 신뢰를 쌓는 대화 기술입니다.', effect: '신뢰도 회복 속도 +15%', nextXp: 150, dependencies: ['listen'] },
+  { id: 'nonverbal', name: '비언어적 소통', nameEn: 'BODY LANGUAGE', icon: 'emoji_people', category: 'communication', maxLevel: 5, x: 20, y: 70, description: '말하지 않아도 표정과 몸짓으로 전해지는 메시지를 읽습니다.', effect: '돌발 대사 해금 확률 +10%', nextXp: 200, dependencies: ['empathy'] },
+  { id: 'command', name: '카리스마 지시', nameEn: 'CHARISMA', icon: 'record_voice_over', category: 'leadership', maxLevel: 5, x: 50, y: 30, description: '강력한 장악력으로 팀원에게 명확한 방향을 제시하는 능력입니다.', effect: '지시 수용률 +25%', nextXp: 180 },
+  { id: 'decisive', name: '전략적 의사결정', nameEn: 'STRATEGIC', icon: 'psychology', category: 'leadership', maxLevel: 5, x: 50, y: 50, description: '복잡한 상황에서도 최적의 루트를 빠르게 판단하여 결정합니다.', effect: '갈등 해결 보너스 XP +20%', nextXp: 220, dependencies: ['command'] },
+  { id: 'mentor', name: '성장 멘토링', nameEn: 'MENTORING', icon: 'school', category: 'development', maxLevel: 5, x: 80, y: 30, description: '팀원의 잠재력을 끌어내어 전문성을 강화시키는 육성 능력입니다.', effect: '팀원 성장속도 +30%', nextXp: 140 },
+  { id: 'safety', name: '심리적 안전감', nameEn: 'PSY SAFETY', icon: 'shield_with_heart', category: 'development', maxLevel: 5, x: 80, y: 50, description: '팀원들이 실패를 두려워하지 않고 아이디어를 낼 수 있는 환경을 만듭니다.', effect: '팀 번아웃 확률 -15%', nextXp: 250, dependencies: ['mentor'] },
 ];
+
+/**
+ * Supabase 완주 횟수로 스킬 레벨을 계산.
+ * 추적 근거 있는 첫 스킬('listen')만 완주 1회 이상이면 Lv 1로 해금.
+ * 나머지는 스킬 추적 시스템 미구축으로 잠금(Lv 0) 유지.
+ */
+function computeSkillLevels(completedCount: number): SkillNode[] {
+  return SKILL_DATA_BASE.map(node => ({
+    ...node,
+    level: node.id === 'listen' && completedCount >= 1 ? 1 : 0,
+  }));
+}
 
 const SKILL_CATEGORY_META = {
   communication: { label: '소통 계열', color: '#F2B90D', glow: 'rgba(242,185,13,0.4)', bg: 'rgba(242,185,13,0.1)' },
@@ -131,7 +145,6 @@ const Profile: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
   const [completedHistory, setCompletedHistory] = useState<SimulationRecord[]>([]);
-  const [badges, setBadges] = useState<Badge[]>([]);
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
   const [rank, setRank] = useState<UserRank | null>(null);
   const [showRankInfo, setShowRankInfo] = useState(false);
@@ -171,7 +184,6 @@ const Profile: React.FC = () => {
   const [isSkillReady, setIsSkillReady] = useState(false);
 
   useEffect(() => {
-    setBadges(DataService.getUserBadges());
     setRank(DataService.getUserRank());
     // 스킬 트리 준비
     setTimeout(() => setIsSkillReady(true), 100);
@@ -229,11 +241,60 @@ const Profile: React.FC = () => {
     };
   }, [completedHistory]);
 
+  // ── 실데이터 기반 스킬 레벨 계산 (Supabase 완주 횟수 활용) ──
+  const skillData = React.useMemo(
+    () => computeSkillLevels(completedHistory.length),
+    [completedHistory.length]
+  );
+
+  // ── 실데이터 기반 배지 계산 (Supabase 완주 기록만 사용) ──
+  const computedBadges: Badge[] = React.useMemo(() => {
+    const completedCount = completedHistory.length;
+    return [
+      {
+        id: 'beginner',
+        name: '첫 완주',
+        icon: 'rocket_launch',
+        description: '리더십 여정의 첫 걸음을 내딛었습니다.',
+        condition: '시뮬레이션 1회 완주',
+        color: 'text-primary',
+        isUnlocked: completedCount >= 1,
+      },
+      {
+        id: 'five_complete',
+        name: '5회 완주',
+        icon: 'workspace_premium',
+        description: '꾸준한 훈련으로 리더십 기반을 다졌습니다.',
+        condition: '시뮬레이션 5회 완주',
+        color: 'text-accent-amber',
+        isUnlocked: completedCount >= 5,
+      },
+      {
+        id: 'ten_complete',
+        name: '10회 완주',
+        icon: 'military_tech',
+        description: '반복 훈련을 통해 실전 감각을 키웠습니다.',
+        condition: '시뮬레이션 10회 완주',
+        color: 'text-yellow-400',
+        isUnlocked: completedCount >= 10,
+      },
+      {
+        id: 'twenty_complete',
+        name: '20회 완주',
+        icon: 'diamond',
+        description: '지속적인 성장으로 탁월한 리더십을 증명했습니다.',
+        condition: '시뮬레이션 20회 완주',
+        color: 'text-purple-400',
+        isUnlocked: completedCount >= 20,
+      },
+    ];
+  }, [completedHistory]);
+
   const renderSkillLines = () => {
-    return SKILL_DATA.map(node => {
+    return skillData.map(node => {
       if (!node.dependencies) return null;
       return node.dependencies.map(depId => {
-        const depNode = SKILL_DATA.find(n => n.id === depId);
+        const depNode = skillData.find(n => n.id === depId);
         if (!depNode) return null;
         const isUnlocked = node.level > 0 && depNode.level > 0;
         return (
@@ -252,7 +313,7 @@ const Profile: React.FC = () => {
     });
   };
 
-  const unlockedCount = badges.filter(b => b.isUnlocked).length;
+  const unlockedCount = computedBadges.filter(b => b.isUnlocked).length;
   const currentRankDetail = selectedRankName ? RANK_DETAILS[selectedRankName] : null;
   const theme = rank ? getRankTheme(rank.title) : getRankTheme('루키 리더');
   const rankStars = rank ? getRankStars(rank.title) : 1;
@@ -778,10 +839,10 @@ const Profile: React.FC = () => {
                 </svg>
 
                 {/* Skill Nodes */}
-                {SKILL_DATA.map((node) => {
+                {skillData.map((node) => {
                   const meta = SKILL_CATEGORY_META[node.category];
                   const isUnlocked = node.level > 0;
-                  const isSelectable = !node.dependencies || node.dependencies.every(depId => SKILL_DATA.find(n => n.id === depId)!.level > 0);
+                  const isSelectable = !node.dependencies || node.dependencies.every(depId => skillData.find(n => n.id === depId)!.level > 0);
 
                   return (
                     <div
@@ -832,14 +893,14 @@ const Profile: React.FC = () => {
         {/* ════════ 배지 탭 ════════ */}
         {activeTab === 'badges' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* ── 퀵 스탯 (배지 탭으로 이동) ── */}
+            {/* ── 퀵 스탯 (배지 탭) ── */}
             <div className="grid grid-cols-2 gap-3 mb-8">
               <div onClick={() => navigate('/streak')}
                 className="bg-gradient-to-br from-[#161D2F] to-[#0D1525] p-5 rounded-[2rem] border border-white/5 flex flex-col items-center text-center cursor-pointer active:scale-95 transition-all group hover:border-amber-500/30">
                 <div className="size-11 rounded-2xl bg-amber-500/15 flex items-center justify-center text-amber-400 mb-3 border border-amber-500/20 group-hover:shadow-neon-amber transition-all">
                   <span className="material-symbols-outlined">local_fire_department</span>
                 </div>
-                <p className="font-bold text-sm">5일 스트릭</p>
+                <p className="font-bold text-sm">스트릭</p>
                 <p className="text-[8px] text-slate-600 mt-0.5 uppercase tracking-widest font-black">Streak</p>
               </div>
               <div onClick={() => navigate('/insights')}
@@ -861,12 +922,12 @@ const Profile: React.FC = () => {
                 <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white">배지 컬렉션</h3>
               </div>
               <span className="text-xs font-black px-3 py-1 rounded-full" style={{ backgroundColor: theme.bg, color: theme.accent, border: `1px solid ${theme.border}` }}>
-                {unlockedCount}/{badges.length}
+                {unlockedCount}/{computedBadges.length}
               </span>
             </div>
 
             <div className="grid grid-cols-4 gap-3">
-              {badges.map((badge) => (
+              {computedBadges.map((badge) => (
                 <button key={badge.id} onClick={() => setSelectedBadge(badge)}
                   className="flex flex-col items-center gap-1.5 transition-all active:scale-90">
                   <div className="relative">
@@ -1013,8 +1074,14 @@ const Profile: React.FC = () => {
                   <p className="text-xs text-slate-300 font-medium leading-relaxed">{selectedNode.description}</p>
                 </section>
                 <section className="bg-primary/5 p-4 rounded-2xl border border-primary/20">
-                  <h4 className="text-[9px] font-black text-primary uppercase tracking-widest mb-1">현재 효과 (Lv.{selectedNode.level})</h4>
-                  <p className="text-xs font-black italic text-accent-neon">"{selectedNode.effect}"</p>
+                  <h4 className="text-[9px] font-black text-primary uppercase tracking-widest mb-1">
+                    {selectedNode.level > 0 ? `현재 효과 (Lv.${selectedNode.level})` : '잠금 상태'}
+                  </h4>
+                  {selectedNode.level > 0 ? (
+                    <p className="text-xs font-black italic text-accent-neon">"{selectedNode.effect}"</p>
+                  ) : (
+                    <p className="text-xs text-slate-500">시뮬레이션을 완주하여 스킬을 해금하세요.</p>
+                  )}
                 </section>
               </div>
               <button onClick={() => setSelectedNode(null)}
