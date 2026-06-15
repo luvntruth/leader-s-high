@@ -119,7 +119,7 @@ const TeamOffice: React.FC = () => {
       {/* ── Header ── */}
       <header className="px-4 py-4 sm:px-6 flex items-center justify-between z-20 sticky top-0 bg-[#060B18]/80 backdrop-blur-md border-b border-white/5">
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-          <button onClick={() => navigate('/')} className="p-2 text-slate-400 hover:text-white transition-colors shrink-0">
+          <button onClick={() => navigate('/missions')} className="p-2 text-slate-400 hover:text-white transition-colors shrink-0">
             <span className="material-symbols-outlined">arrow_back_ios</span>
           </button>
           <div className="min-w-0">
