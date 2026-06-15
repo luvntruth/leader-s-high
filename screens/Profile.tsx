@@ -5,12 +5,11 @@ import { useNavigate } from 'react-router-dom';
 // recharts(~367KB) 초기 번들 제외
 const CompetencyRadar = lazy(() => import('../components/CompetencyRadar'));
 import { DataService, Badge, UserRank } from '../services/dataService';
-import { createGeminiClient } from '../src/lib/geminiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/authService';
 import { dbService } from '../services/dbService';
 import { paymentService } from '../services/paymentService';
-import { LEADERSHIP_TYPE_INFO, CommunicationPattern, LeadershipType } from '../src/types/database';
+import { LEADERSHIP_TYPE_INFO, CommunicationPattern, LeadershipType, SimulationRecord } from '../src/types/database';
 
 interface RankDetail {
   lv: string;
@@ -131,7 +130,7 @@ function getRankIcon(title: string): string {
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
-  const [recentHistory, setRecentHistory] = useState<any[]>([]);
+  const [completedHistory, setCompletedHistory] = useState<SimulationRecord[]>([]);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
   const [rank, setRank] = useState<UserRank | null>(null);
@@ -151,81 +150,84 @@ const Profile: React.FC = () => {
   useEffect(() => {
     if (user && profile) {
       dbService.getSimulationCount(user.id).then(setSimCount).catch(() => {});
-      dbService.getHistory(user.id, 1).then(records => {
-        if (records.length > 0 && records[0].leadership_type) {
+      // 완주한 시뮬레이션만 가져오기 (리더 프로필 집계용)
+      dbService.getHistory(user.id, 20).then(records => {
+        const completed = records.filter(r => r.completed);
+        setCompletedHistory(completed);
+        // leadership 탭용: 가장 최근 완주 기록의 리더십 타입
+        const withType = completed.find(r => r.leadership_type);
+        if (withType) {
           setLeadershipData({
-            type: records[0].leadership_type,
-            pattern: records[0].communication_pattern,
+            type: withType.leadership_type!,
+            pattern: withType.communication_pattern,
           });
         }
       }).catch(() => {});
     }
   }, [user, profile]);
 
-  // ── 리더십 리포트 상태 (LeadershipReport.tsx에서 이관) ──
-  const [reportProfile, setReportProfile] = useState<any>(null);
-  const [aiAdvice, setAiAdvice] = useState<string>("리더님의 리더십 트렌드를 정교하게 분석하고 있습니다...");
-  const [isAiLoading, setIsAiLoading] = useState(true);
-
   // ── 스킬 트리 상태 (SkillTree.tsx에서 이관) ──
   const [selectedNode, setSelectedNode] = useState<SkillNode | null>(null);
   const [isSkillReady, setIsSkillReady] = useState(false);
 
   useEffect(() => {
-    const history = JSON.parse(localStorage.getItem('leadershigh_history') || '[]');
-    setRecentHistory(history.slice(0, 2));
     setBadges(DataService.getUserBadges());
     setRank(DataService.getUserRank());
-
-    // 리포트 데이터 생성
-    const reportData = DataService.generateLeadershipProfile();
-    setReportProfile(reportData);
-    fetchAiAdvice(reportData);
-
     // 스킬 트리 준비
     setTimeout(() => setIsSkillReady(true), 100);
   }, []);
 
-  const fetchAiAdvice = async (p: any) => {
-    try {
-      const history = DataService.getUserHistory();
-      const genAI = createGeminiClient();
+  // ── 실데이터 기반 리더 프로필 집계 ──
+  const leaderProfileData = React.useMemo(() => {
+    if (completedHistory.length < 3) return null;
 
-      const prompt = `
-        리더십 교육 게임 'Letmefree'의 리더십 전문가로서 다음 데이터를 바탕으로 사용자의 리더십 성향 리포트 하단 'Summary & Advice' 섹션에 들어갈 내용을 작성해주세요.
-
-        사용자 리더십 타이틀: ${p.title} (${p.titleEn})
-        누적 점수: ${p.persona.totalScore}/100
-        팀 친화도: ${p.persona.teamAffinity}%
-        최근 미션 이력 수: ${history.length}
-
-        요청 사항:
-        1. "귀하는 이번 RPG 시뮬레이션에서 ~" 로 시작하는 전문적이고 통찰력 있는 문체를 사용하세요.
-        2. 구체적인 수치나 구체적인 피드백을 포함하세요.
-        3. 향후 발전 방향에 대한 'Advice'를 한 문장으로 덧붙여주세요.
-        4. 한국어로 작성하고 리더십 전문가다운 신뢰감 있는 어조를 유지하세요.
-        5. 약 300자 내외로 구성하세요.
-      `;
-
-      // @google/genai 신 SDK API 로 호출 (구 @google/generative-ai 의 getGenerativeModel 은 제거됨)
-      const response = await genAI.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-      });
-      const text = response.text;
-      setAiAdvice(text || "귀하는 이번 시뮬레이션에서 균형 잡힌 리더십을 보여주었습니다.");
-    } catch (e) {
-      console.error("AI Advice Fetch Error", e);
-      setAiAdvice("귀하는 이번 RPG 시뮬레이션에서 인본주의적 가치와 전략적 효율 사이의 완벽한 균형을 보여주었습니다.");
-    } finally {
-      setIsAiLoading(false);
+    // 리더십 타입 최빈값
+    const typeCounts: Record<string, number> = {};
+    for (const r of completedHistory) {
+      if (r.leadership_type) typeCounts[r.leadership_type] = (typeCounts[r.leadership_type] || 0) + 1;
     }
-  };
+    const dominantType = (Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null) as LeadershipType | null;
 
-  const handleDownloadReport = () => {
-    alert("💎 리더십 명예 리포트를 PDF로 생성합니다.\n잠시만 기다려주세요...");
-    setTimeout(() => { window.print(); }, 1000);
-  };
+    // radar_chart 평균
+    const radarKeys = ['trust', 'motivation', 'conflict', 'decision', 'strategy'];
+    const radarAvg: Record<string, number> = {};
+    for (const key of radarKeys) {
+      const vals = completedHistory
+        .map(r => (r.radar_chart as Record<string, number> | null)?.[key])
+        .filter((v): v is number => typeof v === 'number');
+      radarAvg[key] = vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+    }
+
+    // final_trust 평균
+    const trustVals = completedHistory
+      .map(r => r.final_trust)
+      .filter((v): v is number => typeof v === 'number');
+    const avgTrust = trustVals.length > 0
+      ? Math.round(trustVals.reduce((a, b) => a + b, 0) / trustVals.length)
+      : null;
+
+    // radar 데이터 (CompetencyRadar 형식)
+    const radarData = [
+      { subject: '결단력', A: radarAvg['decision'] ?? 0, fullMark: 100 },
+      { subject: '소통 능력', A: radarAvg['trust'] ?? 0, fullMark: 100 },
+      { subject: '혁신성', A: radarAvg['strategy'] ?? 0, fullMark: 100 },
+      { subject: '안정성', A: Math.round(((radarAvg['trust'] ?? 0) + (radarAvg['conflict'] ?? 0)) / 2), fullMark: 100 },
+      { subject: '공감 능력', A: radarAvg['motivation'] ?? 0, fullMark: 100 },
+    ];
+
+    // 리더십 타입 라벨
+    const typeInfo = dominantType ? LEADERSHIP_TYPE_INFO[dominantType] : null;
+
+    return {
+      dominantType,
+      typeInfo,
+      radarData,
+      radarAvg,
+      avgTrust,
+      completedCount: completedHistory.length,
+      recentHistory: completedHistory.slice(0, 2),
+    };
+  }, [completedHistory]);
 
   const renderSkillLines = () => {
     return SKILL_DATA.map(node => {
@@ -343,22 +345,47 @@ const Profile: React.FC = () => {
       <main className="flex-1 p-5 pb-28 space-y-6 relative z-10">
 
         {/* ════════ 스테이터스 탭 (리더 프로필) ════════
-            Spec v3 §5.6: 프로/울트라 유저라도 시뮬레이션 3개 이상 완주 시에만 리더 프로필 생성
-            (데이터 부족 시 부정확한 프로파일 생성 방지) */}
-        {activeTab === 'status' && simCount < 3 && (
+            1단계: 플랜 게이팅 (pro/ultra 아니면 업그레이드 유도)
+            2단계: 완주 시뮬레이션 3회 미만 → "준비 중" UI
+            3단계: 실데이터 기반 리더 프로필 표시 */}
+
+        {/* 1단계: 플랜 게이팅 */}
+        {activeTab === 'status' && !['pro', 'ultra'].includes(profile?.plan ?? '') && (
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center animate-in fade-in duration-500">
+            <div className="size-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-5">
+              <span className="material-symbols-outlined text-amber-400 text-3xl">lock</span>
+            </div>
+            <h2 className="text-white font-black text-xl mb-2">Pro / Ultra 전용 기능</h2>
+            <p className="text-slate-400 text-sm leading-relaxed max-w-xs mb-6">
+              리더 프로필은 <span className="text-amber-400 font-bold">Pro 또는 Ultra</span> 플랜<br />
+              사용자에게만 제공됩니다.<br />
+              누적 대화 데이터를 기반으로 당신만의<br />
+              리더십 성향 리포트를 확인하세요.
+            </p>
+            <button
+              onClick={() => navigate('/pricing')}
+              className="px-6 py-3 rounded-xl bg-amber-500 text-slate-900 font-bold text-sm active:scale-95 transition-all"
+            >
+              플랜 업그레이드 →
+            </button>
+          </div>
+        )}
+
+        {/* 2단계: 데이터 부족 */}
+        {activeTab === 'status' && ['pro', 'ultra'].includes(profile?.plan ?? '') && completedHistory.length < 3 && (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center animate-in fade-in duration-500">
             <div className="size-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-5">
               <span className="material-symbols-outlined text-amber-400 text-3xl">timeline</span>
             </div>
             <h2 className="text-white font-black text-xl mb-2">리더 프로필 준비 중</h2>
             <p className="text-slate-400 text-sm leading-relaxed max-w-xs mb-6">
-              시뮬레이션을 <span className="text-amber-400 font-bold">3회 이상 완료</span>하면,<br />
+              시뮬레이션을 <span className="text-amber-400 font-bold">3회 이상 완주</span>하면,<br />
               누적 대화 데이터를 기반으로 당신만의<br />
               리더십 프로필이 자동 생성됩니다.
             </p>
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6">
-              <span className="text-slate-500 text-xs">현재 진행도</span>
-              <span className="text-amber-400 font-black text-sm">{simCount} / 3</span>
+              <span className="text-slate-500 text-xs">현재 완주 횟수</span>
+              <span className="text-amber-400 font-black text-sm">{completedHistory.length} / 3</span>
             </div>
             <button
               onClick={() => navigate('/missions')}
@@ -369,7 +396,8 @@ const Profile: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'status' && simCount >= 3 && (
+        {/* 3단계: 실데이터 리더 프로필 */}
+        {activeTab === 'status' && ['pro', 'ultra'].includes(profile?.plan ?? '') && leaderProfileData !== null && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* ── RPG 랭크 요약 (상단 미니 칩) ── */}
             {rank && (
@@ -386,11 +414,12 @@ const Profile: React.FC = () => {
             {/* 메인 타이틀 */}
             <header className="text-center mb-4">
               <h1 className="text-5xl font-black text-white mb-6 tracking-tighter drop-shadow-2xl">리더십 성향 리포트</h1>
-              {reportProfile && (
+              {leaderProfileData.typeInfo && (
                 <div className="inline-block relative px-12 py-3 rounded-[2rem] bg-gradient-to-r from-[#F2B90D]/20 to-transparent border border-[#F2B90D]/30 backdrop-blur-md overflow-hidden group shadow-[0_0_30px_rgba(242,185,13,0.2)]">
                   <div className="absolute inset-0 bg-[#F2B90D]/5 blur-xl group-hover:bg-[#F2B90D]/10 transition-all duration-500" />
                   <span className="relative z-10 text-3xl font-black italic text-[#F2B90D] group-hover:text-white transition-colors duration-500">
-                    "{reportProfile.title}" <span className="text-lg font-medium not-italic text-slate-400 ml-2">({reportProfile.titleEn})</span>
+                    {leaderProfileData.typeInfo.emoji} {leaderProfileData.typeInfo.name}
+                    <span className="text-lg font-medium not-italic text-slate-400 ml-2">({leaderProfileData.dominantType})</span>
                   </span>
                 </div>
               )}
@@ -444,18 +473,26 @@ const Profile: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 동기화율 뱃지 */}
+                  {/* 완주 횟수 뱃지 */}
                   <div className="absolute top-6 right-6 text-right">
-                    <p className="text-[9px] font-black text-[#F2B90D]/60 uppercase tracking-widest mb-1">SYNC RATE</p>
+                    <p className="text-[9px] font-black text-[#F2B90D]/60 uppercase tracking-widest mb-1">COMPLETED</p>
                     <p className="text-3xl font-black text-[#F2B90D] drop-shadow-[0_0_10px_rgba(242,185,13,0.5)]">
-                      {reportProfile?.syncRate}%
+                      {leaderProfileData.completedCount}회
                     </p>
                   </div>
 
                   {/* 하단 정보 */}
                   <div className="px-7 pb-8">
-                    <p className="text-[9px] font-black text-[#F2B90D] uppercase tracking-[0.3em] mb-1.5">CHARACTER PERSONA</p>
-                    <h2 className="text-2xl font-black text-white tracking-tighter italic">Project Manager <span className="text-[#F2B90D] italic">JAY</span></h2>
+                    <p className="text-[9px] font-black text-[#F2B90D] uppercase tracking-[0.3em] mb-1.5">LEADERSHIP TYPE</p>
+                    <h2 className="text-2xl font-black text-white tracking-tighter italic">
+                      {leaderProfileData.typeInfo
+                        ? <><span className="text-[#F2B90D] italic">{leaderProfileData.typeInfo.emoji} {leaderProfileData.typeInfo.name}</span></>
+                        : <span className="text-slate-400 text-base">분석 중...</span>
+                      }
+                    </h2>
+                    {leaderProfileData.typeInfo && (
+                      <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">{leaderProfileData.typeInfo.desc}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -473,62 +510,45 @@ const Profile: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-black text-white italic tracking-tight">역량 레이더</h3>
+                      <p className="text-[10px] text-slate-500">최근 완주 {leaderProfileData.completedCount}회 평균</p>
                     </div>
                   </div>
-
 
                   {/* 역량 레이더 컴포넌트 (lazy) */}
                   <Suspense fallback={<div className="min-h-[320px] w-full animate-pulse bg-white/[0.02] rounded-xl" />}>
                     <CompetencyRadar
-                      data={reportProfile?.radarData}
-                      teamAffinity={reportProfile?.persona?.teamAffinity != null ? Math.round(reportProfile.persona.teamAffinity) : undefined}
-                      tacticalRisk={reportProfile?.persona?.riskManagement != null ? Math.round(reportProfile.persona.riskManagement) : undefined}
+                      data={leaderProfileData.radarData}
+                      teamAffinity={leaderProfileData.radarAvg['trust'] != null ? Math.round((leaderProfileData.radarAvg['trust'] + leaderProfileData.radarAvg['motivation']) / 2) : undefined}
+                      tacticalRisk={leaderProfileData.radarAvg['conflict'] != null ? Math.round(leaderProfileData.radarAvg['conflict']) : undefined}
                     />
                   </Suspense>
-
-
                 </div>
 
-                {/* 태그 카드 (Row) */}
+                {/* 누적 지표 카드 (Row) */}
                 <div className="grid grid-cols-3 gap-4">
-                  {reportProfile?.tags.map((tag: any, i: number) => (
-                    <div key={i} className="bg-[#111A2E]/50 rounded-3xl p-5 border border-white/5 hover:border-[#F2B90D]/30 transition-all group">
-                      <div className="size-10 rounded-xl bg-[#F2B90D]/10 flex items-center justify-center text-[#F2B90D] mb-4 border border-[#F2B90D]/20 group-hover:scale-110 transition-transform">
-                        <span className="material-symbols-outlined text-xl">{tag.icon}</span>
-                      </div>
-                      <h4 className="text-sm font-black text-white mb-2 leading-tight">{tag.title}</h4>
-                      <p className="text-[10px] text-slate-500 font-medium leading-relaxed">{tag.desc}</p>
+                  <div className="bg-[#111A2E]/50 rounded-3xl p-5 border border-white/5 hover:border-[#F2B90D]/30 transition-all group">
+                    <div className="size-10 rounded-xl bg-[#F2B90D]/10 flex items-center justify-center text-[#F2B90D] mb-4 border border-[#F2B90D]/20 group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-xl">verified</span>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* 하단 요약 섹션 */}
-            <div className="bg-[#111A2E]/80 backdrop-blur-2xl rounded-[3rem] p-10 border border-white/10 relative overflow-hidden group shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-              <div className="absolute top-0 left-0 w-2 h-full bg-[#F2B90D] opacity-50" />
-              <div className="flex flex-col md:flex-row items-center gap-10">
-                <div className="size-20 rounded-full bg-[#F2B90D]/10 flex items-center justify-center border border-[#F2B90D]/20 shrink-0 shadow-[0_0_20px_rgba(242,185,13,0.2)]">
-                  <span className="material-symbols-outlined text-4xl text-[#F2B90D] animate-pulse">lightbulb</span>
-                </div>
-                <div className="flex-1 text-center md:text-left">
-                  <h3 className="text-xl font-black text-white mb-4 italic tracking-tight flex items-center gap-4 justify-center md:justify-start">
-                    Summary & Advice
-                    <div className="h-px w-20 bg-gradient-to-r from-[#F2B90D]/50 to-transparent" />
-                  </h3>
-                  <p className={`text-base leading-relaxed font-medium text-slate-300 ${isAiLoading ? 'animate-pulse blur-[1px]' : ''}`}>
-                    {aiAdvice}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-3 min-w-[200px]">
-                  <button className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-[#F2B90D] text-[#060B18] font-black text-sm hover:scale-105 transition-all shadow-[0_0_20px_rgba(242,185,13,0.3)]">
-                    <span className="material-symbols-outlined text-lg">share</span>
-                    결과 공유하기
-                  </button>
-                  <button onClick={handleDownloadReport} className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-white/5 text-white font-black text-sm border border-white/10 hover:bg-white/10 transition-all">
-                    <span className="material-symbols-outlined text-lg">download</span>
-                    PDF 다운로드
-                  </button>
+                    <h4 className="text-sm font-black text-white mb-1 leading-tight">완주 횟수</h4>
+                    <p className="text-2xl font-black text-[#F2B90D]">{leaderProfileData.completedCount}<span className="text-xs text-slate-500 ml-1">회</span></p>
+                  </div>
+                  <div className="bg-[#111A2E]/50 rounded-3xl p-5 border border-white/5 hover:border-[#F2B90D]/30 transition-all group">
+                    <div className="size-10 rounded-xl bg-[#F2B90D]/10 flex items-center justify-center text-[#F2B90D] mb-4 border border-[#F2B90D]/20 group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-xl">favorite</span>
+                    </div>
+                    <h4 className="text-sm font-black text-white mb-1 leading-tight">평균 신뢰도</h4>
+                    <p className="text-2xl font-black text-[#F2B90D]">
+                      {leaderProfileData.avgTrust !== null ? leaderProfileData.avgTrust : '-'}<span className="text-xs text-slate-500 ml-1">점</span>
+                    </p>
+                  </div>
+                  <div className="bg-[#111A2E]/50 rounded-3xl p-5 border border-white/5 hover:border-[#F2B90D]/30 transition-all group">
+                    <div className="size-10 rounded-xl bg-[#F2B90D]/10 flex items-center justify-center text-[#F2B90D] mb-4 border border-[#F2B90D]/20 group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-xl">psychology</span>
+                    </div>
+                    <h4 className="text-sm font-black text-white mb-1 leading-tight">주요 리더십</h4>
+                    <p className="text-sm font-black text-[#F2B90D]">{leaderProfileData.typeInfo?.name ?? '-'}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -540,14 +560,17 @@ const Profile: React.FC = () => {
                   <div className="size-10 rounded-xl bg-[#F2B90D]/20 flex items-center justify-center text-[#F2B90D] border border-[#F2B90D]/20">
                     <span className="material-symbols-outlined text-xl">history</span>
                   </div>
-                  <h4 className="text-[11px] font-black text-white uppercase tracking-widest">최근 리더십 로그</h4>
+                  <h4 className="text-[11px] font-black text-white uppercase tracking-widest">최근 완주 로그</h4>
                 </div>
                 <div className="space-y-4">
-                  {recentHistory.map((item) => (
-                    <div key={item.id} className="bg-white/5 p-5 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-white/10 transition-all cursor-pointer">
+                  {leaderProfileData.recentHistory.length === 0 ? (
+                    <p className="text-slate-500 text-xs">기록이 없습니다.</p>
+                  ) : leaderProfileData.recentHistory.map((item) => (
+                    <div key={item.id} className="bg-white/5 p-5 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-white/10 transition-all cursor-pointer"
+                      onClick={() => navigate(`/history/${item.id}`)}>
                       <div>
-                        <p className="text-sm font-bold text-white mb-1">{item.scenarioTitle}</p>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase">{new Date(item.date).toLocaleDateString()}</p>
+                        <p className="text-sm font-bold text-white mb-1">{item.scenario_title}</p>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase">{new Date(item.created_at).toLocaleDateString('ko-KR')}</p>
                       </div>
                       <span className="material-symbols-outlined text-slate-700 group-hover:text-[#F2B90D] transition-colors">arrow_forward</span>
                     </div>
