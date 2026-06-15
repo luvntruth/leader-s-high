@@ -132,7 +132,7 @@ const App: React.FC = () => {
               <Route path="/select-scenarios" element={<AuthGuard><SelectScenarios /></AuthGuard>} />
 
               {/* 보호 라우트 */}
-              <Route path="/" element={<Navigate to="/landing" replace />} />
+              <Route path="/" element={<Navigate to="/onboarding" replace />} />
               <Route path="/missions" element={<AuthGuard><Missions /></AuthGuard>} />
               <Route path="/setup" element={<AuthGuard allowGuest><Setup /></AuthGuard>} />
               <Route path="/simulation" element={<AuthGuard allowGuest><Simulation /></AuthGuard>} />

@@ -294,15 +294,6 @@ export default function Landing() {
                 바로 결제하기
               </button>
             </div>
-            <p className="mt-4 text-sm text-slate-400 text-center lg:text-left break-keep">
-              이미 계정이 있으신가요?{' '}
-              <button
-                onClick={() => navigate('/login')}
-                className="text-amber-400 font-bold hover:text-amber-300 underline underline-offset-2"
-              >
-                로그인
-              </button>
-            </p>
           </motion.div>
 
           <motion.div variants={itemVariants} className="w-full">
