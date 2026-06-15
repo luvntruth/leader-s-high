@@ -133,7 +133,9 @@ const TeamOffice: React.FC = () => {
         <div className="flex items-center gap-3 sm:gap-6 shrink-0">
           <div className="text-right hidden sm:block">
             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active Units</p>
-            <p className="text-lg font-black text-primary">{members.length} / 12</p>
+            <p className="text-lg font-black text-primary">
+              {members.filter(m => usageService.canAccessScenarioById(m.scenario.id, profile?.plan || 'free', profile?.selected_scenarios)).length} / {members.length}
+            </p>
           </div>
           <div className="size-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group cursor-help relative">
             <span className="material-symbols-outlined group-hover:rotate-180 transition-transform duration-500">settings</span>
