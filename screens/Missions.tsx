@@ -147,7 +147,6 @@ const Missions: React.FC = () => {
   }, [selectedCategory]);
 
   const navItems = [
-    { name: '대시보드', active: false, path: '/' },
     { name: '팀원 관리', active: false, path: '/team-office' },
     { name: '퀘스트 보드', active: true, path: '/missions' },
     { name: '커스텀 랩', active: false, path: '/custom-lab' }
