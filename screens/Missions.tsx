@@ -156,7 +156,7 @@ const Missions: React.FC = () => {
   return (
     <div className="h-screen flex flex-col relative overflow-hidden text-white font-manrope bg-[#060b18]">
       {/* ── 상단 글로벌 네비게이션 ── */}
-      <nav className="flex items-center justify-between px-8 py-4 border-b border-white/5 bg-[#0D1526] z-50">
+      <nav className="hidden lg:flex items-center justify-between px-8 py-4 border-b border-white/5 bg-[#0D1526] z-50">
         <div className="flex items-center gap-10">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/home')}>
             <div className="size-8 rounded-lg bg-orange-500 flex items-center justify-center font-black text-black">L</div>
@@ -192,15 +192,15 @@ const Missions: React.FC = () => {
       </nav>
 
       {/* ── 메인 스크롤 영역 ── */}
-      <main className="flex-1 overflow-y-auto px-10 py-10 hide-scrollbar pb-32">
-        <header className="flex items-start justify-between mb-12 animate-in fade-in slide-in-from-top-4 duration-500">
-          <div>
-            <h1 className="text-4xl font-black text-white mb-2 tracking-tighter">퀘스트 보드</h1>
-            <p className="text-slate-500 font-bold max-w-xl leading-relaxed text-sm">오늘의 리더십 훈련 미션을 선택하세요. 리더님의 선택과 대응 방식이 팀원과의 신뢰도와 팀 전체의 성과에 직접적인 영향을 미칩니다.</p>
+      <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-10 lg:px-10 lg:py-10 hide-scrollbar pb-32">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-12 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-4xl font-black text-white mb-2 tracking-tighter break-keep">퀘스트 보드</h1>
+            <p className="text-slate-500 font-bold max-w-xl leading-relaxed text-sm break-keep">오늘의 리더십 훈련 미션을 선택하세요. 리더님의 선택과 대응 방식이 팀원과의 신뢰도와 팀 전체의 성과에 직접적인 영향을 미칩니다.</p>
           </div>
-          <div className="flex gap-4">
-            <div className="bg-[#111B2E] border border-white/10 rounded-2xl p-4 flex items-center gap-4 min-w-[180px]">
-              <div className="size-12 rounded-xl bg-orange-500/20 flex items-center justify-center">
+          <div className="flex flex-row sm:flex-row gap-3 sm:gap-4 shrink-0">
+            <div className="bg-[#111B2E] border border-white/10 rounded-2xl p-4 flex items-center gap-4 flex-1 sm:flex-initial sm:min-w-[180px]">
+              <div className="size-12 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-orange-500 text-2xl">local_fire_department</span>
               </div>
               <div>
@@ -208,7 +208,7 @@ const Missions: React.FC = () => {
                 <p className="text-xl font-black text-white">{streakDays} Days</p>
               </div>
             </div>
-            <div className="bg-[#111B2E] border border-white/10 rounded-2xl p-4 flex items-center gap-4 min-w-[180px]">
+            <div className="bg-[#111B2E] border border-white/10 rounded-2xl p-4 flex items-center gap-4 flex-1 sm:flex-initial sm:min-w-[180px]">
               <div>
                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-right mb-1">Total Quests</p>
                 <div className="flex items-baseline gap-1 justify-end">

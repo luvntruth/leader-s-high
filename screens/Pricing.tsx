@@ -151,7 +151,7 @@ export default function Pricing() {
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-12 lg:py-16">
         <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-3xl mx-auto mb-12">
           <p className="text-[11px] uppercase tracking-[0.24em] text-amber-300/80 font-bold mb-3">Continue only if you need more</p>
-          <h1 className="text-3xl lg:text-5xl font-black tracking-[-0.04em] leading-[1.04] text-white mb-4">
+          <h1 className="text-2xl sm:text-3xl lg:text-5xl font-black tracking-[-0.04em] leading-[1.1] sm:leading-[1.04] text-white mb-4 break-keep">
             무료 체험 후, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-200 to-amber-400">더 필요할 때만 확장하세요</span>
           </h1>
           <p className="text-slate-300 text-sm lg:text-base leading-7">
@@ -325,27 +325,27 @@ export default function Pricing() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="rounded-[28px] border border-white/10 bg-white/[0.03] backdrop-blur-sm p-6 lg:p-8 max-w-5xl mx-auto">
           <div className="text-center mb-8">
             <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-300/80 font-bold mb-3">Compare</p>
-            <h2 className="text-2xl lg:text-3xl font-bold text-white mb-3">무료 · 프로 · 울트라 한눈에 비교</h2>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-3 break-keep">무료 · 프로 · 울트라 한눈에 비교</h2>
             <p className="text-slate-400 text-sm">사용 기간, 시나리오 수, 풀 리포트·기록 비교 지원 여부를 빠르게 확인하세요.</p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[640px]">
+          <div className="overflow-x-auto -mx-1">
+            <table className="w-full text-xs sm:text-sm min-w-[320px]">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="text-left py-4 px-4 text-slate-500 font-medium">기능</th>
-                  <th className="text-center py-4 px-4 text-slate-400 font-medium">무료</th>
-                  <th className="text-center py-4 px-4 text-amber-300 font-bold">프로</th>
-                  <th className="text-center py-4 px-4 text-cyan-300 font-bold">울트라</th>
+                  <th className="text-left py-3 px-2 sm:py-4 sm:px-4 text-slate-500 font-medium">기능</th>
+                  <th className="text-center py-3 px-2 sm:py-4 sm:px-4 text-slate-400 font-medium">무료</th>
+                  <th className="text-center py-3 px-2 sm:py-4 sm:px-4 text-amber-300 font-bold">프로</th>
+                  <th className="text-center py-3 px-2 sm:py-4 sm:px-4 text-cyan-300 font-bold">울트라</th>
                 </tr>
               </thead>
               <tbody className="text-slate-300">
                 {FEATURE_ROWS.map(([feature, free, pro, ultra], idx) => (
                   <tr key={idx} className="border-b border-white/[0.06]">
-                    <td className="py-4 px-4 text-slate-400">{feature}</td>
-                    <td className="py-4 px-4 text-center">{free}</td>
-                    <td className="py-4 px-4 text-center font-medium">{pro}</td>
-                    <td className="py-4 px-4 text-center font-medium">{ultra}</td>
+                    <td className="py-3 px-2 sm:py-4 sm:px-4 text-slate-400 whitespace-nowrap">{feature}</td>
+                    <td className="py-3 px-2 sm:py-4 sm:px-4 text-center whitespace-nowrap">{free}</td>
+                    <td className="py-3 px-2 sm:py-4 sm:px-4 text-center font-medium whitespace-nowrap">{pro}</td>
+                    <td className="py-3 px-2 sm:py-4 sm:px-4 text-center font-medium whitespace-nowrap">{ultra}</td>
                   </tr>
                 ))}
               </tbody>

@@ -306,7 +306,7 @@ const Profile: React.FC = () => {
 
       {/* ── 탭 네비게이션 (Spec v3 §5.6: 무료 플랜은 status/leadership/skills 잠금) ── */}
       <div className="sticky top-[65px] z-10 bg-[#060B18]/90 backdrop-blur-xl border-b border-white/5 px-4 py-2">
-        <div className="flex gap-1 bg-white/5 rounded-2xl p-1">
+        <div className="flex gap-1 bg-white/5 rounded-2xl p-1 overflow-x-auto hide-scrollbar">
           {(() => {
             const isFreePlan = (profile?.plan ?? 'free') === 'free';
             const PAID_ONLY_TABS: Array<'status' | 'leadership' | 'skills'> = ['status', 'leadership', 'skills'];
@@ -324,7 +324,7 @@ const Profile: React.FC = () => {
                   key={tab.key}
                   onClick={() => isLocked ? navigate('/pricing') : setActiveTab(tab.key)}
                   title={isLocked ? '프로 플랜부터 이용 가능' : undefined}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.key
+                  className={`shrink-0 flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${activeTab === tab.key
                     ? 'bg-[#F2B90D]/15 text-[#F2B90D] border border-[#F2B90D]/20'
                     : isLocked
                       ? 'text-slate-700 hover:text-amber-400'

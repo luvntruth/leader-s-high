@@ -117,20 +117,20 @@ const TeamOffice: React.FC = () => {
       )}
 
       {/* ── Header ── */}
-      <header className="p-6 flex items-center justify-between z-20 sticky top-0 bg-[#060B18]/80 backdrop-blur-md border-b border-white/5">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/')} className="p-2 text-slate-400 hover:text-white transition-colors">
+      <header className="px-4 py-4 sm:px-6 flex items-center justify-between z-20 sticky top-0 bg-[#060B18]/80 backdrop-blur-md border-b border-white/5">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <button onClick={() => navigate('/')} className="p-2 text-slate-400 hover:text-white transition-colors shrink-0">
             <span className="material-symbols-outlined">arrow_back_ios</span>
           </button>
-          <div>
-            <h1 className="text-xl font-black tracking-tighter flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">hub</span>
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-xl font-black tracking-tighter flex items-center gap-2 break-keep">
+              <span className="material-symbols-outlined text-primary shrink-0">hub</span>
               캐릭터 갤러리
             </h1>
             <p className="text-[10px] font-black text-primary/60 uppercase tracking-[0.3em]">Character Gallery</p>
           </div>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6 shrink-0">
           <div className="text-right hidden sm:block">
             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active Units</p>
             <p className="text-lg font-black text-primary">{members.length} / 12</p>
@@ -141,8 +141,8 @@ const TeamOffice: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-6 relative z-10 hide-scrollbar">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <main className="flex-1 overflow-y-auto px-4 py-4 sm:p-6 relative z-10 hide-scrollbar">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {members.map(({ scenario, info, thought, avatarUrl, intensity }, idx) => {
             const originalIndex = SCENARIOS.findIndex(s => s.id === scenario.id);
             const isLocked = !usageService.canAccessScenario(originalIndex, profile?.plan || 'free');
@@ -152,7 +152,7 @@ const TeamOffice: React.FC = () => {
               onClick={() => isLocked ? navigate('/pricing') : setSelectedMember(scenario.id)}
               onMouseEnter={() => setHoveredId(scenario.id)}
               onMouseLeave={() => setHoveredId(null)}
-              className={`group relative bg-[#0F1729]/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-6 text-left transition-all duration-500 overflow-hidden ${isLocked ? 'opacity-60' : 'hover:border-primary/30 hover:shadow-[0_0_30px_rgba(0,242,255,0.1)] hover:-translate-y-1'}`}
+              className={`group relative bg-[#0F1729]/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-4 sm:p-6 text-left transition-all duration-500 overflow-hidden ${isLocked ? 'opacity-60' : 'hover:border-primary/30 hover:shadow-[0_0_30px_rgba(0,242,255,0.1)] hover:-translate-y-1'}`}
             >
               <div className="flex items-start justify-between mb-4">
                 <AvatarWithGrade
@@ -222,7 +222,7 @@ const TeamOffice: React.FC = () => {
               onClick={e => e.stopPropagation()}
             >
               {/* 모달 헤더 */}
-              <div className="p-6 flex items-center gap-6 border-b border-white/5">
+              <div className="p-4 sm:p-6 flex items-center gap-4 sm:gap-6 border-b border-white/5">
                 <AvatarWithGrade
                   src={selected.avatarUrl}
                   grade={selected.intensity.label.replace('등급', '')}
@@ -239,28 +239,28 @@ const TeamOffice: React.FC = () => {
               </div>
 
               {/* 생각 말풍선 */}
-              <div className="px-6 pt-5 pb-2">
+              <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-2">
                 <div
-                  className="flex items-start gap-3 p-4 rounded-2xl border"
+                  className="flex items-start gap-3 p-3 sm:p-4 rounded-2xl border"
                   style={{ backgroundColor: `${selected.thought.color}08`, borderColor: `${selected.thought.color}25` }}
                 >
-                  <span className="text-xl mt-0.5">{selected.thought.emoji}</span>
-                  <div>
+                  <span className="text-xl mt-0.5 shrink-0">{selected.thought.emoji}</span>
+                  <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: selected.thought.color }}>속마음</p>
-                    <p className="text-sm font-bold text-slate-300 italic">"{selected.thought.thought}"</p>
+                    <p className="text-sm font-bold text-slate-300 italic break-keep">"{selected.thought.thought}"</p>
                   </div>
                 </div>
               </div>
 
               {/* 상황 보고서 (Quest Briefing Style) */}
-              <div className="px-6 py-4">
+              <div className="px-4 sm:px-6 py-4">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="material-symbols-outlined text-xs text-primary">description</span>
                   <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">상황 보고서</h4>
                 </div>
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                  <p className="text-[13px] font-black text-white mb-2 ml-1 leading-tight flex items-center gap-2">
-                    <span className="size-1 rounded-full bg-primary" />
+                <div className="p-3 sm:p-4 rounded-2xl bg-white/5 border border-white/10">
+                  <p className="text-[13px] font-black text-white mb-2 ml-1 leading-tight flex items-center gap-2 break-keep">
+                    <span className="size-1 rounded-full bg-primary shrink-0" />
                     {selected.scenario.title}
                   </p>
                   <div className="h-px w-full bg-white/5 mb-3" />
@@ -271,8 +271,8 @@ const TeamOffice: React.FC = () => {
               </div>
 
               {/* 보상 + 시작 버튼 */}
-              <div className="px-6 pb-8 flex items-center gap-3">
-                <div className="flex items-center gap-2 flex-1">
+              <div className="px-4 sm:px-6 pb-6 sm:pb-8 flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl" style={{ backgroundColor: selected.intensity.bg, border: `1px solid ${selected.intensity.border}` }}>
                     <span className="material-symbols-outlined text-sm" style={{ color: selected.intensity.color }}>bolt</span>
                     <span className="text-xs font-black" style={{ color: selected.intensity.color }}>+{selected.intensity.xp} XP</span>
@@ -288,7 +288,7 @@ const TeamOffice: React.FC = () => {
                     const selLocked = !usageService.canAccessScenario(selIndex, profile?.plan || 'free');
                     if (selLocked) { navigate('/pricing'); } else { navigate('/setup', { state: { scenario: selected.scenario } }); }
                   }}
-                  className="flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-sm transition-all active:scale-95"
+                  className="flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-sm transition-all active:scale-95 shrink-0"
                   style={{
                     backgroundColor: selected.intensity.color,
                     color: '#060B18',
