@@ -28,3 +28,13 @@ export function initMicrosoftClarity(projectId: string | undefined): void {
   script.src = buildClarityScriptUrl(config.projectId);
   document.head.appendChild(script);
 }
+
+/** 광고 A/B 버전 식별용 커스텀 태그 주입.
+ *  Clarity 대시보드에서 lp(버전)/utm 으로 세션을 필터·세그먼트할 수 있게 한다.
+ *  스크립트 로드 전 호출분은 clarity 스텁 큐에 적재되어 로드 후 반영된다. */
+export function setClarityTags(tags: Record<string, string | undefined>): void {
+  if (typeof window === 'undefined' || typeof window.clarity !== 'function') return;
+  for (const [key, value] of Object.entries(tags)) {
+    if (value) window.clarity('set', key, value);
+  }
+}

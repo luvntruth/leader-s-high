@@ -304,7 +304,7 @@ export const paymentService = {
    * 결제 화면 진입 시 호출 — URL query 에 결제 결과가 있고 대기 중인 결제가 있으면 검증한다.
    * @returns handled=false 면 복귀 상황이 아님(일반 진입). handled=true 면 success/message 로 결과 처리.
    */
-  async completeRedirectedPayment(): Promise<{ handled: boolean; success?: boolean; message?: string; plan?: string }> {
+  async completeRedirectedPayment(): Promise<{ handled: boolean; success?: boolean; message?: string; plan?: string; amount?: number }> {
     const pending = loadPendingPayment();
     if (!pending) return { handled: false };
 
@@ -330,6 +330,7 @@ export const paymentService = {
       success: verified.success,
       message: verified.success ? pending.successMessage : verified.message,
       plan: pending.verifyParams.plan,
+      amount: pending.verifyParams.amount,
     };
   },
 

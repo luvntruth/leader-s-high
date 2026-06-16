@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { analyticsService } from '../services/analyticsService';
+import { trackPixelEvent } from '../services/metaPixelService';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -48,6 +49,8 @@ export default function Signup() {
       await signUp(email, password, name);
       console.log('[Signup] 회원가입 성공');
       analyticsService.track('signup_complete', analyticsService.withAttribution({ source: isGuestConversion ? 'guest' : 'direct' }));
+      // Meta 전환: 회원가입 완료
+      trackPixelEvent('CompleteRegistration', { source: isGuestConversion ? 'guest' : 'direct' });
 
       // 전문가 코칭 플레이북 구매 intent
       if (intent === 'golden-script') {

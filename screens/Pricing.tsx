@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { paymentService, PAYMENT_OPTIONS, REPORT_PAYMENT_OPTION } from '../services/paymentService';
 import { analyticsService } from '../services/analyticsService';
+import { trackPixelEvent } from '../services/metaPixelService';
 import PolicyFooter from '../components/PolicyFooter';
 
 // Spec v3 §3: 3단 플랜 (Free / Pro / Ultra). Ultra 의 Coming Soon 기능은 카드에 명시
@@ -83,6 +84,8 @@ export default function Pricing() {
       window.history.replaceState(null, '', `${window.location.origin}/#/pricing`);
       setResult({ ok: !!r.success, msg: r.message || '' });
       if (r.success) {
+        // Meta 전환: 모바일 redirect 복귀 결제 완료
+        trackPixelEvent('Purchase', { value: r.amount ?? 0, currency: 'KRW', content_name: r.plan });
         await refreshProfile();
         // Spec v3 §4-B: Pro 는 결제 후 시나리오 선택 화면으로, 그 외는 홈으로
         const nextPath = r.plan === 'pro' ? '/select-scenarios' : '/';
@@ -133,6 +136,8 @@ export default function Pricing() {
         }),
         user.id,
       );
+      // Meta 전환: PC 팝업 결제 완료
+      trackPixelEvent('Purchase', { value: option.amount, currency: 'KRW', content_name: option.plan });
       await refreshProfile();
       // Spec v3 §4-B: Pro 는 결제 후 시나리오 선택 화면으로, Ultra/기타는 홈으로
       const nextPath = option.plan === 'pro' ? '/select-scenarios' : '/';

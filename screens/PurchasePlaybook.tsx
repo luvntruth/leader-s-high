@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { paymentService, REPORT_PAYMENT_OPTION } from '../services/paymentService';
+import { trackPixelEvent } from '../services/metaPixelService';
 import { dbService } from '../services/dbService';
 import { supabase } from '../src/lib/supabase';
 
@@ -55,6 +56,8 @@ export default function PurchasePlaybook() {
         if (loaded) setData(loaded);
         if (r.success) {
           sessionStorage.removeItem(STORAGE_KEY);
+          // Meta 전환: 모바일 redirect 복귀 플레이북 결제 완료
+          trackPixelEvent('Purchase', { value: r.amount ?? REPORT_PAYMENT_OPTION.amount, currency: 'KRW', content_name: 'playbook' });
           setSuccess(true);
         } else {
           setPurchaseError(r.message || '결제에 실패했습니다.');
@@ -125,6 +128,8 @@ export default function PurchasePlaybook() {
 
       // 3. 성공 처리
       sessionStorage.removeItem(STORAGE_KEY);
+      // Meta 전환: PC 팝업 플레이북 결제 완료
+      trackPixelEvent('Purchase', { value: REPORT_PAYMENT_OPTION.amount, currency: 'KRW', content_name: 'playbook' });
       setSuccess(true);
     } catch (err) {
       setPurchaseError(err instanceof Error ? err.message : '구매 중 오류가 발생했습니다.');
