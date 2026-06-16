@@ -54,6 +54,7 @@ const CustomLab = React.lazy(() => import('./screens/CustomLab'));
 const TeamOffice = React.lazy(() => import('./screens/TeamOffice'));
 const StreakDetail = React.lazy(() => import('./screens/StreakDetail'));
 const AdminDashboard = React.lazy(() => import('./screens/AdminDashboard'));
+const GrowthDashboard = React.lazy(() => import('./screens/GrowthDashboard'));
 const HistoryList = React.lazy(() => import('./screens/HistoryList'));
 const HistoryDetail = React.lazy(() => import('./screens/HistoryDetail'));
 const Login = React.lazy(() => import('./screens/Login'));
@@ -75,7 +76,7 @@ const AuthCallback = React.lazy(() => import('./screens/AuthCallback'));
 
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const noNavPaths = ['/', '/simulation', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/refund', '/reset-password', '/upgrade', '/landing', '/onboarding', '/dev', '/dev/playbook-sample', '/purchase/playbook', '/select-scenarios'];
+  const noNavPaths = ['/', '/simulation', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/refund', '/reset-password', '/upgrade', '/landing', '/onboarding', '/dev', '/dev/playbook-sample', '/purchase/playbook', '/select-scenarios', '/growth'];
   const showNav = !noNavPaths.includes(location.pathname);
 
   return (
@@ -145,6 +146,7 @@ const App: React.FC = () => {
               <Route path="/streak" element={<AuthGuard><StreakDetail /></AuthGuard>} />
               {/* B2B: 추후 활성화 */}
               {/* <Route path="/admin" element={<AuthGuard requiredRole="admin"><AdminDashboard /></AuthGuard>} /> */}
+              <Route path="/growth" element={<AuthGuard requiredRole="owner"><GrowthDashboard /></AuthGuard>} />
               <Route path="/history" element={<AuthGuard><HistoryList /></AuthGuard>} />
               <Route path="/history/:id" element={<AuthGuard><HistoryDetail /></AuthGuard>} />
             </Routes>
