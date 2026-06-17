@@ -29,20 +29,20 @@ BEGIN
 
   RETURN QUERY
   SELECT
-    COALESCE(NULLIF(e.properties->>'lp', ''), '(none)')                                       AS variant,
-    COUNT(DISTINCT e.session_id) FILTER (WHERE e.event_name = 'onboarding_start')             AS onboarding,
-    COUNT(DISTINCT e.session_id) FILTER (WHERE e.event_name = 'sim_start')                    AS sim_start,
-    COUNT(DISTINCT e.session_id) FILTER (WHERE e.event_name = 'signup_complete')              AS signups,
-    COUNT(DISTINCT e.session_id) FILTER (WHERE e.event_name = 'pricing_view')                 AS pricing_views,
-    COUNT(DISTINCT e.session_id) FILTER (WHERE e.event_name = 'checkout_success')             AS purchases,
+    COALESCE(NULLIF(e.properties->>'lp', ''), '(none)')                                         AS variant,
+    COUNT(DISTINCT CASE WHEN e.event_name = 'onboarding_start' THEN e.session_id END)           AS onboarding,
+    COUNT(DISTINCT CASE WHEN e.event_name = 'sim_start' THEN e.session_id END)                  AS sim_start,
+    COUNT(DISTINCT CASE WHEN e.event_name = 'signup_complete' THEN e.session_id END)            AS signups,
+    COUNT(DISTINCT CASE WHEN e.event_name = 'pricing_view' THEN e.session_id END)               AS pricing_views,
+    COUNT(DISTINCT CASE WHEN e.event_name = 'checkout_success' THEN e.session_id END)           AS purchases,
     ROUND(
-      COUNT(DISTINCT e.session_id) FILTER (WHERE e.event_name = 'signup_complete')::numeric
-      / NULLIF(COUNT(DISTINCT e.session_id) FILTER (WHERE e.event_name = 'onboarding_start'), 0) * 100, 1
-    )                                                                                         AS signup_rate_pct,
+      COUNT(DISTINCT CASE WHEN e.event_name = 'signup_complete' THEN e.session_id END)::numeric
+      / NULLIF(COUNT(DISTINCT CASE WHEN e.event_name = 'onboarding_start' THEN e.session_id END), 0) * 100, 1
+    )                                                                                           AS signup_rate_pct,
     ROUND(
-      COUNT(DISTINCT e.session_id) FILTER (WHERE e.event_name = 'checkout_success')::numeric
-      / NULLIF(COUNT(DISTINCT e.session_id) FILTER (WHERE e.event_name = 'onboarding_start'), 0) * 100, 1
-    )                                                                                         AS purchase_rate_pct
+      COUNT(DISTINCT CASE WHEN e.event_name = 'checkout_success' THEN e.session_id END)::numeric
+      / NULLIF(COUNT(DISTINCT CASE WHEN e.event_name = 'onboarding_start' THEN e.session_id END), 0) * 100, 1
+    )                                                                                           AS purchase_rate_pct
   FROM analytics_events e
   GROUP BY 1
   ORDER BY 2 DESC;
