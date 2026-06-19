@@ -37,6 +37,9 @@ export default function GrowthDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [range, setRange] = useState<RangeKey>('7d');
+  // A: 광고비/객단가 입력 (브라우저에 보존) → CPA·ROAS 자동 계산
+  const [adSpend, setAdSpend] = useState<number>(() => Number(localStorage.getItem('growth_ad_spend')) || 0);
+  const [aov, setAov] = useState<number>(() => Number(localStorage.getItem('growth_aov')) || 8900);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,12 +67,41 @@ export default function GrowthDashboard() {
     return rows.reduce(
       (acc, r) => ({
         onboarding: acc.onboarding + (r.onboarding || 0),
+        sim_start: acc.sim_start + (r.sim_start || 0),
         signups: acc.signups + (r.signups || 0),
+        pricing_views: acc.pricing_views + (r.pricing_views || 0),
         purchases: acc.purchases + (r.purchases || 0),
       }),
-      { onboarding: 0, signups: 0, purchases: 0 },
+      { onboarding: 0, sim_start: 0, signups: 0, pricing_views: 0, purchases: 0 },
     );
   }, [rows]);
+
+  // A: 단위 경제성 — CPA(결제 1건당 광고비), 매출(=결제수×객단가), ROAS, 손익분기
+  const econ = useMemo(() => {
+    const cpa = totals.purchases > 0 ? adSpend / totals.purchases : null;   // 광고비/결제수
+    const cpSignup = totals.signups > 0 ? adSpend / totals.signups : null;  // 가입 1건당 광고비
+    const revenue = totals.purchases * aov;
+    const roas = adSpend > 0 ? revenue / adSpend : null;                    // 매출/광고비 (1 이상이면 흑자)
+    const profitable = cpa !== null && cpa <= aov;                          // CPA ≤ 객단가면 결제 단건 기준 흑자
+    return { cpa, cpSignup, revenue, roas, profitable };
+  }, [adSpend, aov, totals]);
+
+  // B: 단계별 전환율 + 최대 누수 구간. 가장 낮은 통과율 단계를 병목으로 본다.
+  const funnel = useMemo(() => {
+    const steps = [
+      { from: '진입', to: '시뮬 시작', a: totals.onboarding, b: totals.sim_start },
+      { from: '시뮬 시작', to: '가입', a: totals.sim_start, b: totals.signups },
+      { from: '가입', to: '플랜조회', a: totals.signups, b: totals.pricing_views },
+      { from: '플랜조회', to: '결제', a: totals.pricing_views, b: totals.purchases },
+    ].map(s => ({ ...s, rate: s.a > 0 ? (s.b / s.a) * 100 : null }));
+    const measurable = steps.filter(s => s.rate !== null && s.a >= 5); // 표본 5건 미만은 노이즈라 병목 판정 제외
+    const worst = measurable.length ? measurable.reduce((m, s) => (s.rate! < m.rate! ? s : m)) : null;
+    return { steps, worst };
+  }, [totals]);
+
+  const saveSpend = (v: number) => { setAdSpend(v); localStorage.setItem('growth_ad_spend', String(v)); };
+  const saveAov = (v: number) => { setAov(v); localStorage.setItem('growth_aov', String(v)); };
+  const won = (n: number) => '₩' + Math.round(n).toLocaleString();
 
   return (
     <div className="min-h-screen bg-[#05070a] text-gray-100 pb-24 px-5 lg:px-10 py-8">
@@ -118,6 +150,89 @@ export default function GrowthDashboard() {
                   <p className="text-2xl font-black text-primary mt-1">{(val as number).toLocaleString()}</p>
                 </div>
               ))}
+            </div>
+
+            {/* A: 단위 경제성 — 광고가 남는 장사인지 판정 */}
+            <div className="rounded-3xl border border-white/5 bg-[#0c0f14] p-5 lg:p-6 mb-8">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">단위 경제성 (광고 회수 판정)</p>
+              <div className="flex flex-wrap gap-4 mb-5">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-bold text-slate-400">광고비 (이 기간, ₩)</span>
+                  <input
+                    type="number" inputMode="numeric" value={adSpend || ''}
+                    onChange={e => saveSpend(Number(e.target.value) || 0)}
+                    placeholder="예: 300000"
+                    className="w-40 rounded-xl border border-white/10 bg-[#05070a] px-3 py-2 text-sm text-white focus:border-primary/50 outline-none"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-bold text-slate-400">평균 객단가 (₩)</span>
+                  <input
+                    type="number" inputMode="numeric" value={aov || ''}
+                    onChange={e => saveAov(Number(e.target.value) || 0)}
+                    placeholder="8900"
+                    className="w-40 rounded-xl border border-white/10 bg-[#05070a] px-3 py-2 text-sm text-white focus:border-primary/50 outline-none"
+                  />
+                </label>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="rounded-2xl border border-white/10 bg-[#05070a] p-4">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">결제 CPA</p>
+                  <p className={`text-xl font-black mt-1 ${econ.cpa === null ? 'text-slate-600' : econ.profitable ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {econ.cpa === null ? '—' : won(econ.cpa)}
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-1">결제 1건당 광고비</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-[#05070a] p-4">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">가입 CPA</p>
+                  <p className="text-xl font-black mt-1 text-slate-200">{econ.cpSignup === null ? '—' : won(econ.cpSignup)}</p>
+                  <p className="text-[10px] text-slate-500 mt-1">가입 1건당 광고비</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-[#05070a] p-4">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">매출(추정)</p>
+                  <p className="text-xl font-black mt-1 text-slate-200">{won(econ.revenue)}</p>
+                  <p className="text-[10px] text-slate-500 mt-1">결제수 × 객단가</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-[#05070a] p-4">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">ROAS</p>
+                  <p className={`text-xl font-black mt-1 ${econ.roas === null ? 'text-slate-600' : econ.roas >= 1 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {econ.roas === null ? '—' : econ.roas.toFixed(2) + '×'}
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-1">1.0× 이상이면 흑자</p>
+                </div>
+              </div>
+              {econ.cpa !== null && (
+                <p className={`text-xs font-bold mt-4 ${econ.profitable ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {econ.profitable
+                    ? `✓ 결제 CPA(${won(econ.cpa)}) ≤ 객단가(${won(aov)}) — 결제 단건 기준 회수됩니다.`
+                    : `⚠ 결제 CPA(${won(econ.cpa)}) > 객단가(${won(aov)}) — 단건으론 손해. 전환율 개선 또는 재구매(LTV)로 회수해야 합니다.`}
+                </p>
+              )}
+              {adSpend === 0 && <p className="text-[11px] text-slate-600 mt-3">Meta Ads Manager의 이 기간 지출(Spend)을 입력하면 CPA·ROAS가 계산됩니다.</p>}
+            </div>
+
+            {/* B: 깔때기 누수 분석 — 단계별 통과율 + 최대 병목 */}
+            <div className="rounded-3xl border border-white/5 bg-[#0c0f14] p-5 lg:p-6 mb-8">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">깔때기 누수 분석 (어디서 가장 많이 새는가)</p>
+              <div className="space-y-3">
+                {funnel.steps.map(s => {
+                  const isWorst = funnel.worst && s.from === funnel.worst.from && s.to === funnel.worst.to;
+                  return (
+                    <div key={s.from + s.to}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="font-bold text-slate-300">{s.from} → {s.to} {isWorst && <span className="ml-1 text-red-400">· 최대 누수</span>}</span>
+                        <span className={`font-black ${isWorst ? 'text-red-400' : 'text-slate-300'}`}>{s.rate === null ? '—' : s.rate.toFixed(1) + '%'}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                        <div className={`h-full rounded-full ${isWorst ? 'bg-red-500/70' : 'bg-primary/60'}`} style={{ width: `${Math.min(s.rate ?? 0, 100)}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {funnel.worst
+                ? <p className="text-xs font-bold text-red-300 mt-4">→ 우선 개선 대상: <span className="text-white">{funnel.worst.from} → {funnel.worst.to}</span> 구간 (통과율 {funnel.worst.rate!.toFixed(1)}%). 여기를 끌어올리는 게 같은 광고비로 결제를 늘리는 가장 빠른 길입니다.</p>
+                : <p className="text-[11px] text-slate-600 mt-3">표본이 더 쌓이면(단계별 5건 이상) 최대 누수 구간을 자동으로 짚어줍니다.</p>}
             </div>
 
             {/* 버전별 퍼널 테이블 */}
