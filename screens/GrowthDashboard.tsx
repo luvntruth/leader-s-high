@@ -37,9 +37,15 @@ export default function GrowthDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [range, setRange] = useState<RangeKey>('7d');
-  // A: 광고비/객단가 입력 (브라우저에 보존) → CPA·ROAS 자동 계산
-  const [adSpend, setAdSpend] = useState<number>(() => Number(localStorage.getItem('growth_ad_spend')) || 0);
+  // A: 광고비/객단가 입력 (브라우저에 보존) → CPA·ROAS 자동 계산.
+  // 광고비는 기간에 종속되므로 range 별로 분리 저장한다(7일치/30일치를 섞지 않기 위함).
+  const [adSpend, setAdSpend] = useState<number>(() => Number(localStorage.getItem('growth_ad_spend_7d')) || 0);
   const [aov, setAov] = useState<number>(() => Number(localStorage.getItem('growth_aov')) || 8900);
+
+  // 기간 전환 시 해당 기간에 저장된 광고비를 다시 불러온다.
+  useEffect(() => {
+    setAdSpend(Number(localStorage.getItem(`growth_ad_spend_${range}`)) || 0);
+  }, [range]);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,7 +105,8 @@ export default function GrowthDashboard() {
     return { steps, worst };
   }, [totals]);
 
-  const saveSpend = (v: number) => { setAdSpend(v); localStorage.setItem('growth_ad_spend', String(v)); };
+  const saveSpend = (v: number) => { setAdSpend(v); localStorage.setItem(`growth_ad_spend_${range}`, String(v)); };
+  const rangeLabel = RANGES.find(r => r.key === range)?.label ?? '';
   const saveAov = (v: number) => { setAov(v); localStorage.setItem('growth_aov', String(v)); };
   const won = (n: number) => '₩' + Math.round(n).toLocaleString();
 
@@ -157,7 +164,7 @@ export default function GrowthDashboard() {
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">단위 경제성 (광고 회수 판정)</p>
               <div className="flex flex-wrap gap-4 mb-5">
                 <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-bold text-slate-400">광고비 (이 기간, ₩)</span>
+                  <span className="text-[11px] font-bold text-slate-400">광고비 ({rangeLabel}, ₩)</span>
                   <input
                     type="number" inputMode="numeric" value={adSpend || ''}
                     onChange={e => saveSpend(Number(e.target.value) || 0)}
