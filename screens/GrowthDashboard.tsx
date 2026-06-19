@@ -21,15 +21,30 @@ const VARIANT_LABEL: Record<string, string> = {
   '(none)': '미지정',
 };
 
+// 날짜 범위 프리셋 — Meta Ads Manager 기간과 맞춰 대조하기 위함.
+// from() 은 시작 시점(ISO) 또는 null(전체). 종료는 항상 현재까지.
+type RangeKey = 'all' | '7d' | '30d' | 'month';
+const RANGES: { key: RangeKey; label: string; from: () => string | null }[] = [
+  { key: '7d', label: '최근 7일', from: () => new Date(Date.now() - 7 * 864e5).toISOString() },
+  { key: '30d', label: '최근 30일', from: () => new Date(Date.now() - 30 * 864e5).toISOString() },
+  { key: 'month', label: '이번 달', from: () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString(); } },
+  { key: 'all', label: '전체', from: () => null },
+];
+
 export default function GrowthDashboard() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<FunnelRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [range, setRange] = useState<RangeKey>('7d');
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const { data, error } = await supabase.rpc('get_ab_funnel');
+      setLoading(true);
+      const p_from = RANGES.find(r => r.key === range)?.from() ?? null;
+      const { data, error } = await supabase.rpc('get_ab_funnel', { p_from, p_to: null });
+      if (cancelled) return;
       if (error) {
         setError(
           error.message.includes('forbidden')
@@ -37,11 +52,13 @@ export default function GrowthDashboard() {
             : `데이터를 불러오지 못했습니다: ${error.message}`,
         );
       } else {
+        setError(null);
         setRows((data as FunnelRow[]) || []);
       }
       setLoading(false);
     })();
-  }, []);
+    return () => { cancelled = true; };
+  }, [range]);
 
   const totals = useMemo(() => {
     return rows.reduce(
@@ -59,7 +76,24 @@ export default function GrowthDashboard() {
       <div className="max-w-5xl mx-auto">
         <button onClick={() => navigate(-1)} className="text-sm text-slate-500 hover:text-slate-300 mb-6">← 돌아가기</button>
         <h1 className="text-2xl font-black text-white italic">광고 A/B 성과</h1>
-        <p className="text-xs text-slate-500 font-bold mt-1 mb-8">랜딩 버전(lp)별 진입 → 가입 → 결제 퍼널 · 세션 기준</p>
+        <p className="text-xs text-slate-500 font-bold mt-1 mb-4">랜딩 버전(lp)별 진입 → 가입 → 결제 퍼널 · 세션 기준</p>
+
+        {/* 날짜 범위 — Meta 광고 기간과 맞춰 대조 */}
+        <div className="flex flex-wrap gap-2 mb-8">
+          {RANGES.map(r => (
+            <button
+              key={r.key}
+              onClick={() => setRange(r.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors border ${
+                range === r.key
+                  ? 'bg-primary/15 border-primary/40 text-primary'
+                  : 'bg-white/[0.03] border-white/10 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
 
         {loading && <div className="text-primary animate-pulse">데이터 로드 중...</div>}
         {error && <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-300">{error}</div>}
@@ -97,6 +131,7 @@ export default function GrowthDashboard() {
                       <th className="px-5 py-4 text-right">시뮬 시작</th>
                       <th className="px-5 py-4 text-right">가입</th>
                       <th className="px-5 py-4 text-right">가입률</th>
+                      <th className="px-5 py-4 text-right">플랜조회</th>
                       <th className="px-5 py-4 text-right">결제</th>
                       <th className="px-5 py-4 text-right">결제율</th>
                     </tr>
@@ -111,6 +146,7 @@ export default function GrowthDashboard() {
                         <td className="px-5 py-4 text-right text-slate-400">{r.sim_start?.toLocaleString()}</td>
                         <td className="px-5 py-4 text-right text-slate-300">{r.signups?.toLocaleString()}</td>
                         <td className="px-5 py-4 text-right font-bold text-accent-amber">{r.signup_rate_pct ?? 0}%</td>
+                        <td className="px-5 py-4 text-right text-slate-400">{r.pricing_views?.toLocaleString()}</td>
                         <td className="px-5 py-4 text-right text-slate-300">{r.purchases?.toLocaleString()}</td>
                         <td className="px-5 py-4 text-right font-bold text-emerald-400">{r.purchase_rate_pct ?? 0}%</td>
                       </tr>
@@ -120,6 +156,12 @@ export default function GrowthDashboard() {
               </div>
             </div>
             <p className="text-[11px] text-slate-600 mt-4">버전: practice=연습 / diagnosis=진단 / new-manager=신임팀장 (광고 URL의 lp 파라미터 기준)</p>
+            <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-[11px] leading-5 text-slate-400">
+              <p className="font-bold text-slate-300 mb-1">Meta 광고 성과 대조법</p>
+              여기 <span className="text-slate-200">가입·결제</span>는 DB 실측치(전체 기간 누적, 세션 기준)입니다. Meta Ads Manager의 보고 전환수와 비교해
+              차이가 크면 Meta가 조회 기여로 과대 집계 중일 수 있습니다. Meta는 <span className="text-slate-200">7일 클릭</span> 기여로 보고,
+              기간을 맞춰 대조하세요. CPA는 (Meta 광고비 ÷ 위 결제수)로 계산하면 실질 전환단가가 나옵니다.
+            </div>
           </>
         )}
       </div>

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 // @ts-ignore
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../src/lib/supabase';
+import { trackPixelEvent } from '../services/metaPixelService';
+import { analyticsService } from '../services/analyticsService';
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
@@ -59,6 +61,13 @@ const AuthCallback: React.FC = () => {
           const createdAt = u?.created_at ? new Date(u.created_at).getTime() : 0;
           const lastSignIn = u?.last_sign_in_at ? new Date(u.last_sign_in_at).getTime() : createdAt;
           const isNewUser = !u?.last_sign_in_at || Math.abs(lastSignIn - createdAt) < 10000;
+
+          // Meta 전환: Google 신규 가입도 가입 완료로 1회 발화 (이메일 가입과 동일 기준).
+          // OAuth 콜백은 가입/로그인 공용 경로라 isNewUser 로만 신규를 가른다.
+          if (isNewUser) {
+            analyticsService.track('signup_complete', analyticsService.withAttribution({ source: 'google' }));
+            trackPixelEvent('CompleteRegistration', { source: 'google' });
+          }
 
           if (pendingPurchase) {
             sessionStorage.removeItem('leadershigh_pending_purchase');

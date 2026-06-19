@@ -99,6 +99,8 @@ export default function PlansSection({ source = 'pricing', loginRedirect = '/pri
       }),
       user.id,
     );
+    // Meta 전환: 결제 시작(깔때기 중간 신호) — 드문 Purchase 보완용 최적화 이벤트
+    trackPixelEvent('InitiateCheckout', { value: option.amount, currency: 'KRW', content_name: option.plan, source });
 
     setLoading(optionId);
     setResult(null);
