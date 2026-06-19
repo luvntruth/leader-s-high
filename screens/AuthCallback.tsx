@@ -11,7 +11,6 @@ const AuthCallback: React.FC = () => {
     const handleCallback = async () => {
       try {
         const href = window.location.href;
-        const hash = window.location.hash || '';
 
         // HashRouter 환경 대응: /#/auth/callback?code=... 또는 #access_token=... 모두 처리
         const codeMatch = href.match(/[?#&]code=([^&#]+)/);
@@ -54,6 +53,13 @@ const AuthCallback: React.FC = () => {
           const guestConversion = sessionStorage.getItem('leadershigh_guest_conversion');
           const postAuthRedirect = sessionStorage.getItem('leadershigh_post_auth_redirect');
 
+          // 신규 가입자 판별: 첫 OAuth 로그인이면 created_at ≈ last_sign_in_at (수 초 이내).
+          // 의도(가입/로그인 버튼)와 무관하게 진짜 새 계정만 골라낸다.
+          const u = session.user;
+          const createdAt = u?.created_at ? new Date(u.created_at).getTime() : 0;
+          const lastSignIn = u?.last_sign_in_at ? new Date(u.last_sign_in_at).getTime() : createdAt;
+          const isNewUser = !u?.last_sign_in_at || Math.abs(lastSignIn - createdAt) < 10000;
+
           if (pendingPurchase) {
             sessionStorage.removeItem('leadershigh_pending_purchase');
             navigate('/purchase/playbook', { replace: true });
@@ -66,13 +72,14 @@ const AuthCallback: React.FC = () => {
                 replace: true,
               });
             } catch {
-              navigate('/onboarding', { replace: true });
+              navigate('/onboarding', { state: { justSignedUp: isNewUser }, replace: true });
             }
           } else if (postAuthRedirect) {
             sessionStorage.removeItem('leadershigh_post_auth_redirect');
             navigate(postAuthRedirect, { replace: true });
-          } else if (hash.includes('access_token')) {
-            navigate('/profile', { replace: true });
+          } else if (isNewUser) {
+            // 신규 Google 가입 → 무료 체험 + 플랜이 보이는 온보딩으로 (이메일 가입과 동일 흐름)
+            navigate('/onboarding', { state: { justSignedUp: true }, replace: true });
           } else {
             navigate('/profile', { replace: true });
           }

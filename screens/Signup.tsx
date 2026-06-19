@@ -80,7 +80,7 @@ export default function Signup() {
             localStorage.removeItem('leadershigh_guest_transcript');
             navigate('/feedback', { state: { transcript, scenario, sosTipHistory }, replace: true });
           } else {
-            navigate('/', { replace: true });
+            navigate('/onboarding', { state: { justSignedUp: true }, replace: true });
           }
         }
       } else {

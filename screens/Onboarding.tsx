@@ -1,12 +1,13 @@
 import React from 'react';
 // @ts-ignore
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { SCENARIOS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { getCharacterAvatar } from '../services/characterAvatars';
 import { analyticsService } from '../services/analyticsService';
 import { FREE_SCENARIO_IDS } from '../services/usageService';
+import PlansSection from '../components/PlansSection';
 
 const CURATED = [
   { id: 'late-comer', grade: 'B', difficulty: '쉬움', color: '#10B981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.4)' },
@@ -34,8 +35,11 @@ const itemVariants = {
 
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, profile } = useAuth();
   const displayName = profile?.display_name || '리더';
+  // 가입 직후 진입 시 환영 배너 노출 (Signup 에서 state.justSignedUp 전달)
+  const [showWelcome, setShowWelcome] = React.useState<boolean>(Boolean(location.state?.justSignedUp));
 
   const firstScenario = SCENARIOS.find(s => s.id === 'late-comer');
 
@@ -47,6 +51,14 @@ const Onboarding: React.FC = () => {
     }), user?.id);
   }, [user]);
 
+  // 환영 배너는 한 번만 — history state 를 비워 새로고침/뒤로가기 시 재노출 방지
+  React.useEffect(() => {
+    if (!showWelcome) return;
+    window.history.replaceState({}, '');
+    const t = setTimeout(() => setShowWelcome(false), 5000);
+    return () => clearTimeout(t);
+  }, [showWelcome]);
+
   return (
       <motion.div
         initial="hidden"
@@ -54,18 +66,48 @@ const Onboarding: React.FC = () => {
         variants={containerVariants}
         className="flex flex-col min-h-screen bg-slate-950 font-manrope text-white"
       >
+      {/* 가입 완료 환영 배너 — 가입 직후 1회 노출 */}
+      {showWelcome && (
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -16 }}
+          className="sticky top-0 z-30 mx-auto w-full max-w-6xl px-6 pt-4"
+        >
+          <div className="flex items-center justify-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-300 shadow-lg backdrop-blur-md">
+            <span>🎉</span>
+            <span>가입 완료! 아래에서 무료 체험을 시작하고, 더 필요하면 플랜을 확인해 보세요.</span>
+          </div>
+        </motion.div>
+      )}
+
       {/* Hero section */}
       <motion.div variants={itemVariants} className="px-6 pt-16 lg:pt-24 pb-10 lg:pb-12 text-center relative max-w-6xl mx-auto w-full">
-        {user && (
-          <div className="absolute top-0 right-0 flex items-center gap-2">
+        <div className="absolute top-0 right-0 flex items-center gap-2">
+          {user ? (
             <button
               onClick={() => navigate('/profile')}
               className="px-3 py-2 rounded-xl border border-white/10 bg-white/[0.04] text-xs font-bold text-slate-200 hover:bg-white/[0.08] transition-colors"
             >
               마이페이지
             </button>
-          </div>
-        )}
+          ) : (
+            <>
+              <button
+                onClick={() => navigate('/login', { state: { from: '/onboarding' } })}
+                className="px-3 py-2 rounded-xl border border-white/10 bg-white/[0.04] text-xs font-bold text-slate-200 hover:bg-white/[0.08] transition-colors"
+              >
+                로그인
+              </button>
+              <button
+                onClick={() => navigate('/signup', { state: { from: '/onboarding' } })}
+                className="px-3 py-2 rounded-xl bg-amber-500 text-xs font-bold text-slate-900 hover:bg-amber-400 transition-colors"
+              >
+                회원가입
+              </button>
+            </>
+          )}
+        </div>
 
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
@@ -180,6 +222,22 @@ const Onboarding: React.FC = () => {
           <span className="text-lg">&rarr;</span>
         </motion.button>
       </motion.div>
+
+      {/* 유료 플랜 — 스크롤하면 무료 체험 아래로 자연스럽게 이어짐 */}
+      <motion.section variants={itemVariants} className="border-t border-white/5 bg-[#0B1020] px-6 pt-14 lg:pt-20 pb-20 lg:pb-24">
+        <div className="max-w-6xl mx-auto w-full">
+          <div className="text-center max-w-3xl mx-auto mb-10 lg:mb-12">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-amber-300/80 font-bold mb-3">Continue only if you need more</p>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-[-0.03em] leading-tight text-white mb-4 break-keep">
+              더 많은 시나리오를 <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-200 to-amber-400">반복 훈련</span>하고 싶다면
+            </h2>
+            <p className="text-slate-400 text-sm lg:text-base leading-7">
+              무료 체험으로 가치를 확인한 뒤, 반복 훈련과 풀 리포트가 필요할 때만 플랜을 선택하세요.
+            </p>
+          </div>
+          <PlansSection source="onboarding" loginRedirect="/onboarding" />
+        </div>
+      </motion.section>
     </motion.div>
   );
 };
