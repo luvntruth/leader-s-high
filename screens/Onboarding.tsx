@@ -100,7 +100,7 @@ const Onboarding: React.FC = () => {
                 로그인
               </button>
               <button
-                onClick={() => navigate('/signup', { state: { from: '/onboarding' } })}
+                onClick={() => navigate('/signup', { state: { from: '/onboarding', intent: 'direct' } })}
                 className="px-3 py-2 rounded-xl bg-amber-500 text-xs font-bold text-slate-900 hover:bg-amber-400 transition-colors"
               >
                 회원가입

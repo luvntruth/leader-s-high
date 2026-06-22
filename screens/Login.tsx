@@ -142,7 +142,7 @@ export default function Login() {
 
         {/* 하단 링크 */}
         <div className="mt-6 text-center space-y-2">
-          <Link to="/signup" className="text-amber-500 text-sm hover:text-amber-400 transition-colors">
+          <Link to="/signup" state={{ intent: 'direct' }} className="text-amber-500 text-sm hover:text-amber-400 transition-colors">
             계정이 없으신가요? 회원가입
           </Link>
           <div>
