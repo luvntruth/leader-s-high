@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { GoogleGenAI, Chat, Type } from "@google/genai";
 import { TrustLevelService, TrustLevelOutput, InstantCoachingResult } from '../services/trustLevelService';
-import { getMissionBriefing, getOpeningLine } from '../services/missionBriefings';
+import { getMissionBriefing, getOpeningLine, getOpeningSuggestions } from '../services/missionBriefings';
 import { EmotionStateMachine } from '../services/emotionStateMachine';
 import { createGeminiClient } from '../src/lib/geminiClient';
 import { getAiErrorMessage, getInitErrorMessage } from '../src/lib/geminiErrors';
@@ -1241,6 +1241,24 @@ ${recentMsgs}
 
             {/* Input Bar */}
             <div className="flex flex-col gap-1.5 sm:gap-1">
+              {/* 첫 턴 빠른 시작 칩 — 빈 입력창 마찰 제거(시뮬 시작→첫 발화 이탈 대응).
+                  사용자 발화가 0건이고 진행 중이 아닐 때만, 탭하면 바로 전송. */}
+              {messages.filter(m => m.role === 'user').length === 0 && !isLoading && !isAnalysisComplete && !showSOS && (
+                <div className="px-0.5 pb-0.5">
+                  <p className="text-[10px] font-bold text-slate-500 mb-1.5">이렇게 시작해보세요 · 탭하면 바로 전송돼요</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {getOpeningSuggestions(scenario?.id, config?.name).map((s, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleSend(s)}
+                        className="text-[11px] lg:text-[12px] text-left text-slate-300 bg-white/5 hover:bg-primary/15 hover:text-primary border border-white/10 hover:border-primary/40 rounded-full px-3 py-1.5 transition-all active:scale-95"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="bg-black/40 rounded-[1.1rem] sm:rounded-[1.15rem] border border-white/5 px-2.5 py-0.5 sm:py-0.5 lg:py-1 flex items-end gap-1.5 focus-within:border-primary/40 transition-all">
                 <textarea
                   ref={textareaRef}
