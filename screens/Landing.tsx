@@ -23,6 +23,8 @@ const LANDING_VARIANTS = {
     description:
       '성과 면담, 갈등 조정, 동기부여 대화까지. 실제처럼 반응하는 AI 팀원과 리허설하고, 대화 직후 바로 피드백을 받으세요.',
     primaryCta: '지금 바로 연습해보기 →',
+    pricingCta: '바로 결제하기',
+    bottomPricingCta: '요금제 보고 결제하기 →',
     secondaryText: '가입 없이 바로 체험',
     bottomTitle: '이번 주 성과 면담이 있으신가요?',
     bottomDescription: '10분이면 충분합니다. AI 팀원과 먼저 연습해보세요.',
@@ -36,6 +38,8 @@ const LANDING_VARIANTS = {
     description:
       '내 말이 왜 신뢰를 깎았는지, 어떤 표현이 방어심을 키웠는지, 어떻게 바꿔야 하는지 AI 시뮬레이션과 피드백으로 확인하세요.',
     primaryCta: '내 대화 진단받기 →',
+    pricingCta: '바로 결제하기',
+    bottomPricingCta: '요금제 보고 결제하기 →',
     secondaryText: '무료로 바로 진단 시작',
     bottomTitle: '말은 했는데 왜 더 멀어졌을까요?',
     bottomDescription: '실제처럼 재현하고, 무엇이 잘못됐는지 구조적으로 확인해보세요.',
@@ -49,11 +53,28 @@ const LANDING_VARIANTS = {
     description:
       '일은 아는데 사람 대화가 어렵다면, AI 팀원과 실제처럼 연습하고 성과와 관계를 함께 지키는 리더십 대화 방식을 익히세요.',
     primaryCta: '팀장 대화 연습하기 →',
+    pricingCta: '바로 결제하기',
+    bottomPricingCta: '요금제 보고 결제하기 →',
     secondaryText: '이번 주 면담 준비 가능',
     bottomTitle: '팀장 첫 면담, 망치기 전에 연습하세요',
     bottomDescription: '실전 전에 말의 순서와 톤을 다듬으면 결과가 달라집니다.',
     bottomCta: '면담 리허설 시작 →',
     proofTitle: '신임 팀장을 위한 실전 훈련 모드',
+  },
+  'urgent-meeting': {
+    badge: '이번 주 면담 대비',
+    titleTop: '이번 주 어려운 면담이 있다면,',
+    titleAccent: '10분 리허설로 말의 순서부터 점검하세요',
+    description:
+      '성과 피드백, 지각 경고, 갈등 조정처럼 미루기 어려운 대화일수록 실전 전에 한 번 말해보는 것이 중요합니다. AI 팀원과 먼저 부딪혀보고, 위험 표현과 대안 문장을 바로 확인하세요.',
+    primaryCta: '면담 전 10분 리허설 시작 →',
+    pricingCta: '₩8,900으로 이번 면담 리스크 줄이기',
+    bottomPricingCta: '지금 결제하고 풀 리포트 보기 →',
+    secondaryText: '당장 앞둔 대화 대비',
+    bottomTitle: '오늘 말할 문장을 내일 후회하지 않도록',
+    bottomDescription: '무료로 먼저 리허설하고, 더 깊은 전략이 필요하면 풀 리포트로 이번 면담의 리스크를 줄이세요.',
+    bottomCta: '무료 리허설 시작하기 →',
+    proofTitle: '당장 앞둔 면담 리스크를 줄이는 긴급 리허설 모드',
   },
 } as const;
 
@@ -291,7 +312,7 @@ export default function Landing() {
                 onClick={() => handlePricingCta('hero')}
                 className="px-5 py-4 rounded-2xl border border-white/10 bg-white/[0.03] text-sm text-slate-300 hover:text-white hover:border-amber-500/30 transition-colors min-h-[52px] flex items-center justify-center"
               >
-                바로 결제하기
+                {variant.pricingCta}
               </button>
             </div>
           </motion.div>
@@ -386,7 +407,7 @@ export default function Landing() {
               onClick={() => handlePricingCta('bottom')}
               className="px-8 py-4 border border-white/10 bg-white/[0.03] text-slate-200 font-black rounded-2xl text-sm hover:border-amber-500/30 hover:text-white active:scale-95 transition-all min-h-[52px]"
             >
-              요금제 보고 결제하기 →
+              {variant.bottomPricingCta}
             </button>
           </div>
         </motion.div>

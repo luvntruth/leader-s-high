@@ -26,6 +26,8 @@ export type EventName =
   | 'checkout_start'
   | 'checkout_success'
   | 'report_view'
+  | 'report_pro_bridge_view'
+  | 'report_pro_bridge_click'
   | 'report_purchase'
   | 'share_card'
   // Spec v3 §8: 추가 이벤트

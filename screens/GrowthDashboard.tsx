@@ -20,6 +20,7 @@ const VARIANT_LABEL: Record<string, string> = {
   practice: '연습 강조',
   diagnosis: '진단 강조',
   'new-manager': '신임 팀장',
+  'urgent-meeting': '긴급 면담',
   '(none)': '미지정',
 };
 
@@ -32,6 +33,65 @@ const RANGES: { key: RangeKey; label: string; from: () => string | null }[] = [
   { key: 'month', label: '이번 달', from: () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString(); } },
   { key: 'all', label: '전체', from: () => null },
 ];
+
+type FunnelStep = { from: string; to: string; a: number; b: number; rate: number | null };
+
+function getLoopRecommendation(worst: FunnelStep | null, purchases: number) {
+  if (purchases > 0) {
+    return {
+      title: '첫 결제 달성 — 이제 재현 가능한 패턴을 찾으세요',
+      action: '결제 발생 variant와 CTA를 확인하고 같은 소구를 48시간 더 유지한 뒤 광고비를 소폭 증액하세요.',
+      metric: 'purchase 유지, 결제 CPA ≤ 객단가, 같은 variant에서 checkout_start 반복 발생',
+    };
+  }
+
+  if (!worst) {
+    return {
+      title: '아직 표본 부족 — urgent-meeting 유입부터 쌓으세요',
+      action: 'urgent-meeting 광고를 유지하고 최소 단계별 5건 이상이 쌓일 때까지 랜딩/무료체험 smoke만 확인하세요.',
+      metric: 'landing_variant_view, onboarding_start, sim_start가 정상 누적되는지 확인',
+    };
+  }
+
+  const key = `${worst.from} → ${worst.to}`;
+  const recommendations: Record<string, { title: string; action: string; metric: string }> = {
+    '진입 → 시뮬 시작': {
+      title: '랜딩 오퍼 문제 — urgent-meeting 메시지를 더 선명하게',
+      action: 'hero CTA와 첫 문단을 “이번 주 면담 리스크 감소”로 더 좁히고 무료 리허설 진입을 더 크게 만드세요.',
+      metric: 'onboarding_start와 sim_start 증가',
+    },
+    '시뮬 시작 → 리포트': {
+      title: '체험 완주 문제 — 첫 시뮬레이션 마찰 제거',
+      action: 'setup/simulation 첫 턴 안내를 줄이고 “12턴 완료하면 바로 리포트” 보상을 더 자주 보여주세요.',
+      metric: 'report_view 증가',
+    },
+    '리포트 → 가입클릭': {
+      title: '오퍼 문제 — 리포트 후 Pro bridge 강화',
+      action: '리포트 직후 “이 대화에서 놓친 3가지”와 플레이북/Pro CTA를 더 위로 올리고 카피를 더 구체화하세요.',
+      metric: 'signup_start와 report_pro_bridge_click 증가',
+    },
+    '가입클릭 → 가입완료': {
+      title: '가입 마찰 문제 — 가입폼 단축/의도 보존 확인',
+      action: '결과 저장/결제 의도를 상단에 보여주고 Google 가입을 강조하세요. 결제 의도 보존이 유지되는지 확인하세요.',
+      metric: 'signup_complete 증가',
+    },
+    '가입 → 플랜조회': {
+      title: '가입 후 복귀 문제 — pricing 복귀 경로 확인',
+      action: '가입 완료 직후 결과/가격 페이지로 돌아오는지 확인하고 “방금 결과 이어서 보기” CTA를 강화하세요.',
+      metric: 'pricing_view 증가',
+    },
+    '플랜조회 → 결제': {
+      title: '결제 결심 문제 — 결제 의도 보존과 가격 오퍼 점검',
+      action: 'Pro 10일 기본 선택, “이번 면담 리스크 줄이기” 가격 카피, 결제 의도 보존 흐름을 점검하세요.',
+      metric: 'checkout_start와 purchase 증가',
+    },
+  };
+  return recommendations[key] || {
+    title: '최대 누수 구간 기준으로 한 단계만 고치세요',
+    action: `${key} 구간을 이번 루프의 유일한 개선 대상으로 잡으세요.`,
+    metric: `${key} 통과율 증가`,
+  };
+}
 
 export default function GrowthDashboard() {
   const navigate = useNavigate();
@@ -113,6 +173,8 @@ export default function GrowthDashboard() {
   }, [totals]);
 
   const saveSpend = (v: number) => { setAdSpend(v); localStorage.setItem(`growth_ad_spend_${range}`, String(v)); };
+  const decisionGuide = useMemo(() => getLoopRecommendation(funnel.worst, totals.purchases), [funnel.worst, totals.purchases]);
+  const distanceToFirstPurchase = Math.max(0, 1 - totals.purchases);
   const rangeLabel = RANGES.find(r => r.key === range)?.label ?? '';
   const saveAov = (v: number) => { setAov(v); localStorage.setItem('growth_aov', String(v)); };
   const won = (n: number) => '₩' + Math.round(n).toLocaleString();
@@ -164,6 +226,40 @@ export default function GrowthDashboard() {
                   <p className="text-2xl font-black text-primary mt-1">{(val as number).toLocaleString()}</p>
                 </div>
               ))}
+            </div>
+
+            {/* North Star: 첫 결제 1건 의사결정 가이드 */}
+            <div className="rounded-3xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-[#0c0f14] to-cyan-500/10 p-5 lg:p-6 mb-8">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+                <div>
+                  <p className="text-[10px] font-black text-amber-300 uppercase tracking-[0.22em] mb-2">목표: 첫 결제 1건</p>
+                  <h2 className="text-xl lg:text-2xl font-black text-white mb-2">이번 루프의 다음 액션</h2>
+                  <p className="text-sm text-slate-300 leading-7 max-w-2xl">
+                    {decisionGuide.title}
+                  </p>
+                </div>
+                <div className="shrink-0 rounded-2xl border border-white/10 bg-[#05070a]/70 p-4 min-w-[180px]">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">첫 결제 1건까지 남은 거리</p>
+                  <p className={`text-3xl font-black mt-1 ${distanceToFirstPurchase === 0 ? 'text-emerald-400' : 'text-amber-300'}`}>
+                    {distanceToFirstPurchase === 0 ? '달성' : `${distanceToFirstPurchase}건`}
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-1">purchase 기준</p>
+                </div>
+              </div>
+              <div className="grid lg:grid-cols-3 gap-4 mt-5">
+                <div className="rounded-2xl border border-white/10 bg-[#05070a]/60 p-4">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">추천 실험</p>
+                  <p className="text-sm font-bold text-white leading-6">{decisionGuide.action}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-[#05070a]/60 p-4">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">성공 지표</p>
+                  <p className="text-sm font-bold text-cyan-200 leading-6">{decisionGuide.metric}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-[#05070a]/60 p-4">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">48시간 판정 기준</p>
+                  <p className="text-sm font-bold text-amber-200 leading-6">Keep / Discard: checkout_start 또는 purchase가 생기면 유지, 없으면 병목 구간의 카피·CTA를 다시 바꿉니다.</p>
+                </div>
+              </div>
             </div>
 
             {/* A: 단위 경제성 — 광고가 남는 장사인지 판정 */}
@@ -288,7 +384,7 @@ export default function GrowthDashboard() {
                 </table>
               </div>
             </div>
-            <p className="text-[11px] text-slate-600 mt-4">버전: practice=연습 / diagnosis=진단 / new-manager=신임팀장 (광고 URL의 lp 파라미터 기준)</p>
+            <p className="text-[11px] text-slate-600 mt-4">버전: practice=연습 / diagnosis=진단 / new-manager=신임팀장 / urgent-meeting=긴급면담 (광고 URL의 lp 파라미터 기준)</p>
             <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-[11px] leading-5 text-slate-400">
               <p className="font-bold text-slate-300 mb-1">Meta 광고 성과 대조법</p>
               여기 <span className="text-slate-200">가입·결제</span>는 DB 실측치(전체 기간 누적, 세션 기준)입니다. Meta Ads Manager의 보고 전환수와 비교해

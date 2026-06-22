@@ -548,6 +548,41 @@ const Feedback: React.FC = () => {
     performEvaluation();
   }, [transcript]);
 
+  useEffect(() => {
+    if (!evaluation || isFullReport) return;
+    analyticsService.track('report_pro_bridge_view', analyticsService.withAttribution({
+      source: 'report_pro_bridge',
+      scenario_id: scenario?.id,
+      is_guest: !user,
+      offer: user ? 'pro_plan' : 'golden_playbook',
+    }), user?.id);
+  }, [evaluation, isFullReport, scenario?.id, user]);
+
+  const saveGuestTranscriptForPurchase = () => {
+    localStorage.setItem('leadershigh_guest_transcript', JSON.stringify({
+      transcript,
+      scenario,
+      sosTipHistory,
+    }));
+  };
+
+  const handleReportProBridgeClick = (target: 'pricing' | 'playbook') => {
+    analyticsService.track('report_pro_bridge_click', analyticsService.withAttribution({
+      source: 'report_pro_bridge',
+      scenario_id: scenario?.id,
+      target,
+      is_guest: !user,
+    }), user?.id);
+
+    if (target === 'pricing') {
+      navigate('/pricing', { state: { from: '/feedback', bridge: 'report_pro' } });
+      return;
+    }
+
+    saveGuestTranscriptForPurchase();
+    navigate('/signup', { state: { from: '/feedback', intent: 'golden-script', transcript, scenario, sosTipHistory, evaluation, guest: true, source: 'report_pro_bridge' } });
+  };
+
   // ── 로딩 화면: 대화 결과 분석 중 ──
   if (isAnalysing) {
     return (
@@ -620,14 +655,17 @@ const Feedback: React.FC = () => {
       {/* ── 무료 플랜 간략 리포트 안내 ── */}
       {!isFullReport && user && (
         <div className="bg-gradient-to-r from-amber-500/10 to-primary/10 border-b border-amber-500/20 px-6 py-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-amber-400 text-xs font-semibold">간략 리포트입니다</p>
-            <button onClick={() => navigate('/pricing')} className="px-3 py-1 rounded-lg bg-white/5 text-slate-400 text-[10px] font-bold hover:bg-white/10 transition-colors">
-              프로 플랜 보기
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-amber-400 text-xs font-semibold">간략 리포트입니다</p>
+              <p className="text-white text-sm font-black mt-1">이 대화에서 놓친 3가지를 풀 리포트로 확인하세요</p>
+            </div>
+            <button onClick={() => handleReportProBridgeClick('pricing')} className="shrink-0 px-3 py-2 rounded-xl bg-amber-500 text-slate-950 text-[10px] font-black hover:bg-amber-400 transition-colors">
+              Pro로 보기
             </button>
           </div>
           <p className="text-slate-400 text-xs leading-relaxed">
-            먼저 간략 리포트에서 핵심을 확인하고, 더 자세한 분석이나 반복 훈련이 필요할 때만 확장하세요.
+            무료 리포트는 핵심 1개만 보여줍니다. 이번 면담 전에 풀 리포트로 전략 정리하기, 내 답변의 위험 표현 분석, 다시 말할 문장까지 이어서 확인하세요.
           </p>
         </div>
       )}
@@ -1261,6 +1299,47 @@ const Feedback: React.FC = () => {
           </section>
         )}
 
+        {/* ── Report → Pro Bridge: 완료한 대화 기반 결제 유도 ── */}
+        {!isFullReport && evaluation && (
+          <section className="bg-gradient-to-br from-amber-500/12 via-[#101827] to-cyan-500/10 border border-amber-500/25 p-6 rounded-[2rem] relative overflow-hidden">
+            <div className="absolute -right-10 -top-10 size-36 rounded-full bg-amber-500/20 blur-3xl pointer-events-none" />
+            <div className="relative z-10">
+              <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 mb-4">
+                <span className="material-symbols-outlined text-amber-400 text-sm">lock_open</span>
+                <span className="text-[10px] font-black text-amber-300 uppercase tracking-[0.18em]">Full Report Bridge</span>
+              </div>
+              <h2 className="text-xl font-black text-white leading-tight mb-3 break-keep">
+                이 대화에서 놓친 3가지, 지금 바로 확인할 수 있어요
+              </h2>
+              <p className="text-sm text-slate-300 leading-7 mb-5">
+                간략 리포트는 방향만 보여줍니다. 풀 리포트에서는 실제 발화 기준으로 <span className="text-white font-bold">위험 표현, 더 나은 대안 문장, 다음 7일 행동 계획</span>까지 정리합니다.
+              </p>
+              <div className="grid gap-3 mb-5">
+                {[
+                  ['이 대화에서 놓친 3가지', '방어적 반응을 키운 표현과 놓친 질문 타이밍을 짚습니다.'],
+                  ['내 답변의 위험 표현 분석', '실제 발화 중 신뢰를 낮출 수 있는 문장을 안전한 대안으로 바꿉니다.'],
+                  ['이번 면담 전에 풀 리포트로 전략 정리하기', '다시 말할 문장과 7일 행동 플랜까지 바로 가져갑니다.'],
+                ].map(([title, desc]) => (
+                  <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                    <p className="text-sm font-black text-white mb-1">{title}</p>
+                    <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => handleReportProBridgeClick(user ? 'pricing' : 'playbook')}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
+              >
+                <span className="material-symbols-outlined text-base">auto_awesome</span>
+                {user ? 'Pro로 풀 리포트 열기 →' : '플레이북으로 이번 대화 풀 리포트 받기 (₩3,900)'}
+              </button>
+              <p className="text-center text-[10px] text-slate-500 mt-3">
+                {user ? '결제 전 가격표에서 기간과 플랜을 다시 확인할 수 있습니다.' : '회원가입 후 이번 결과를 보존하고 결제를 이어갑니다.'}
+              </p>
+            </div>
+          </section>
+        )}
+
         {/* ── 무료 플랜: 블러 처리된 풀 리포트 프리뷰 ── */}
         {!isFullReport && evaluation && (
           <section className="px-6 py-8">
@@ -1301,19 +1380,12 @@ const Feedback: React.FC = () => {
                   {user ? '프로 플랜에서 확인하세요' : '₩3,900 · 이 시뮬레이션의 풀 리포트 즉시 제공'}
                 </p>
                 {user ? (
-                  <button onClick={() => navigate('/pricing')} className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors">
+                  <button onClick={() => handleReportProBridgeClick('pricing')} className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors">
                     프로 플랜 보기 →
                   </button>
                 ) : (
                   <button
-                    onClick={() => {
-                      localStorage.setItem('leadershigh_guest_transcript', JSON.stringify({
-                        transcript,
-                        scenario,
-                        sosTipHistory,
-                      }));
-                      navigate('/signup', { state: { from: '/feedback', intent: 'golden-script', transcript, scenario, sosTipHistory, evaluation, guest: true } });
-                    }}
+                    onClick={() => handleReportProBridgeClick('playbook')}
                     className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors inline-flex items-center gap-1.5"
                   >
                     <span className="material-symbols-outlined text-base">credit_card</span>
@@ -1401,14 +1473,7 @@ const Feedback: React.FC = () => {
                   이번 대화의 <span className="text-white font-semibold">3단계 전략·상황별 핵심 문장·심리 트리거 분석·코치 총평</span>을 풀 리포트로 받아보세요. 회원가입 후 바로 구매 가능.
                 </p>
                 <button
-                  onClick={() => {
-                    localStorage.setItem('leadershigh_guest_transcript', JSON.stringify({
-                      transcript,
-                      scenario,
-                      sosTipHistory,
-                    }));
-                    navigate('/signup', { state: { from: '/feedback', intent: 'golden-script', transcript, scenario, sosTipHistory, evaluation, guest: true } });
-                  }}
+                  onClick={() => handleReportProBridgeClick('playbook')}
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 text-sm font-black active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-base">credit_card</span>
@@ -1426,7 +1491,7 @@ const Feedback: React.FC = () => {
                   프로 플랜은 <span className="text-white font-semibold">20개 시나리오 · 풀 리포트 무제한 · 이전 기록 비교</span>까지 포함됩니다. 단건 구매보다 훨씬 경제적.
                 </p>
                 <button
-                  onClick={() => navigate('/pricing')}
+                  onClick={() => handleReportProBridgeClick('pricing')}
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500/80 to-cyan-600/60 text-white text-sm font-black active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
                   <span className="material-symbols-outlined text-base">arrow_forward</span>
