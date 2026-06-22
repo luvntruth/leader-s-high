@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { paymentService, REPORT_PAYMENT_OPTION } from '../services/paymentService';
@@ -7,12 +7,20 @@ import { analyticsService } from '../services/analyticsService';
 import { trackPixelEvent } from '../services/metaPixelService';
 import PolicyFooter from '../components/PolicyFooter';
 import PlansSection from '../components/PlansSection';
+import { getPendingPurchaseLabel, loadPendingPurchaseIntent, type PendingPurchaseIntent } from '../services/purchaseIntentService';
 
 export default function Pricing() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, profile, refreshProfile } = useAuth();
   const currentPlan = profile?.plan || 'free';
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [pendingPurchaseIntent, setPendingPurchaseIntent] = useState<PendingPurchaseIntent | null>(null);
+
+  useEffect(() => {
+    const stateIntent = (location.state as { purchaseIntent?: PendingPurchaseIntent } | null)?.purchaseIntent;
+    setPendingPurchaseIntent(stateIntent || loadPendingPurchaseIntent());
+  }, [location.state]);
 
   const remainingDays = paymentService.getRemainingDays(profile?.plan_expires_at || null);
   const isExpired = profile?.plan !== 'free' && paymentService.isPlanExpired(profile?.plan_expires_at || null);
@@ -81,6 +89,17 @@ export default function Pricing() {
             }`}
           >
             {result.msg}
+          </motion.div>
+        )}
+
+        {pendingPurchaseIntent && user && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 mx-auto max-w-3xl rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-center text-sm text-amber-100"
+          >
+            <p className="font-black text-amber-300">선택한 플랜으로 이어서 결제하세요</p>
+            <p className="mt-1 text-xs text-amber-100/80">{getPendingPurchaseLabel(pendingPurchaseIntent)} · 아래 같은 플랜 버튼을 누르면 바로 결제 단계로 이어집니다.</p>
           </motion.div>
         )}
 

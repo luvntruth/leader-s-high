@@ -4,12 +4,15 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { analyticsService } from '../services/analyticsService';
 import { trackPixelEvent } from '../services/metaPixelService';
+import { getPendingPurchaseLabel, loadPendingPurchaseIntent, type PendingPurchaseIntent } from '../services/purchaseIntentService';
 
 export default function Signup() {
   const navigate = useNavigate();
   const location = useLocation();
   const isGuestConversion = location.state?.guest === true;
   const intent = (location.state as any)?.intent as string | undefined;
+  const from = (location.state as any)?.from as string | undefined;
+  const statePurchaseIntent = (location.state as any)?.purchaseIntent as PendingPurchaseIntent | undefined;
   const pendingTranscript = (location.state as any)?.transcript;
   const pendingScenario = (location.state as any)?.scenario;
   const pendingSosTipHistory = (location.state as any)?.sosTipHistory;
@@ -23,6 +26,11 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [pendingPurchaseIntent, setPendingPurchaseIntent] = useState<PendingPurchaseIntent | null>(statePurchaseIntent || null);
+
+  useEffect(() => {
+    if (!pendingPurchaseIntent) setPendingPurchaseIntent(statePurchaseIntent || loadPendingPurchaseIntent());
+  }, [pendingPurchaseIntent, statePurchaseIntent]);
 
   // intent 없이 직접 접근 시 온보딩으로 리다이렉트 (회원가입은 퍼널 통해서만)
   useEffect(() => {
@@ -61,6 +69,12 @@ export default function Signup() {
           evaluation: pendingEvaluation,
         }));
         navigate('/purchase/playbook', { replace: true });
+        return;
+      }
+
+      // 결제 의도 보존: 가격표에서 결제 버튼을 누른 뒤 가입한 사용자는 선택한 플랜으로 복귀
+      if (pendingPurchaseIntent && !isGuestConversion) {
+        navigate(pendingPurchaseIntent.loginRedirect || from || '/pricing', { replace: true, state: { justSignedUp: true, purchaseIntent: pendingPurchaseIntent } });
         return;
       }
 
@@ -201,6 +215,11 @@ export default function Signup() {
             <div className="mt-3 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25">
               <p className="text-amber-400 text-sm font-bold">리포트 저장 후 이어서 보기</p>
               <p className="text-slate-400 text-xs mt-0.5">회원가입하면 결과를 저장하고, 이후 상세 리포트 또는 플레이북을 이어서 확인할 수 있어요</p>
+            </div>
+          ) : pendingPurchaseIntent ? (
+            <div className="mt-3 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-left">
+              <p className="text-amber-400 text-sm font-bold">선택한 플랜을 이어서 결제할 수 있어요</p>
+              <p className="text-slate-400 text-xs mt-0.5">{getPendingPurchaseLabel(pendingPurchaseIntent)} · 가입 후 가격 페이지로 돌아갑니다.</p>
             </div>
           ) : (
             <p className="text-slate-400 text-sm">무료로 리더십 훈련을 시작하세요</p>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { getPendingPurchaseLabel, loadPendingPurchaseIntent, type PendingPurchaseIntent } from '../services/purchaseIntentService';
 
 const POST_AUTH_REDIRECT_KEY = 'leadershigh_post_auth_redirect';
 
@@ -14,8 +15,14 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pendingPurchaseIntent, setPendingPurchaseIntent] = useState<PendingPurchaseIntent | null>(null);
 
-  const from = (location.state as { from?: string })?.from || '/profile';
+  const from = (location.state as { from?: string })?.from || pendingPurchaseIntent?.loginRedirect || '/profile';
+
+  useEffect(() => {
+    const stateIntent = (location.state as { purchaseIntent?: PendingPurchaseIntent } | null)?.purchaseIntent;
+    setPendingPurchaseIntent(stateIntent || loadPendingPurchaseIntent());
+  }, [location.state]);
 
   // 이미 로그인된 상태면 저장된 의도 경로가 있으면 우선 복귀
   useEffect(() => {
@@ -75,6 +82,12 @@ export default function Login() {
             <span className="text-amber-500">Letmefree</span>
           </div>
           <p className="text-slate-400 text-sm">AI 리더십 훈련 플랫폼</p>
+          {pendingPurchaseIntent && (
+            <div className="mt-3 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-left">
+              <p className="text-amber-400 text-sm font-bold">선택한 플랜을 이어서 결제할 수 있어요</p>
+              <p className="text-slate-400 text-xs mt-0.5">{getPendingPurchaseLabel(pendingPurchaseIntent)} · 로그인/가입 후 가격 페이지로 돌아갑니다.</p>
+            </div>
+          )}
         </div>
 
         {/* 에러 메시지 */}
@@ -142,7 +155,7 @@ export default function Login() {
 
         {/* 하단 링크 */}
         <div className="mt-6 text-center space-y-2">
-          <Link to="/signup" state={{ intent: 'direct' }} className="text-amber-500 text-sm hover:text-amber-400 transition-colors">
+          <Link to="/signup" state={{ intent: 'direct', from, purchaseIntent: pendingPurchaseIntent || undefined }} className="text-amber-500 text-sm hover:text-amber-400 transition-colors">
             계정이 없으신가요? 회원가입
           </Link>
           <div>

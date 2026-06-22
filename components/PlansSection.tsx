@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { paymentService, PAYMENT_OPTIONS } from '../services/paymentService';
 import { analyticsService } from '../services/analyticsService';
 import { trackPixelEvent } from '../services/metaPixelService';
+import { clearPendingPurchaseIntent, createPendingPurchaseIntent, savePendingPurchaseIntent } from '../services/purchaseIntentService';
 
 // Spec v3 §3: 3단 플랜 (Free / Pro / Ultra). Ultra 의 Coming Soon 기능은 카드에 명시
 export const PLAN_SUMMARY = {
@@ -81,12 +82,24 @@ export default function PlansSection({ source = 'pricing', loginRedirect = '/pri
   const ultraOption = PAYMENT_OPTIONS.find(o => o.plan === 'ultra' && o.days === 30) || PAYMENT_OPTIONS.find(o => o.plan === 'ultra');
 
   const handlePurchase = async (optionId: string) => {
-    if (!user || !profile) {
-      navigate('/login', { state: { from: loginRedirect } });
-      return;
-    }
     const option = PAYMENT_OPTIONS.find(o => o.id === optionId);
     if (!option) return;
+
+    if (!user || !profile) {
+      const intent = createPendingPurchaseIntent(option, source, loginRedirect);
+      savePendingPurchaseIntent(intent);
+      analyticsService.track('checkout_start', analyticsService.withAttribution({
+        source,
+        option_id: option.id,
+        plan: option.plan,
+        days: option.days,
+        amount: option.amount,
+        auth_required: true,
+        resume_path: intent.loginRedirect,
+      }));
+      navigate('/login', { state: { from: intent.loginRedirect, purchaseIntent: intent } });
+      return;
+    }
 
     analyticsService.track(
       'checkout_start',
@@ -129,6 +142,7 @@ export default function PlansSection({ source = 'pricing', loginRedirect = '/pri
       trackPixelEvent('Purchase', { value: option.amount, currency: 'KRW', content_name: option.plan });
       await refreshProfile();
       // Spec v3 §4-B: Pro 는 결제 후 시나리오 선택 화면으로, Ultra/기타는 홈으로
+      clearPendingPurchaseIntent();
       const nextPath = option.plan === 'pro' ? '/select-scenarios' : '/';
       setTimeout(() => navigate(nextPath), 2000);
     }
