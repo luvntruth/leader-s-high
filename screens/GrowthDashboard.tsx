@@ -6,6 +6,8 @@ type FunnelRow = {
   variant: string;
   onboarding: number;
   sim_start: number;
+  report_views: number;   // Step ⑤: 리포트까지 도달 (대화 완료 후 결과 확인)
+  signup_starts: number;  // Step ⑤: 가입 CTA 클릭 (가입 시도 진입)
   signups: number;
   pricing_views: number;
   purchases: number;
@@ -74,11 +76,13 @@ export default function GrowthDashboard() {
       (acc, r) => ({
         onboarding: acc.onboarding + (r.onboarding || 0),
         sim_start: acc.sim_start + (r.sim_start || 0),
+        report_views: acc.report_views + (r.report_views || 0),
+        signup_starts: acc.signup_starts + (r.signup_starts || 0),
         signups: acc.signups + (r.signups || 0),
         pricing_views: acc.pricing_views + (r.pricing_views || 0),
         purchases: acc.purchases + (r.purchases || 0),
       }),
-      { onboarding: 0, sim_start: 0, signups: 0, pricing_views: 0, purchases: 0 },
+      { onboarding: 0, sim_start: 0, report_views: 0, signup_starts: 0, signups: 0, pricing_views: 0, purchases: 0 },
     );
   }, [rows]);
 
@@ -96,7 +100,10 @@ export default function GrowthDashboard() {
   const funnel = useMemo(() => {
     const steps = [
       { from: '진입', to: '시뮬 시작', a: totals.onboarding, b: totals.sim_start },
-      { from: '시뮬 시작', to: '가입', a: totals.sim_start, b: totals.signups },
+      // Step ⑤: '시뮬 시작 → 가입' 을 3단계로 분해해 0% 의 진짜 원인을 짚는다.
+      { from: '시뮬 시작', to: '리포트', a: totals.sim_start, b: totals.report_views },      // 대화 완료했나
+      { from: '리포트', to: '가입클릭', a: totals.report_views, b: totals.signup_starts },     // CTA 눌렀나 (오퍼 문제)
+      { from: '가입클릭', to: '가입완료', a: totals.signup_starts, b: totals.signups },        // 가입폼 통과했나 (마찰)
       { from: '가입', to: '플랜조회', a: totals.signups, b: totals.pricing_views },
       { from: '플랜조회', to: '결제', a: totals.pricing_views, b: totals.purchases },
     ].map(s => ({ ...s, rate: s.a > 0 ? (s.b / s.a) * 100 : null }));
@@ -245,12 +252,14 @@ export default function GrowthDashboard() {
             {/* 버전별 퍼널 테이블 */}
             <div className="rounded-3xl border border-white/5 bg-[#0c0f14] overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm min-w-[640px]">
+                <table className="w-full text-left text-sm min-w-[820px]">
                   <thead>
                     <tr className="bg-white/5 border-b border-white/5 text-[10px] font-black text-slate-500 uppercase tracking-widest">
                       <th className="px-5 py-4">버전</th>
                       <th className="px-5 py-4 text-right">진입</th>
                       <th className="px-5 py-4 text-right">시뮬 시작</th>
+                      <th className="px-5 py-4 text-right">리포트</th>
+                      <th className="px-5 py-4 text-right">가입클릭</th>
                       <th className="px-5 py-4 text-right">가입</th>
                       <th className="px-5 py-4 text-right">가입률</th>
                       <th className="px-5 py-4 text-right">플랜조회</th>
@@ -266,6 +275,8 @@ export default function GrowthDashboard() {
                         </td>
                         <td className="px-5 py-4 text-right text-slate-300">{r.onboarding?.toLocaleString()}</td>
                         <td className="px-5 py-4 text-right text-slate-400">{r.sim_start?.toLocaleString()}</td>
+                        <td className="px-5 py-4 text-right text-slate-400">{r.report_views?.toLocaleString()}</td>
+                        <td className="px-5 py-4 text-right text-slate-400">{r.signup_starts?.toLocaleString()}</td>
                         <td className="px-5 py-4 text-right text-slate-300">{r.signups?.toLocaleString()}</td>
                         <td className="px-5 py-4 text-right font-bold text-accent-amber">{r.signup_rate_pct ?? 0}%</td>
                         <td className="px-5 py-4 text-right text-slate-400">{r.pricing_views?.toLocaleString()}</td>
