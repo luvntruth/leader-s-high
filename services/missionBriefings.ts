@@ -580,3 +580,38 @@ export function getOpeningLine(scenarioId?: string, name?: string): string {
   if (scenarioId && OPENING_LINES[scenarioId]) return OPENING_LINES[scenarioId];
   return `네, ${name || '팀원'}입니다. 무슨 일이시죠?`;
 }
+
+// 첫 턴 빠른 시작용 추천 문장. 게스트 시뮬 최대 누수(시뮬 시작→첫 발화 58% 이탈)
+// 대응: 빈 입력창 앞에서 "뭐라고 말하지" 마찰을 없애려고 한 번 탭하면 보내지는
+// 안전한 오프닝을 제공한다. 심리적 안전감 우선(추궁 금지) + SBI 도입 톤.
+// {name} 토큰은 런타임에 캐릭터 이름으로 치환된다.
+const OPENING_SUGGESTIONS: Record<string, string[]> = {
+  // 무료 체험 3종(게스트가 가장 많이 만나는 시나리오) 우선 커버
+  'late-comer': [
+    '{name}님, 잠깐 시간 괜찮아요?',
+    '요즘 일은 잘 풀려요? 신경 쓰이는 거 있으면 편하게 말해줘요.',
+    '최근에 출근 시간이 조금 늦어지는 것 같던데, 무슨 일 있어요?',
+  ],
+  'boundaries': [
+    '{name}님, 잠깐 얘기 나눌 수 있을까요?',
+    '요즘 업무량은 어때요? 무리되는 부분 없는지 궁금해서요.',
+    '업무 분담 관련해서 같이 한번 맞춰보고 싶어요.',
+  ],
+  'team-clash': [
+    '잠깐 편하게 얘기 좀 할 수 있을까요?',
+    '요즘 팀 분위기 때문에 신경 쓰여서 얘기 나누고 싶었어요.',
+    '무슨 일이 있었는지 {name}님 얘기부터 듣고 싶어요.',
+  ],
+};
+
+const DEFAULT_OPENING_SUGGESTIONS = [
+  '{name}님, 잠깐 얘기 나눌 수 있을까요?',
+  '요즘 어떻게 지내요? 신경 쓰이는 일은 없어요?',
+  '오늘 한 가지 같이 얘기해보고 싶은 게 있어요.',
+];
+
+export function getOpeningSuggestions(scenarioId?: string, name?: string): string[] {
+  const base = (scenarioId && OPENING_SUGGESTIONS[scenarioId]) || DEFAULT_OPENING_SUGGESTIONS;
+  const who = name?.trim() || '팀원';
+  return base.map(line => line.replace(/\{name\}/g, who));
+}
