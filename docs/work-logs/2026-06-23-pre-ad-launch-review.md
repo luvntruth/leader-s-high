@@ -18,13 +18,13 @@
 ### 🟡 Must-Verify
 - **V1. Vertex 피드백 리포트 E2E** — 12턴 후 피드백이 거대 `responseSchema` 사용(Feedback.tsx:257), worker가 body 패스스루(index.ts:1058). Vertex 스키마 호환은 코드로 보장 불가 → 프로덕션 실측 필요.
 
-### 🟠 High (미수정 — 후속)
-- H1. og:image/twitter:image 부재(index.html) → 공유 미리보기 깨짐.
-- H2. 결제 의도 auth 후 자동 재개 안 됨(`?intent=purchase&option=` 소비처 없음, Pricing.tsx).
-- H3. Purchase 이벤트 클라이언트 단독(서버 Meta CAPI 없음) → ROAS 부정확.
-- H4. Vertex 토큰 실패·400 → 영어 JSON 원문 노출(index.ts:1037,1065; geminiErrors.ts 분기 없음).
-- H5. trust/coaching/SOS에 429/5xx backoff 없음(trustLevelService.ts:260-292 조용히 null).
-- H6. HistoryDetail 하단 CTA가 모바일 하단바에 가림(HistoryDetail.tsx:448-451, main pb-10 < 하단바 64px).
+### 🟠 High (5건 수정 완료 / H3 분리)
+- **H1. [수정]** og:image/twitter:image 추가(index.html + public/og-image.png 1200x1500) → 공유 미리보기 정상.
+- **H2. [수정]** 결제 의도 auth 후 자동 재개 — PlansSection resumeOptionId + 상단 "결제 이어가기" CTA, Pricing 전달.
+- H3. [분리] Purchase 이벤트 클라이언트 단독(서버 Meta CAPI 없음) → 별도 작업(Meta 토큰·webhook 필요).
+- **H4. [수정]** Vertex 토큰 실패·5xx → 한국어 폴백(geminiErrors.ts), 영어 detail 직노출 제거.
+- **H5. [수정]** trust/coaching에 429/5xx/과부하/타임아웃 지수 백오프 재시도(withGeminiRetry).
+- **H6. [수정]** HistoryDetail 하단 CTA 모바일 하단바 가림 → footer mb-16 lg:mb-0.
 
 ### ⚪ Medium/Low
 첫 턴 AI 실패 인게임 폴백 부재 · 플랜 만료 강등 부재 · `pricing_view` Meta ViewContent 미발화 · Purchase value 0원 전송 가능(Pricing.tsx:48) · on_auth 트리거 견고화 · 메인 청크 743KB(gzip 191KB) · metadata.json 음성 문구 잔존 · AdminDashboard dead import.
@@ -47,10 +47,12 @@
 3. **Frontend**: main push → Vercel 자동 배포 — B3 반영.
 4. **검증**: 실제 울트라 결제 1회 → 플랜 'ultra' 반영 확인 / 모바일 결제 1회 → 복귀·반영 확인 / 동일 paymentId 재호출 시 멱등(만료일 미연장) 확인.
 
-## 6. 남은 작업 (광고 켜기 전/직후)
-- [ ] V1 Vertex 피드백 리포트 프로덕션 E2E 실측.
-- [ ] H1 og:image 추가(가장 저비용 고ROI).
-- [ ] H2 결제 의도 auth 후 자동 재개.
-- [ ] H3 Meta CAPI(서버 Purchase) — ROAS 정확도.
-- [ ] H4/H5 AI 에러 한국어 폴백 + backoff.
-- [ ] H6 HistoryDetail footer 하단 여백.
+## 6. 커밋
+- `b875203` fix: 결제 차단 결함 3건 (B1·B2·B3)
+- `809bf22` fix: High 이슈 5건 (H1·H2·H4·H5·H6)
+- 브랜치 `fix/payment-blockers-pre-ad-launch` (origin 미push)
+
+## 7. 남은 작업 (광고 켜기 전/직후)
+- [ ] **V1 Vertex 피드백 리포트 프로덕션 E2E 실측** (광고 전 필수 — 코드로 보장 불가).
+- [ ] H3 Meta CAPI(서버 Purchase) — ROAS 정확도 (Meta 액세스 토큰·결제 webhook 연동 필요).
+- [ ] Medium/Low: 첫 턴 AI 실패 인게임 폴백 · 플랜 만료 강등 · pricing_view ViewContent · Purchase value 0원 방지 · 메인 청크 코드분할 · metadata.json 갱신.
