@@ -61,6 +61,8 @@ interface PlansSectionProps {
   loginRedirect?: string;
   /** 무료·프로·울트라 비교표 노출 여부 */
   showComparison?: boolean;
+  /** 로그인/가입 후 복귀 시, 선택했던 플랜으로 바로 결제를 이어가는 상단 CTA 표시 */
+  resumeOptionId?: string;
 }
 
 /**
@@ -70,7 +72,7 @@ interface PlansSectionProps {
  * 주의: 모바일 결제 redirect 복귀 처리(completeRedirectedPayment)는
  * /pricing 을 return URL 로 가정하므로 이 컴포넌트가 아닌 Pricing 페이지에만 둔다.
  */
-export default function PlansSection({ source = 'pricing', loginRedirect = '/pricing', showComparison = true }: PlansSectionProps) {
+export default function PlansSection({ source = 'pricing', loginRedirect = '/pricing', showComparison = true, resumeOptionId }: PlansSectionProps) {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const currentPlan = profile?.plan || 'free';
@@ -80,6 +82,8 @@ export default function PlansSection({ source = 'pricing', loginRedirect = '/pri
   const proOptions = PAYMENT_OPTIONS.filter(o => o.plan === 'pro');
   // Spec v3 §3.3: Ultra 30일 단일 옵션
   const ultraOption = PAYMENT_OPTIONS.find(o => o.plan === 'ultra' && o.days === 30) || PAYMENT_OPTIONS.find(o => o.plan === 'ultra');
+  // 로그인/가입 후 복귀 시 이어서 결제할 옵션 (auth 직전 이탈 방지)
+  const resumeOption = resumeOptionId ? PAYMENT_OPTIONS.find(o => o.id === resumeOptionId) : undefined;
 
   const handlePurchase = async (optionId: string) => {
     const option = PAYMENT_OPTIONS.find(o => o.id === optionId);
@@ -150,6 +154,20 @@ export default function PlansSection({ source = 'pricing', loginRedirect = '/pri
 
   return (
     <div>
+      {resumeOption && user && profile && (
+        <motion.button
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={() => handlePurchase(resumeOption.id)}
+          disabled={loading === resumeOption.id}
+          className="mb-8 mx-auto flex w-full max-w-3xl items-center justify-center gap-2 rounded-2xl bg-amber-500 px-6 py-4 text-sm font-black text-slate-950 shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.99] disabled:opacity-60"
+        >
+          {loading === resumeOption.id
+            ? '결제 진행 중...'
+            : `선택한 ${resumeOption.plan === 'ultra' ? '울트라' : '프로'} ${resumeOption.days}일 · ₩${resumeOption.amount.toLocaleString()} 결제 이어가기 →`}
+        </motion.button>
+      )}
+
       {result && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}

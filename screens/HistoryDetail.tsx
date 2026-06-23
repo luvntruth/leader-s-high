@@ -445,7 +445,7 @@ const HistoryDetail: React.FC = () => {
         )}
       </main>
 
-      <footer className="p-3 sm:p-4 bg-background-dark/90 border-t border-white/5 flex gap-2 sm:gap-3">
+      <footer className="p-3 sm:p-4 mb-16 lg:mb-0 bg-background-dark/90 border-t border-white/5 flex gap-2 sm:gap-3">
          <button onClick={() => navigate('/')} className="flex-1 py-3 sm:py-4 bg-white/5 border border-white/10 rounded-2xl font-bold text-xs">홈으로</button>
          <button onClick={() => navigate('/missions')} className="flex-1 py-3 sm:py-4 bg-primary text-navy-deep rounded-2xl font-bold text-xs shadow-lg shadow-primary/20 transition-all active:scale-95 uppercase tracking-widest">Next Mission</button>
       </footer>

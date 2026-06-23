@@ -17,8 +17,13 @@ export function getAiErrorMessage({ status, detail = '' }: AiErrorMessageInput) 
     return LOCATION_RESTRICTION_MESSAGE;
   }
 
+  // Vertex 서비스 계정 토큰 발급 실패 (영어 원문 노출 방지)
+  if (normalized.includes('vertex access token') || normalized.includes('token unavailable')) {
+    return 'AI 서버 인증에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+  }
+
   if (status === 401 || status === 403) {
-    return `인증 오류: ${detail}`;
+    return '인증 오류가 발생했습니다. 다시 로그인하거나 잠시 후 시도해주세요.';
   }
 
   if (status === 404) {
@@ -29,7 +34,13 @@ export function getAiErrorMessage({ status, detail = '' }: AiErrorMessageInput) 
     return '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
   }
 
-  return `연결 오류: ${detail}`;
+  // 5xx (Vertex/프록시 일시 장애 등) — 영어 JSON 원문 대신 한국어 안내
+  if (status && status >= 500) {
+    return 'AI 서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+  }
+
+  // 기본 폴백: 사용자에게 영어 detail 을 그대로 노출하지 않는다.
+  return 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
 }
 
 export function getInitErrorMessage(error: unknown) {
