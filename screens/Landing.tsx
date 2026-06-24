@@ -366,7 +366,7 @@ export default function Landing() {
           <div className="max-w-3xl mx-auto mb-6 rounded-[24px] border border-amber-500/15 bg-amber-500/[0.06] p-5 text-left">
             <p className="text-amber-300 text-sm font-bold mb-2">먼저 여기까지만 보면 됩니다</p>
             <ul className="space-y-2 text-sm text-slate-300">
-              <li>• 무료 시나리오 3개 · 시나리오당 12턴 · 대화 후 간략 리포트</li>
+              <li>• 무료 시나리오 3개 · 시나리오당 5턴 · 대화 후 간략 리포트</li>
               <li>• 가입 없이 바로 시작</li>
               <li>• 즉시 코칭·SOS·풀 리포트가 필요해지면 Pro로 확장</li>
             </ul>
@@ -376,7 +376,7 @@ export default function Landing() {
             <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-6 text-center">
               <p className="text-slate-400 text-xs mb-2 uppercase tracking-[0.18em]">무료 체험</p>
               <p className="text-3xl font-black text-white mb-1">₩0</p>
-              <p className="text-slate-500 text-sm">3개 시나리오 · 12턴 · 간략 리포트</p>
+              <p className="text-slate-500 text-sm">3개 시나리오 · 5턴 · 간략 리포트</p>
             </div>
 
             <div className="rounded-[24px] border border-amber-500/30 bg-amber-500/[0.08] p-6 text-center relative shadow-[0_12px_40px_rgba(245,158,11,0.12)]">

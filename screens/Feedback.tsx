@@ -169,7 +169,7 @@ const Feedback: React.FC = () => {
         [풀 리포트 (플레이북) 모드 — Spec v3 §6]
         유료 사용자/단건 구매자입니다. 아래 5개 추가 필드를 모두 충실히 채우세요:
 
-        15. phaseStrategy: 12턴 대화를 도입(턴 1-3)/본론(턴 4-9)/마무리(턴 10-12) 3단계로 분석.
+        15. phaseStrategy: 전체 대화를 도입(초반)/본론(중반)/마무리(후반) 3단계로 균등 분할하여 분석.
             - 각 단계마다 userQuote(해당 단계에서 사용자의 가장 결정적 발화 1개 인용),
               analysis(왜 효과적/비효과적이었는지 2-3문장 분석),
               improvement(개선 가능한 1가지 제안 1-2문장)
@@ -931,9 +931,9 @@ const Feedback: React.FC = () => {
             </h3>
             <div className="space-y-5">
               {[
-                { key: 'intro', label: 'Phase 1 · 도입 (신뢰 구축)', turns: '턴 1-3', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
-                { key: 'mainPoint', label: 'Phase 2 · 본론 (핵심 메시지 전달)', turns: '턴 4-9', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
-                { key: 'closing', label: 'Phase 3 · 마무리 (합의·다음 스텝)', turns: '턴 10-12', color: 'text-purple-400 border-purple-500/30 bg-purple-500/10' },
+                { key: 'intro', label: 'Phase 1 · 도입 (신뢰 구축)', turns: '초반', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
+                { key: 'mainPoint', label: 'Phase 2 · 본론 (핵심 메시지 전달)', turns: '중반', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
+                { key: 'closing', label: 'Phase 3 · 마무리 (합의·다음 스텝)', turns: '후반', color: 'text-purple-400 border-purple-500/30 bg-purple-500/10' },
               ].map(({ key, label, turns, color }) => {
                 const phase = (evaluation.phaseStrategy as any)?.[key];
                 if (!phase) return null;

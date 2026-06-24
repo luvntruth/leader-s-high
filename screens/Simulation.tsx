@@ -29,7 +29,8 @@ interface SOSTip {
   magicPhrases: string[];
 }
 
-const ANALYSIS_COMPLETE_THRESHOLD = 12; // user turns required (보스 지시사항)
+// 턴 수는 컴포넌트 내부에서 무료/유료에 따라 결정(turnThreshold): 무료 체험 5턴 / 유료 10턴.
+// 너무 긴 대화로 늘어지는 문제 대응.
 const TRUST_SCORING_INTERVAL = 4; // user turns between scoring
 
 // 감정 상태를 Trust Level에 따라 결정하는 함수
@@ -72,6 +73,9 @@ const Simulation: React.FC = () => {
   // Setup.tsx에서 { name, generation, contextStyle, driverStyle, scenario } 형태로 전달됨
   const state = location.state as any;
   const isGuest = !user && state?.guest === true;
+  // 무료 체험(게스트·무료 플랜)은 5턴, 유료(프로·울트라)는 10턴으로 완주 — 늘어짐 방지
+  const isFreeTier = isGuest || (profile?.plan || 'free') === 'free';
+  const turnThreshold = isFreeTier ? 5 : 10;
   const simulationStartTime = useRef(Date.now());
 
   // 1. scenario 정보 추출 (Setup.tsx에서 { scenario, initialTrust } 로 전달함)
@@ -277,8 +281,8 @@ const Simulation: React.FC = () => {
   // Derived State for Analysis Completion
   const isAnalysisComplete = useMemo(() => {
     const userMsgCount = messages.filter(m => m.role === 'user').length;
-    return userMsgCount >= ANALYSIS_COMPLETE_THRESHOLD;
-  }, [messages]);
+    return userMsgCount >= turnThreshold;
+  }, [messages, turnThreshold]);
 
   // Background ambient effect based on Trust Level
   const ambientStyle = useMemo(() => {
@@ -544,7 +548,7 @@ const Simulation: React.FC = () => {
         communication_pattern: null,
         memo: '',
         tags: [],
-        completed: true, // Spec v3 §3·§7.2: 12턴 완주
+        completed: true, // Spec v3 §3·§7.2: 완주 (무료 5턴 / 유료 10턴)
       }).catch(err => console.error('시뮬레이션 DB 저장 실패:', err));
     }
     isCompleteRef.current = true;
@@ -1026,7 +1030,7 @@ ${recentMsgs}
           </div>
 
           <footer className="p-4 lg:p-5 border-t border-white/5 flex items-center gap-3">
-            <TacticalCircularTimer value={messages.filter(m => m.role === 'user').length * (100 / ANALYSIS_COMPLETE_THRESHOLD)} label={`${messages.filter(m => m.role === 'user').length}/${ANALYSIS_COMPLETE_THRESHOLD}`} subLabel="대화 수" />
+            <TacticalCircularTimer value={messages.filter(m => m.role === 'user').length * (100 / turnThreshold)} label={`${messages.filter(m => m.role === 'user').length}/${turnThreshold}`} subLabel="대화 수" />
             <div className="flex-1">
               <button
                 onClick={handleViewReport}
@@ -1082,7 +1086,7 @@ ${recentMsgs}
               </div>
               <div className="mt-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500">
                 <span>{emotionLabel}</span>
-                <span>{messages.filter(m => m.role === 'user').length}/{ANALYSIS_COMPLETE_THRESHOLD}</span>
+                <span>{messages.filter(m => m.role === 'user').length}/{turnThreshold}</span>
               </div>
             </div>
           </div>
@@ -1229,7 +1233,7 @@ ${recentMsgs}
               </div>
             )}
 
-            {/* 모바일: 12턴 완료 시 결과 리포트 버튼 (데스크톱은 좌측 사이드바에 표시됨) */}
+            {/* 모바일: 완주(무료 5턴 / 유료 10턴) 시 결과 리포트 버튼 (데스크톱은 좌측 사이드바에 표시됨) */}
             {isAnalysisComplete && (
               <button
                 onClick={handleViewReport}
@@ -1264,7 +1268,7 @@ ${recentMsgs}
                   ref={textareaRef}
                   rows={window.innerWidth < 640 ? 2 : 1}
                   className="flex-1 min-w-0 bg-transparent border-none px-2 py-1 sm:py-0.5 lg:py-1 text-[14px] lg:text-[15px] text-white placeholder-slate-600 outline-none resize-none hide-scrollbar min-h-[40px] sm:min-h-[34px] lg:min-h-[38px] max-h-[88px] leading-relaxed disabled:opacity-40 disabled:cursor-not-allowed"
-                  placeholder={isAnalysisComplete ? '12턴을 모두 사용했어요. 결과 리포트를 확인하세요.' : '메시지를 입력하세요...'}
+                  placeholder={isAnalysisComplete ? `${turnThreshold}턴을 모두 사용했어요. 결과 리포트를 확인하세요.` : '메시지를 입력하세요...'}
                   value={inputText}
                   disabled={isLoading || isAnalysisComplete}
                   onChange={e => setInputText(e.target.value)}
