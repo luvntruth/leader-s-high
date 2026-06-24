@@ -99,11 +99,11 @@ export default function Pricing() {
             className="mb-8 mx-auto max-w-3xl rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-center text-sm text-amber-100"
           >
             <p className="font-black text-amber-300">선택한 플랜으로 이어서 결제하세요</p>
-            <p className="mt-1 text-xs text-amber-100/80">{getPendingPurchaseLabel(pendingPurchaseIntent)} · 아래 같은 플랜 버튼을 누르면 바로 결제 단계로 이어집니다.</p>
+            <p className="mt-1 text-xs text-amber-100/80">{getPendingPurchaseLabel(pendingPurchaseIntent)} · 아래 상단의 “결제 이어가기” 버튼을 누르면 바로 결제 단계로 이어집니다.</p>
           </motion.div>
         )}
 
-        <PlansSection source="pricing" loginRedirect="/pricing" />
+        <PlansSection source="pricing" loginRedirect="/pricing" resumeOptionId={user ? pendingPurchaseIntent?.optionId : undefined} />
 
         <motion.section
           initial={{ opacity: 0, y: 16 }}

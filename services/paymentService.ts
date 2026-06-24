@@ -38,6 +38,7 @@ interface PendingPayment {
   paymentId: string;
   verifyParams: { type: 'plan' | 'report'; plan?: string; days?: number; simulationId?: string; amount: number };
   successMessage: string;
+  attempts?: number; // 검증 재시도 횟수 (일시 오류 시 pending 유지하며 재시도, 상한 도달 시 정리)
 }
 
 function isMobileEnv(): boolean {
@@ -304,7 +305,7 @@ export const paymentService = {
    * 결제 화면 진입 시 호출 — URL query 에 결제 결과가 있고 대기 중인 결제가 있으면 검증한다.
    * @returns handled=false 면 복귀 상황이 아님(일반 진입). handled=true 면 success/message 로 결과 처리.
    */
-  async completeRedirectedPayment(): Promise<{ handled: boolean; success?: boolean; message?: string; plan?: string; amount?: number }> {
+  async completeRedirectedPayment(): Promise<{ handled: boolean; success?: boolean; message?: string; plan?: string; amount?: number; retryable?: boolean }> {
     const pending = loadPendingPayment();
     if (!pending) return { handled: false };
 
@@ -313,11 +314,13 @@ export const paymentService = {
     // 복귀 query 의 paymentId 가 대기 건과 일치해야 처리 (불일치/누락 시 무시)
     if (!paymentId || paymentId !== pending.paymentId) return { handled: false };
 
-    clearPendingPayment();
+    const plan = pending.verifyParams.plan;
+    const amount = pending.verifyParams.amount;
 
-    // code 가 있으면 결제 실패/취소
+    // code 가 있으면 결제 실패/취소 — pending 정리 후 종료
     const code = query.get('code');
     if (code) {
+      clearPendingPayment();
       return { handled: true, success: false, message: query.get('message') || '결제가 취소되었습니다.' };
     }
 
@@ -325,12 +328,35 @@ export const paymentService = {
     const session = await supabase.auth.getSession();
     const token = session.data.session?.access_token || '';
     const verified = await this.verifyPaymentOnServer(paymentId, pending.verifyParams, token);
+
+    if (verified.success) {
+      // 성공 시에만 pending 정리 (서버 멱등 처리로 중복 적용 없음)
+      clearPendingPayment();
+      return { handled: true, success: true, message: pending.successMessage, plan, amount };
+    }
+
+    // 검증 실패 — 네트워크/일시 오류일 수 있으므로 pending 을 유지해 재시도(새로고침/재진입) 가능하게 한다.
+    // 무한 루프 방지를 위해 시도 횟수를 제한하고, 상한 도달 시 정리한다.
+    const attempts = (pending.attempts ?? 0) + 1;
+    const MAX_ATTEMPTS = 5;
+    if (attempts >= MAX_ATTEMPTS) {
+      clearPendingPayment();
+      return {
+        handled: true,
+        success: false,
+        message: `${verified.message} 결제가 정상 반영되지 않았습니다. 결제 내역을 확인하시거나 고객센터로 문의해 주세요.`,
+        plan,
+        amount,
+      };
+    }
+    savePendingPayment({ ...pending, attempts });
     return {
       handled: true,
-      success: verified.success,
-      message: verified.success ? pending.successMessage : verified.message,
-      plan: pending.verifyParams.plan,
-      amount: pending.verifyParams.amount,
+      success: false,
+      retryable: true,
+      message: `${verified.message} 잠시 후 이 페이지를 새로고침하면 자동으로 다시 시도합니다.`,
+      plan,
+      amount,
     };
   },
 

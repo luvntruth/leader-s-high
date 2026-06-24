@@ -251,6 +251,27 @@ function isValidTrustOutput(obj: unknown): obj is TrustLevelOutput {
   );
 }
 
+// 일시 오류(429 / 5xx / 과부하 / 네트워크 / 타임아웃) 시 지수 백오프 재시도.
+// 동시 광고 유입으로 rate limit·과부하가 발생해도 신뢰점수·코칭이 조용히
+// 죽지 않도록 한다. 영구 오류(잘못된 키 등)는 즉시 throw 로 빠르게 실패.
+async function withGeminiRetry<T>(fn: () => Promise<T>, label: string, maxRetries = 2): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const transient = /429|rate.?limit|overloaded|unavailable|timeout|5\d\d|network|fetch failed|ECONNRESET/i.test(msg);
+      if (!transient || attempt === maxRetries) break;
+      const delay = Math.pow(2, attempt) * 600; // 600ms → 1200ms
+      console.warn(`[${label}] 일시 오류, ${delay}ms 후 재시도 ${attempt + 1}/${maxRetries}:`, msg);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
+}
+
 export const TrustLevelService = {
   async scoreTrustLevel(input: TrustLevelInput): Promise<TrustLevelOutput | null> {
     if (input.transcript.length === 0) return null;
@@ -258,7 +279,7 @@ export const TrustLevelService = {
     const ai = getAIInstance();
 
     try {
-      const response = await ai.models.generateContent({
+      const response = await withGeminiRetry(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: JSON.stringify(input),
         config: {
@@ -266,7 +287,7 @@ export const TrustLevelService = {
           temperature: 0.2,
           responseMimeType: 'application/json',
         }
-      });
+      }), 'TrustLevel');
 
       const text = response.text;
       if (!text) return null;
@@ -304,7 +325,7 @@ export const TrustLevelService = {
       });
 
       console.log('[InstantCoaching] 요청 시작');
-      const response = await Promise.race([
+      const response = await withGeminiRetry(() => Promise.race([
         ai.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: userContent,
@@ -316,7 +337,7 @@ export const TrustLevelService = {
           }
         }),
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error('InstantCoaching timeout')), 12000))
-      ]);
+      ]), 'InstantCoaching');
 
       console.log('[InstantCoaching] 응답 수신');
       const text = (response as any).text;

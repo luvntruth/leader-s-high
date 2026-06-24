@@ -795,6 +795,45 @@ async function handleVerifyPayment(
     });
   }
 
+  // 인증된 사용자만 결제를 반영 (귀속 검증의 전제)
+  if (!auth.userId) {
+    return new Response(JSON.stringify({ error: '로그인이 필요합니다.' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
+    });
+  }
+
+  // 멱등성 + 사용자 귀속 검증: 이미 처리된 paymentId 인지 확인.
+  // (동일 결제 반복 적용으로 인한 만료일 무한 연장 / 타계정 재사용 차단)
+  try {
+    const existingRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/processed_payments?payment_id=eq.${encodeURIComponent(paymentId)}&select=user_id`,
+      { headers: { 'apikey': env.SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}` } }
+    );
+    if (existingRes.ok) {
+      const existing = (await existingRes.json()) as Array<{ user_id: string }>;
+      if (existing.length > 0) {
+        if (existing[0].user_id === auth.userId) {
+          // 이미 이 사용자에게 적용 완료 → 재적용 없이 멱등 성공 반환
+          return new Response(JSON.stringify({ success: true, idempotent: true }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
+          });
+        }
+        // 다른 사용자의 결제를 재사용하려는 시도 차단
+        console.error(`PAYMENT_REUSE_BLOCKED: paymentId=${paymentId}, owner=${existing[0].user_id}, requester=${auth.userId}`);
+        return new Response(JSON.stringify({ error: '이미 처리된 결제입니다.' }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
+        });
+      }
+    }
+  } catch (e) {
+    // 조회 실패 시에도 결제 검증은 계속 진행 (가용성 우선).
+    // 최종 INSERT 의 PK UNIQUE 제약이 2차 방어선이 된다.
+    console.error('processed_payments lookup failed:', e);
+  }
+
   // 2. 검증 성공 → DB 업데이트 (3회 재시도)
   let dbSuccess = false;
   let lastError = '';
@@ -905,6 +944,27 @@ async function handleVerifyPayment(
       status: 500,
       headers: { 'Content-Type': 'application/json', ...corsHeaders(env, request) },
     });
+  }
+
+  // 처리 완료 기록 (재사용/중복 적용 방지). 실패해도 결제는 이미 반영됨 → 로그만.
+  try {
+    await fetch(`${env.SUPABASE_URL}/rest/v1/processed_payments`, {
+      method: 'POST',
+      headers: {
+        'apikey': env.SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=ignore-duplicates,return=minimal',
+      },
+      body: JSON.stringify({
+        payment_id: paymentId,
+        user_id: auth.userId,
+        type,
+        amount: expectedPurchase.amount,
+      }),
+    });
+  } catch (e) {
+    console.error(`processed_payments insert failed: paymentId=${paymentId}`, e);
   }
 
   return new Response(JSON.stringify({ success: true }), {
