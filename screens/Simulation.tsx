@@ -10,7 +10,7 @@ import { createGeminiClient } from '../src/lib/geminiClient';
 import { getAiErrorMessage, getInitErrorMessage } from '../src/lib/geminiErrors';
 import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor, getEmotionEmoji, DEFAULT_CHARACTERS } from '../services/characterAvatars';
 import { HPBar, TacticalCircularTimer, StatInline, TacticalTrendChart, TacticChip, ComboBadge } from '../components/GameUIComponents';
-import { getTactics, evaluateTactic, getTacticDef, tacticFlashLabel, nextCombo, type TacticId, type TacticFit } from '../services/tacticService';
+import { getTactics, evaluateTactic, getTacticDef, tacticFlashLabel, nextCombo, stateHint, tacticReason, type TacticId, type TacticFit } from '../services/tacticService';
 import { useAuth } from '../contexts/AuthContext';
 import { usageService } from '../services/usageService';
 import { dbService } from '../services/dbService';
@@ -190,7 +190,7 @@ const Simulation: React.FC = () => {
   const tactics = useMemo(() => getTactics(scenario?.id), [scenario?.id]);
   const [chosenTactic, setChosenTactic] = useState<TacticId | null>(null);
   const [combo, setCombo] = useState(0);
-  const [tacticFlash, setTacticFlash] = useState<{ label: string; tone: 'crit' | 'good' | 'weak' } | null>(null);
+  const [tacticFlash, setTacticFlash] = useState<{ label: string; tone: 'crit' | 'good' | 'weak'; reason?: string } | null>(null);
   const tacticHistoryRef = useRef<(TacticId | null)[]>([]);
   const tacticFlashTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // 무료(5턴)·유료(10턴) 세션 길이에 맞춘 스코어링 간격 (리뷰 C1: 4면 무료 1회뿐)
@@ -465,9 +465,9 @@ const Simulation: React.FC = () => {
         const newCombo = nextCombo(combo, fit);
         setCombo(newCombo);
         const flash = tacticFlashLabel(fit, newCombo);
-        setTacticFlash(flash);
+        setTacticFlash({ ...flash, reason: tacticReason(trustStateRef.current.trust, turnTactic, fit) });
         if (tacticFlashTimeoutRef.current) clearTimeout(tacticFlashTimeoutRef.current);
-        tacticFlashTimeoutRef.current = setTimeout(() => setTacticFlash(null), 1500);
+        tacticFlashTimeoutRef.current = setTimeout(() => setTacticFlash(null), 3000);
         setChosenTactic(null);
       }
     }
@@ -859,14 +859,19 @@ ${recentMsgs}
         ))}
       </div>
 
-      {/* 전술 적합도 플래시 (매 턴 즉시 피드백) */}
+      {/* 전술 적합도 플래시 (매 턴 즉시 피드백 + 왜 그런지 설명) */}
       {tacticFlash && (
-        <div className="fixed top-[40%] left-1/2 -translate-x-1/2 pointer-events-none z-[71]">
-          <div className={`px-4 py-1.5 rounded-full font-black text-sm uppercase tracking-widest animate-combat-text border whitespace-nowrap ${tacticFlash.tone === 'crit' ? 'text-amber-300 border-amber-400/50 bg-amber-500/15'
-            : tacticFlash.tone === 'good' ? 'text-cyan-300 border-cyan-400/40 bg-cyan-500/10'
-              : 'text-red-400 border-red-500/40 bg-red-500/10'}`}>
+        <div className="fixed top-[36%] left-1/2 -translate-x-1/2 pointer-events-none z-[71] flex flex-col items-center gap-2 animate-in fade-in zoom-in duration-200 px-4">
+          <div className={`px-4 py-1.5 rounded-full font-black text-sm uppercase tracking-widest border whitespace-nowrap ${tacticFlash.tone === 'crit' ? 'text-amber-300 border-amber-400/50 bg-amber-500/20'
+            : tacticFlash.tone === 'good' ? 'text-cyan-300 border-cyan-400/40 bg-cyan-500/15'
+              : 'text-red-400 border-red-500/40 bg-red-500/15'}`}>
             {tacticFlash.label}
           </div>
+          {tacticFlash.reason && (
+            <div className="max-w-[300px] text-center text-[11px] leading-snug font-bold text-slate-100 bg-black/80 rounded-2xl px-3.5 py-2 border border-white/10 shadow-xl">
+              {tacticFlash.reason}
+            </div>
+          )}
         </div>
       )}
 
@@ -1315,6 +1320,15 @@ ${recentMsgs}
               {/* 전술 카드 — 이번 한 수의 의도 (탭 토글). 자유 입력은 유지. */}
               {!isAnalysisComplete && !isLoading && !showSOS && (
                 <div className="px-0.5 pb-0.5">
+                  {/* 선택 전: 현재 상태 코칭 힌트 / 선택 후: 그 전술을 언제 쓰는지 가이드 */}
+                  <div className="flex items-start gap-1 mb-1.5">
+                    <span className="material-symbols-outlined text-[13px] text-primary/70 mt-px shrink-0">{chosenTactic ? 'lightbulb' : 'psychology'}</span>
+                    <p className="text-[10px] leading-snug font-bold text-slate-400">
+                      {chosenTactic ? (
+                        <><span className="text-primary/90">{getTacticDef(chosenTactic).label}</span> · {getTacticDef(chosenTactic).whenToUse}</>
+                      ) : stateHint(trustState.trust)}
+                    </p>
+                  </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {tactics.map(t => (
                       <TacticChip
@@ -1325,9 +1339,6 @@ ${recentMsgs}
                         onClick={() => setChosenTactic(prev => (prev === t.id ? null : t.id))}
                       />
                     ))}
-                    {chosenTactic && (
-                      <span className="text-[10px] text-primary/80 font-bold ml-0.5 truncate">→ {getTacticDef(chosenTactic).hint}</span>
-                    )}
                     <ComboBadge combo={combo} className="ml-auto" />
                   </div>
                 </div>

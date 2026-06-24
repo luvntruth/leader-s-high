@@ -5,6 +5,8 @@ import {
   tacticFlashLabel,
   getTactics,
   getTacticDef,
+  stateHint,
+  tacticReason,
   DEFAULT_TACTICS,
 } from '../services/tacticService';
 
@@ -60,5 +62,35 @@ describe('tacticService — 전술 정의', () => {
 
   it('getTacticDef는 항상 유효한 정의를 반환', () => {
     expect(getTacticDef('empathy').label).toBe('공감');
+  });
+
+  it('모든 전술에 whenToUse(미니 가이드)가 있다', () => {
+    for (const t of DEFAULT_TACTICS) {
+      expect(typeof t.whenToUse).toBe('string');
+      expect(t.whenToUse.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('tacticService — 상태 힌트 / 왜 설명', () => {
+  it('stateHint는 모든 신뢰값에서 비어있지 않은 코칭 문구를 반환', () => {
+    for (const trust of [0, 20, 40, 55, 70, 85, 100]) {
+      expect(stateHint(trust).length).toBeGreaterThan(0);
+    }
+  });
+
+  it('낮은 신뢰에서 사실 짚기가 weak이면 추궁 위험을 설명', () => {
+    const reason = tacticReason(15, 'sbi', 'weak');
+    expect(reason).toContain('추궁');
+  });
+
+  it('tacticReason은 모든 전술·신뢰·적합도 조합에서 설명을 반환', () => {
+    for (const t of DEFAULT_TACTICS) {
+      for (const trust of [10, 50, 90]) {
+        for (const fit of ['crit', 'good', 'weak'] as const) {
+          expect(tacticReason(trust, t.id, fit).length).toBeGreaterThan(0);
+        }
+      }
+    }
   });
 });
