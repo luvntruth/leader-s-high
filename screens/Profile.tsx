@@ -403,7 +403,7 @@ const Profile: React.FC = () => {
         </div>
       </div>
 
-      <main className="flex-1 p-5 pb-28 space-y-6 relative z-10">
+      <main className="flex-1 p-5 pb-[calc(7rem+env(safe-area-inset-bottom))] space-y-6 relative z-10">
 
         {/* ════════ 스테이터스 탭 (리더 프로필) ════════
             1단계: 플랜 게이팅 (pro/ultra 아니면 업그레이드 유도)

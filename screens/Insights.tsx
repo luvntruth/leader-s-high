@@ -165,7 +165,7 @@ const Insights: React.FC = () => {
               </div>
               
               <div className="flex justify-center mb-10 relative">
-                <svg className="w-full max-w-[280px] sm:max-w-[320px] aspect-square overflow-visible" viewBox="0 0 100 100">
+                <svg className="w-full max-w-[280px] sm:max-w-[320px] aspect-square overflow-visible" viewBox="-15 -15 130 130">
                   {[25, 50, 75, 100].map((r) => (
                     <circle key={r} cx="50" cy="50" r={r/2} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
                   ))}

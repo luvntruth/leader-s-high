@@ -272,7 +272,7 @@ const TeamOffice: React.FC = () => {
               </div>
 
               {/* 보상 + 시작 버튼 */}
-              <div className="px-4 sm:px-6 pb-6 sm:pb-8 flex flex-wrap items-center gap-3">
+              <div className="px-4 sm:px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-8 flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl" style={{ backgroundColor: selected.intensity.bg, border: `1px solid ${selected.intensity.border}` }}>
                     <span className="material-symbols-outlined text-sm" style={{ color: selected.intensity.color }}>bolt</span>

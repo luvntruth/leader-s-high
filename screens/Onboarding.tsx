@@ -82,8 +82,8 @@ const Onboarding: React.FC = () => {
       )}
 
       {/* Hero section */}
-      <motion.div variants={itemVariants} className="px-6 pt-16 lg:pt-24 pb-10 lg:pb-12 text-center relative max-w-6xl mx-auto w-full">
-        <div className="absolute top-0 right-0 flex items-center gap-2">
+      <motion.div variants={itemVariants} className="px-6 pt-6 lg:pt-10 pb-10 lg:pb-12 text-center max-w-6xl mx-auto w-full">
+        <div className="flex items-center justify-end gap-2 mb-8 lg:mb-10">
           {user ? (
             <button
               onClick={() => navigate('/profile')}
@@ -189,7 +189,7 @@ const Onboarding: React.FC = () => {
                       {curated.difficulty}
                     </span>
                   </div>
-                  <h4 className="text-lg lg:text-2xl font-black text-white leading-tight group-hover:text-amber-400 transition-colors truncate">
+                  <h4 className="text-lg lg:text-2xl font-black text-white leading-tight group-hover:text-amber-400 transition-colors line-clamp-2 break-keep">
                     {scenario.title}
                   </h4>
                   <p className="text-sm lg:text-base text-slate-500 mt-0.5 lg:mt-1 font-medium">{scenario.memberName}</p>
