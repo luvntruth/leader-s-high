@@ -9,7 +9,8 @@ import { EmotionStateMachine } from '../services/emotionStateMachine';
 import { createGeminiClient } from '../src/lib/geminiClient';
 import { getAiErrorMessage, getInitErrorMessage } from '../src/lib/geminiErrors';
 import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor, getEmotionEmoji, DEFAULT_CHARACTERS } from '../services/characterAvatars';
-import { HPBar, TacticalCircularTimer, StatInline, TacticalTrendChart } from '../components/GameUIComponents';
+import { HPBar, TacticalCircularTimer, StatInline, TacticalTrendChart, TacticChip, ComboBadge } from '../components/GameUIComponents';
+import { getTactics, evaluateTactic, getTacticDef, tacticFlashLabel, nextCombo, type TacticId, type TacticFit } from '../services/tacticService';
 import { useAuth } from '../contexts/AuthContext';
 import { usageService } from '../services/usageService';
 import { dbService } from '../services/dbService';
@@ -29,9 +30,8 @@ interface SOSTip {
   magicPhrases: string[];
 }
 
-// 턴 수는 컴포넌트 내부에서 무료/유료에 따라 결정(turnThreshold): 무료 체험 5턴 / 유료 10턴.
-// 너무 긴 대화로 늘어지는 문제 대응.
-const TRUST_SCORING_INTERVAL = 4; // user turns between scoring
+// 턴 수·스코어링 간격은 컴포넌트 내부에서 무료/유료에 따라 결정(turnThreshold, scoringInterval).
+// 무료 체험 5턴 / 유료 10턴. 너무 긴 대화로 늘어지는 문제 대응.
 
 // 감정 상태를 Trust Level에 따라 결정하는 함수
 function getEmotionState(trust: number): { state: string; description: string } {
@@ -186,6 +186,16 @@ const Simulation: React.FC = () => {
   // 전술 목표 달성 상태 (AI 판정 기반)
   const [goalAchievements, setGoalAchievements] = useState<boolean[]>([false, false, false]);
 
+  // 게임화: 전술 카드 / 콤보 / 적합도 즉시 피드백
+  const tactics = useMemo(() => getTactics(scenario?.id), [scenario?.id]);
+  const [chosenTactic, setChosenTactic] = useState<TacticId | null>(null);
+  const [combo, setCombo] = useState(0);
+  const [tacticFlash, setTacticFlash] = useState<{ label: string; tone: 'crit' | 'good' | 'weak' } | null>(null);
+  const tacticHistoryRef = useRef<(TacticId | null)[]>([]);
+  const tacticFlashTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // 무료(5턴)·유료(10턴) 세션 길이에 맞춘 스코어링 간격 (리뷰 C1: 4면 무료 1회뿐)
+  const scoringInterval = isFreeTier ? 2 : 3;
+
   // Dramatic UI State
   const [screenEffect, setScreenEffect] = useState<'none' | 'damage' | 'heal'>('none');
   const [combatTexts, setCombatTexts] = useState<Array<{ id: number; value: number }>>([]);
@@ -321,7 +331,7 @@ const Simulation: React.FC = () => {
     if (messages.length < 2 || !lastMsg || lastMsg.role !== 'model') return;
 
     const turnsSinceScored = userMsgCount - lastScoredMsgCount.current;
-    if (turnsSinceScored < TRUST_SCORING_INTERVAL) return;
+    if (turnsSinceScored < scoringInterval) return;
 
     lastScoredMsgCount.current = userMsgCount;
 
@@ -430,6 +440,9 @@ const Simulation: React.FC = () => {
     if (!isSilent && isLoading) return;
     if (!isSilent && isAnalysisComplete) return;
 
+    // 이번 턴에 선택된 전술 (silent 전송엔 적용 안 함)
+    const turnTactic: TacticId | null = !isSilent ? chosenTactic : null;
+
     if (!isSilent) {
       lastUserMessageRef.current = text;
 
@@ -444,13 +457,27 @@ const Simulation: React.FC = () => {
 
       setMessages(prev => [...prev, { role: 'user', text, timestamp: new Date() }]);
       setInputText('');
+
+      // 게임화: 선택한 전술의 적합도 즉시 판정 + 콤보 (AI 스코어링과 분리, 매 턴)
+      tacticHistoryRef.current.push(turnTactic);
+      if (turnTactic) {
+        const fit: TacticFit = evaluateTactic(trustStateRef.current.trust, turnTactic);
+        const newCombo = nextCombo(combo, fit);
+        setCombo(newCombo);
+        const flash = tacticFlashLabel(fit, newCombo);
+        setTacticFlash(flash);
+        if (tacticFlashTimeoutRef.current) clearTimeout(tacticFlashTimeoutRef.current);
+        tacticFlashTimeoutRef.current = setTimeout(() => setTacticFlash(null), 1500);
+        setChosenTactic(null);
+      }
     }
 
     setIsLoading(true);
     try {
       // EmotionStateMachine의 상세 컨텍스트를 메시지에 주입
       const emotionContext = emotionMachine.current.buildEmotionContext(trustStateRef.current.trust);
-      const contextPrefix = `[시스템 참고 - 사용자에게 보여주지 말 것]\n${emotionContext}\n[사용자 발화]\n`;
+      const tacticLine = turnTactic ? `[이번 턴 사용자 의도: ${getTacticDef(turnTactic).label}] 이 의도를 감지하되 과장 없이 자연스럽게 반응하세요.\n` : '';
+      const contextPrefix = `[시스템 참고 - 사용자에게 보여주지 말 것]\n${emotionContext}\n${tacticLine}[사용자 발화]\n`;
 
       const response = await fetchWithRetry(() => chatRef.current!.sendMessage({ message: contextPrefix + text }));
       const responseText = response.text || '';
@@ -832,6 +859,17 @@ ${recentMsgs}
         ))}
       </div>
 
+      {/* 전술 적합도 플래시 (매 턴 즉시 피드백) */}
+      {tacticFlash && (
+        <div className="fixed top-[40%] left-1/2 -translate-x-1/2 pointer-events-none z-[71]">
+          <div className={`px-4 py-1.5 rounded-full font-black text-sm uppercase tracking-widest animate-combat-text border whitespace-nowrap ${tacticFlash.tone === 'crit' ? 'text-amber-300 border-amber-400/50 bg-amber-500/15'
+            : tacticFlash.tone === 'good' ? 'text-cyan-300 border-cyan-400/40 bg-cyan-500/10'
+              : 'text-red-400 border-red-500/40 bg-red-500/10'}`}>
+            {tacticFlash.label}
+          </div>
+        </div>
+      )}
+
       <div className={`h-[100dvh] bg-[#060B18] text-white font-manrope relative flex flex-col sm:flex-row overflow-hidden ${screenEffect === 'damage' ? 'animate-shake' : ''}`}>
 
         {/* ── BACKGROUND FX ── */}
@@ -1085,9 +1123,19 @@ ${recentMsgs}
                 <span className="text-[11px] font-black text-white shrink-0">신뢰 {trustState.trust}</span>
               </div>
               <div className="mt-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                <span>{emotionLabel}</span>
+                <span className="flex items-center gap-1.5">
+                  {emotionLabel}
+                  <span className="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-primary/80">{trustState.stage}</span>
+                  <ComboBadge combo={combo} />
+                </span>
                 <span>{messages.filter(m => m.role === 'user').length}/{turnThreshold}</span>
               </div>
+              {trustState.lastEvents && trustState.lastEvents.length > 0 && (
+                <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-bold">
+                  <span className={`material-symbols-outlined text-[13px] ${trustState.lastEvents[0].impact >= 0 ? 'text-game-xp' : 'text-game-hp'}`}>{trustState.lastEvents[0].impact >= 0 ? 'trending_up' : 'trending_down'}</span>
+                  <span className="text-slate-300 truncate normal-case tracking-normal">{trustState.lastEvents[0].reason_short}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1260,6 +1308,27 @@ ${recentMsgs}
                         {s}
                       </button>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 전술 카드 — 이번 한 수의 의도 (탭 토글). 자유 입력은 유지. */}
+              {!isAnalysisComplete && !isLoading && !showSOS && (
+                <div className="px-0.5 pb-0.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {tactics.map(t => (
+                      <TacticChip
+                        key={t.id}
+                        label={t.label}
+                        icon={t.icon}
+                        selected={chosenTactic === t.id}
+                        onClick={() => setChosenTactic(prev => (prev === t.id ? null : t.id))}
+                      />
+                    ))}
+                    {chosenTactic && (
+                      <span className="text-[10px] text-primary/80 font-bold ml-0.5 truncate">→ {getTacticDef(chosenTactic).hint}</span>
+                    )}
+                    <ComboBadge combo={combo} className="ml-auto" />
                   </div>
                 </div>
               )}

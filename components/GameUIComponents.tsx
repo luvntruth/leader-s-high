@@ -469,6 +469,46 @@ export const TacticalActionCard: React.FC<TacticalActionCardProps> = ({
     </button>
 );
 
+/* ── 전술 칩 (게임화: 이번 한 수의 의도) ── */
+interface TacticChipProps {
+    label: string;
+    icon: string;
+    selected?: boolean;
+    onClick?: () => void;
+}
+
+export const TacticChip: React.FC<TacticChipProps> = ({ label, icon, selected, onClick }) => (
+    <button
+        onClick={onClick}
+        className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] lg:text-[12px] font-bold border transition-all active:scale-95
+            ${selected
+                ? 'bg-primary/20 text-primary border-primary/50 shadow-[0_0_12px_rgba(0,242,255,0.25)]'
+                : 'bg-white/5 text-slate-300 border-white/10 hover:border-primary/30 hover:text-white'}`}
+    >
+        <span className="material-symbols-outlined text-[14px]">{icon}</span>
+        {label}
+    </button>
+);
+
+/* ── 콤보 배지 ── */
+interface ComboBadgeProps {
+    combo: number;
+    className?: string;
+}
+
+export const ComboBadge: React.FC<ComboBadgeProps> = ({ combo, className = '' }) => {
+    if (combo < 2) return null;
+    return (
+        <span
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 border border-amber-500/40 ${className}`}
+            style={{ textShadow: '0 0 8px rgba(245,158,11,0.5)' }}
+        >
+            <span className="material-symbols-outlined text-[12px]">local_fire_department</span>
+            COMBO x{combo}
+        </span>
+    );
+};
+
 interface TacticalTrendChartProps {
     data: number[];
     color?: string;
