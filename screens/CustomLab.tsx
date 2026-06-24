@@ -605,7 +605,7 @@ const CustomLab: React.FC = () => {
           </div>
 
           {/* ── Fixed CTA ── */}
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background-dark/95 backdrop-blur-xl border-t border-white/5">
+          <div className="fixed bottom-0 left-0 right-0 p-4 pb-[calc(16px+env(safe-area-inset-bottom))] bg-background-dark/95 backdrop-blur-xl border-t border-white/5">
             <button
               onClick={handleBuilderStart}
               className="w-full py-4 rounded-2xl font-black text-sm shadow-2xl transition-all active:scale-95"

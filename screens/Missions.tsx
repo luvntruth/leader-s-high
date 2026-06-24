@@ -154,8 +154,8 @@ const Missions: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col relative overflow-hidden text-white font-manrope bg-[#060b18]">
-      {/* ── 상단 글로벌 네비게이션 ── */}
-      <nav className="hidden lg:flex items-center justify-between px-8 py-4 border-b border-white/5 bg-[#0D1526] z-50">
+      {/* ── 상단 글로벌 네비게이션 (데스크톱은 좌측 사이드바가 담당하므로 숨김 — 중복 제거) ── */}
+      <nav className="hidden items-center justify-between px-8 py-4 border-b border-white/5 bg-[#0D1526] z-50">
         <div className="flex items-center gap-10">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/home')}>
             <div className="size-8 rounded-lg bg-orange-500 flex items-center justify-center font-black text-black">L</div>

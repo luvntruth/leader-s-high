@@ -76,7 +76,8 @@ const AuthCallback = React.lazy(() => import('./screens/AuthCallback'));
 
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const noNavPaths = ['/', '/simulation', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/refund', '/reset-password', '/upgrade', '/landing', '/onboarding', '/dev', '/dev/playbook-sample', '/purchase/playbook', '/select-scenarios', '/growth'];
+  // 포커스 전용(자체 닫기/뒤로가기가 있는) 화면은 글로벌 내비를 숨겨 하단바와 CTA 충돌을 막는다.
+  const noNavPaths = ['/', '/simulation', '/setup', '/feedback', '/admin', '/team-office', '/login', '/signup', '/pricing', '/privacy', '/terms', '/refund', '/reset-password', '/upgrade', '/landing', '/onboarding', '/dev', '/dev/playbook-sample', '/purchase/playbook', '/select-scenarios', '/growth', '/streak', '/custom-lab'];
   const showNav = !noNavPaths.includes(location.pathname);
 
   return (
