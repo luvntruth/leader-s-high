@@ -62,7 +62,7 @@ function getLoopRecommendation(worst: FunnelStep | null, purchases: number) {
     },
     '시뮬 시작 → 리포트': {
       title: '체험 완주 문제 — 첫 시뮬레이션 마찰 제거',
-      action: 'setup/simulation 첫 턴 안내를 줄이고 “12턴 완료하면 바로 리포트” 보상을 더 자주 보여주세요.',
+      action: 'setup/simulation 첫 턴 안내를 줄이고 “대화 완료하면 바로 리포트” 보상을 더 자주 보여주세요.',
       metric: 'report_view 증가',
     },
     '리포트 → 가입클릭': {
