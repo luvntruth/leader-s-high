@@ -1216,7 +1216,32 @@ const Profile: React.FC = () => {
                       <p className="text-slate-500 text-[10px]">{new Date(p.created_at).toLocaleDateString('ko-KR')}</p>
                     </div>
                     <button
-                      onClick={() => navigate(`/history/${p.simulation_id}`)}
+                      onClick={async () => {
+                        // 구매한 플레이북 → 결제 직후와 동일한 풍부한 풀 리포트 화면으로 연결
+                        try {
+                          const rec = await dbService.getHistoryById(p.simulation_id);
+                          if (rec) {
+                            navigate('/feedback', {
+                              state: {
+                                transcript: rec.transcript,
+                                scenario: {
+                                  id: rec.scenario_id,
+                                  title: rec.scenario_title,
+                                  category: rec.scenario_category,
+                                  memberName: rec.character_name,
+                                  generation: rec.character_generation,
+                                },
+                                sosTipHistory: (rec.feedback as any)?.sosTipHistory || [],
+                                savedEvaluation: rec.feedback,
+                                simId: rec.id,
+                                forceFullReport: true,
+                              },
+                            });
+                            return;
+                          }
+                        } catch { /* 폴백 */ }
+                        navigate(`/history/${p.simulation_id}`);
+                      }}
                       className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-bold hover:bg-amber-500/20 transition-colors shrink-0"
                     >
                       보기

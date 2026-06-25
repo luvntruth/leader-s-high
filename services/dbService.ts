@@ -51,6 +51,15 @@ export const dbService = {
     if (error) console.error('메모 업데이트 실패:', error);
   },
 
+  /** 특정 시뮬레이션 레코드의 피드백(풀 리포트) 필드를 업데이트 — 단건 플레이북 구매 후 풀 리포트 저장용 */
+  async updateHistoryFeedback(id: string, fields: Partial<SimulationRecord>): Promise<void> {
+    const { error } = await supabase
+      .from('simulation_history')
+      .update(fields)
+      .eq('id', id);
+    if (error) console.error('피드백 업데이트 실패:', error);
+  },
+
   async deleteHistory(id: string): Promise<void> {
     const { error } = await supabase
       .from('simulation_history')

@@ -145,28 +145,37 @@ export default function PurchasePlaybook() {
         <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-5">
           <span className="material-symbols-outlined text-amber-400 text-3xl">auto_awesome</span>
         </div>
-        <h2 className="text-white font-black text-xl mb-2">플레이북이 저장됐어요!</h2>
+        <h2 className="text-white font-black text-xl mb-2">결제 완료! 플레이북이 준비됐어요</h2>
         <p className="text-slate-400 text-sm mb-2">
-          <span className="text-amber-400 font-bold">{data?.scenario?.title || '시뮬레이션'}</span> 전문가 코칭 플레이북이<br />
-          마이페이지에 저장되었습니다.
+          <span className="text-amber-400 font-bold">{data?.scenario?.title || '시뮬레이션'}</span>의 전문가 코칭 플레이북을<br />
+          지금 바로 확인할 수 있습니다.
         </p>
-        <p className="text-slate-600 text-xs mb-8">마이페이지 → 구매 플레이북에서 언제든 다시 볼 수 있어요.</p>
+        <p className="text-slate-600 text-xs mb-8">마이페이지 → 구매 플레이북에 자동 저장되어 언제든 다시 볼 수 있어요.</p>
 
         <div className="w-full max-w-sm space-y-3">
-          {/* Spec v3 §5.7: 성공 화면 2-button (마이페이지 · 홈) */}
+          {/* 결제 직후 풀 리포트(플레이북) 화면으로 직행 — 헤매지 않게 */}
           <button
-            onClick={() => navigate('/profile')}
+            onClick={() => navigate('/feedback', {
+              state: {
+                transcript: data?.transcript,
+                scenario: data?.scenario,
+                sosTipHistory: data?.sosTipHistory,
+                simId: savedSimId,
+                forceFullReport: true,
+              },
+              replace: true,
+            })}
             className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-black text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            <span className="material-symbols-outlined text-base">menu_book</span>
-            마이페이지에서 플레이북 보기
+            <span className="material-symbols-outlined text-base">auto_stories</span>
+            내 플레이북 지금 보기
           </button>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/profile')}
             className="w-full py-4 rounded-2xl bg-slate-800/60 border border-slate-700/40 text-white font-bold text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            <span className="material-symbols-outlined text-base">home</span>
-            홈으로
+            <span className="material-symbols-outlined text-base">menu_book</span>
+            마이페이지에 저장된 플레이북
           </button>
           <button
             onClick={() => navigate('/setup')}
