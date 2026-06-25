@@ -120,8 +120,10 @@ const Feedback: React.FC = () => {
   // Spec v3 §5.4/§5.5: 게스트(profile=null) 는 반드시 간략 리포트.
   // 과거 `profile?.plan !== 'free'` 는 게스트에게 true 를 반환해 풀 리포트가 노출되던 버그.
   const isPaidPlan = !!profile && profile.plan !== 'free';
+  // 단건 플레이북 구매 직후 진입 — 무료 플랜/게스트라도 구매한 풀 리포트를 즉시 표시
+  const forceFullReport = (location.state as any)?.forceFullReport === true;
 
-  const [isFullReport, setIsFullReport] = useState(isPaidPlan);
+  const [isFullReport, setIsFullReport] = useState(isPaidPlan || forceFullReport);
   const [isAnalysing, setIsAnalysing] = useState(true);
   const [evaluation, setEvaluation] = useState<EvaluationData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -148,23 +150,32 @@ const Feedback: React.FC = () => {
       return;
     }
 
+    // 재방문(마이페이지 → 구매한 플레이북 → 보기) — 저장된 풀 리포트가 있으면 AI 재생성 없이 즉시 표시
+    const savedEvaluation = (location.state as any)?.savedEvaluation;
+    if (savedEvaluation && (savedEvaluation.phaseStrategy || savedEvaluation.goldenScripts || savedEvaluation.coachOverview)) {
+      setEvaluation(savedEvaluation as EvaluationData);
+      setIsAnalysing(false);
+      return;
+    }
+
     setIsAnalysing(true);
     setError(null);
 
     try {
       const ai = createGeminiClient();
       const briefPromptSuffix = !isFullReport ? `
-        [간략 리포트 모드]
-        무료 플랜 사용자입니다. 간략 리포트만 생성하세요:
-        - summary: 3문장 이내로 핵심만 요약
-        - strengths: 최대 1개만
-        - improvements: 최대 1개만
-        - modelAnswers: 가장 중요한 상황 1개만
-        - scienceInsight: null 대신 빈 객체 생성 (theoryName, scienceBase, practicalApply 모두 빈 문자열)
-        - coachingSkills: 기본값으로 모두 50
-        - radarChart: 기본값으로 모두 50
-        - phaseStrategy, goldenScripts, psychTriggers, coachOverview: 모두 생략 (풀 리포트 전용)
-        - 풀 리포트는 프로 플랜에서 이용 가능합니다.
+        [간략 리포트 모드 — 무료 체험]
+        무료 체험 사용자입니다. "맛보기지만 확실한 가치"를 주되, 깊은 전략 분석은 풀 리포트로 남겨두세요.
+        아래를 반드시 지키세요:
+        - summary: 이 리더만의 고유한 대화 패턴을 짚는 3문장. "전반적으로 잘했다" 같은 일반론 절대 금지. 사용자의 실제 발화 1개를 인용하여 구체적으로.
+        - strengths: 가장 강한 강점 정확히 1개. 실제 발화("...")를 인용해 근거 제시.
+        - improvements: 가장 임팩트 큰 개선점 정확히 1개. desc 안에 "다음엔 이렇게 말해보세요: '...'" 형태로, 그 자리에서 그대로 따라 말할 수 있는 구체적 대안 문장 1개를 반드시 포함.
+        - modelAnswers: 가장 결정적이었던 상황 1개. bestResponse 는 회의실에서 그대로 소리 내어 말할 수 있는 자연스러운 실전 문장.
+        - actionItems: "오늘 또는 다음 면담에서 당장 실천할 행동" 정확히 1개. 추상적 조언("공감하세요") 금지. 구체적 행동("다음 1:1 첫 30초를 '요즘 어떠세요?' 질문으로 시작하세요")으로.
+        - coachingSkills: 실제 대화에서 관찰된 행동의 빈도와 질을 기준으로 0~100 사이로 정직하게 채점. 절대 일괄 50점으로 채우지 마세요.
+        - radarChart: 실제 대화 내용을 기준으로 0~100 사이로 채점. 절대 일괄 50점으로 채우지 마세요.
+        - scienceInsight: 빈 객체 생성 (theoryName, scienceBase, practicalApply 모두 빈 문자열) — 이론 심화는 풀 리포트 전용.
+        - phaseStrategy, goldenScripts, psychTriggers, coachOverview, weekActionPlan, retryGuide, recommendedNextScenario, theoryDeepDive: 모두 생략 (풀 리포트 전용).
       ` : `
         [풀 리포트 (플레이북) 모드 — Spec v3 §6]
         유료 사용자/단건 구매자입니다. 아래 5개 추가 필드를 모두 충실히 채우세요:
@@ -211,6 +222,13 @@ const Feedback: React.FC = () => {
             - 단일 이론(theoryInsight) 보다 다층 분석. 서로 다른 관점의 이론 선택.
             - theories 배열에 2개 이상. 각 항목: { name(이론명 한국어), applied(이번 대화에서 어떻게 작용/실패했는지 2-3문장), nextTime(다음에 의도적으로 적용하는 구체적 방법 2-3문장) }
             - 예: "심리적 안전감 이론", "자기결정성 이론", "변혁적 리더십", "SBI 피드백 모델", "비폭력 대화(NVC)"
+
+        [풀 리포트 공통 — 즉시 실천 가능성 최우선]
+        25. 모든 "대안 문장 / 추천 발화 / 실천 행동"은 추상적 조언이 아니라, 회의실에서 그대로 소리 내어 말하거나 오늘 바로 실행할 수 있는 구체적 형태여야 합니다.
+            - 나쁜 예: "공감을 표현하세요", "경청이 중요합니다", "신뢰를 쌓으세요"
+            - 좋은 예: "철수씨, 요즘 일이 많이 몰렸죠. 그 얘기부터 들어볼게요." / "내일 1:1 첫 30초는 침묵으로 두고 상대가 먼저 말을 꺼내게 하세요."
+        26. 모든 추천 발화는 한국 직장에서 실제로 쓰는 자연스러운 구어체 존댓말로 작성하세요. 번역 투/문어체/지시문체 금지.
+        27. betterAlternative, idealResponse, oneThingToChange, weekActionPlan.action 등 실천 항목은 "무엇을 왜"가 아니라 "정확히 어떤 말/행동을"에 초점을 두세요.
       `;
 
       const prompt = `
@@ -516,19 +534,26 @@ const Feedback: React.FC = () => {
         tags: [] as string[]
       };
 
-      // DB 저장 (인증된 사용자) — 최신 피드백으로 가장 최근 레코드 업데이트
+      // DB 저장 (인증된 사용자)
       if (user) {
-        const recentHistory = await dbService.getHistory(user.id, 1);
-        if (recentHistory.length > 0) {
-          const latest = recentHistory[0];
-          await dbService.saveSimulation({
-            ...latest,
-            feedback: evalResult as unknown as Record<string, unknown>,
-            coaching_skills: evalResult.coachingSkills as unknown as Record<string, number>,
-            radar_chart: evalResult.radarChart as unknown as Record<string, number>,
-            leadership_type: (evalResult as any).leadershipType || null,
-            communication_pattern: (evalResult as any).communicationPattern || null,
-          }).catch(() => {});
+        const targetSimId = (location.state as any)?.simId as string | undefined;
+        const feedbackFields = {
+          feedback: evalResult as unknown as Record<string, unknown>,
+          coaching_skills: evalResult.coachingSkills as unknown as Record<string, number>,
+          radar_chart: evalResult.radarChart as unknown as Record<string, number>,
+          leadership_type: (evalResult as any).leadershipType || null,
+          communication_pattern: (evalResult as any).communicationPattern || null,
+        };
+        if (targetSimId) {
+          // 단건 플레이북 구매 레코드에 풀 리포트 저장 → 재방문 시 재생성 없이 동일 화면 표시
+          await dbService.updateHistoryFeedback(targetSimId, feedbackFields).catch(() => {});
+        } else {
+          // 일반 시뮬레이션 완료 흐름 — 가장 최근 레코드 업데이트
+          const recentHistory = await dbService.getHistory(user.id, 1);
+          if (recentHistory.length > 0) {
+            const latest = recentHistory[0];
+            await dbService.updateHistoryFeedback(latest.id, feedbackFields).catch(() => {});
+          }
         }
       }
 
@@ -1284,7 +1309,7 @@ const Feedback: React.FC = () => {
               <span className="size-7 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
                 <span className="material-symbols-outlined text-sm">checklist</span>
               </span>
-              오퍼레이션 목록
+              오늘부터 바로 실천할 행동
             </h3>
             <div className="space-y-3">
               {evaluation.actionItems.map((item, i) => (
@@ -1309,20 +1334,27 @@ const Feedback: React.FC = () => {
                 <span className="text-[10px] font-black text-amber-300 uppercase tracking-[0.18em]">Full Report Bridge</span>
               </div>
               <h2 className="text-xl font-black text-white leading-tight mb-3 break-keep">
-                이 대화에서 놓친 3가지, 지금 바로 확인할 수 있어요
+                {evaluation.improvements?.[0]?.title ? (
+                  <>방금 드러난 당신의 약점, <span className="text-amber-400">"{evaluation.improvements[0].title}"</span><br />풀 리포트가 정확히 어떻게 고칠지 알려드립니다</>
+                ) : (
+                  <>이 대화에서 놓친 결정적 순간들, 지금 바로 확인하세요</>
+                )}
               </h2>
               <p className="text-sm text-slate-300 leading-7 mb-5">
-                간략 리포트는 방향만 보여줍니다. 풀 리포트에서는 실제 발화 기준으로 <span className="text-white font-bold">위험 표현, 더 나은 대안 문장, 다음 7일 행동 계획</span>까지 정리합니다.
+                간략 리포트는 방향만 짚어줍니다. 풀 리포트는 <span className="text-white font-bold">당신의 실제 발화</span>를 기준으로 약점·위험 표현·다시 말할 문장, 그리고 <span className="text-white font-bold">오늘부터 7일 실천 플랜</span>까지 정리합니다.
               </p>
               <div className="grid gap-3 mb-5">
                 {[
-                  ['이 대화에서 놓친 3가지', '방어적 반응을 키운 표현과 놓친 질문 타이밍을 짚습니다.'],
-                  ['내 답변의 위험 표현 분석', '실제 발화 중 신뢰를 낮출 수 있는 문장을 안전한 대안으로 바꿉니다.'],
-                  ['이번 면담 전에 풀 리포트로 전략 정리하기', '다시 말할 문장과 7일 행동 플랜까지 바로 가져갑니다.'],
+                  ['약점 정밀 분석 + 바로 쓸 해결 문장', '방어심을 키운 표현과 놓친 질문 타이밍을 짚고, 다음엔 그대로 따라 말할 대안 문장을 드립니다.'],
+                  ['결정적 순간 3개의 더 강력한 대안 (Golden Scripts)', '신뢰가 흔들린 바로 그 순간, 어떻게 말했어야 하는지 실전 문장으로.'],
+                  ['오늘부터 7일, 매일 실천할 행동 플랜', '월~일 하루 1가지씩, 당장 사무실에서 실행할 수 있는 구체적 행동.'],
                 ].map(([title, desc]) => (
-                  <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <p className="text-sm font-black text-white mb-1">{title}</p>
-                    <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
+                  <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 flex items-start gap-3">
+                    <span className="material-symbols-outlined text-amber-400 text-base mt-0.5 shrink-0">check_circle</span>
+                    <div>
+                      <p className="text-sm font-black text-white mb-1">{title}</p>
+                      <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1330,11 +1362,11 @@ const Feedback: React.FC = () => {
                 onClick={() => handleReportProBridgeClick(user ? 'pricing' : 'playbook')}
                 className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
               >
-                <span className="material-symbols-outlined text-base">auto_awesome</span>
-                {user ? 'Pro로 풀 리포트 열기 →' : '플레이북으로 이번 대화 풀 리포트 받기 (₩3,900)'}
+                <span className="material-symbols-outlined text-base">{user ? 'workspace_premium' : 'auto_awesome'}</span>
+                {user ? '내 약점 풀 리포트 열기 · Pro/Ultra →' : '이번 대화 풀 리포트 받기 (₩3,900) →'}
               </button>
               <p className="text-center text-[10px] text-slate-500 mt-3">
-                {user ? '결제 전 가격표에서 기간과 플랜을 다시 확인할 수 있습니다.' : '회원가입 후 이번 결과를 보존하고 결제를 이어갑니다.'}
+                {user ? '프로 10일 ₩8,900부터 · 결제 전 가격표에서 기간·플랜을 다시 확인할 수 있습니다.' : '회원가입 후 이번 결과를 보존하고 바로 결제를 이어갑니다.'}
               </p>
             </div>
           </section>
@@ -1373,11 +1405,11 @@ const Feedback: React.FC = () => {
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-[2px]">
                 <div className="text-4xl mb-3">🔒</div>
                 <h4 className="text-white font-bold text-lg mb-1">
-                  {user ? '풀 리포트로 더 깊이 분석하세요' : '전체 결과는 플레이북 구매로'}
+                  {user ? '당신의 약점과 해결 문장이 여기 있어요' : '전체 결과는 플레이북 구매로'}
                 </h4>
                 <p className="text-slate-400 text-xs mb-4 text-center max-w-xs">
-                  모범 스크립트, 5차원 역량 분석, 과학적 근거까지<br/>
-                  {user ? '프로 플랜에서 확인하세요' : '₩3,900 · 이 시뮬레이션의 풀 리포트 즉시 제공'}
+                  약점 해결 문장 · 결정적 순간 대안 · 7일 실천 플랜까지<br/>
+                  {user ? '프로 / 울트라 플랜에서 무제한 확인하세요' : '₩3,900 · 이 시뮬레이션의 풀 리포트 즉시 제공'}
                 </p>
                 {user ? (
                   <button onClick={() => handleReportProBridgeClick('pricing')} className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm transition-colors">

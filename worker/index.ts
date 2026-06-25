@@ -1216,13 +1216,27 @@ function getAllowedOrigins(env: Env): string[] {
     .filter(Boolean);
 }
 
+// 로컬 개발 origin(localhost / 127.0.0.1 / ::1)은 항상 허용.
+// 로컬호스트는 외부 사이트가 사용자 브라우저에서 위조할 수 없으므로 공격 표면이 아니며,
+// 프로덕션 Worker에 배포돼 있어도 안전하다.
+function isLocalhostOrigin(origin: string): boolean {
+  try {
+    const { hostname } = new URL(origin);
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+  } catch {
+    return false;
+  }
+}
+
 function isOriginAllowed(origin: string, env: Env): boolean {
+  if (isLocalhostOrigin(origin)) return true;
   const allowedOrigins = getAllowedOrigins(env);
   return allowedOrigins.includes('*') || allowedOrigins.includes(origin);
 }
 
 function getCorsOrigin(env: Env, request: Request): string {
   const origin = request.headers.get('Origin') || '';
+  if (origin && isLocalhostOrigin(origin)) return origin;
   const allowedOrigins = getAllowedOrigins(env);
   if (allowedOrigins.includes('*')) return '*';
   if (origin && allowedOrigins.includes(origin)) return origin;
