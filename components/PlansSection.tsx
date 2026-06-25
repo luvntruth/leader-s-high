@@ -127,9 +127,6 @@ export default function PlansSection({ source = 'pricing', loginRedirect = '/pri
       email: user.email || profile?.email || '',
     });
 
-    setLoading(null);
-    setResult({ ok: res.success, msg: res.message });
-
     if (res.success) {
       analyticsService.track(
         'checkout_success',
@@ -144,12 +141,18 @@ export default function PlansSection({ source = 'pricing', loginRedirect = '/pri
       );
       // Meta 전환: PC 팝업 결제 완료
       trackPixelEvent('Purchase', { value: option.amount, currency: 'KRW', content_name: option.plan });
+      clearPendingPurchaseIntent();
       await refreshProfile();
       // Spec v3 §4-B: Pro 는 결제 후 시나리오 선택 화면으로, Ultra/기타는 홈으로
-      clearPendingPurchaseIntent();
+      // 성공 시 가격 화면을 다시 노출하지 않고 즉시 이동 (loading 유지로 깜빡임 방지)
       const nextPath = option.plan === 'pro' ? '/select-scenarios' : '/';
-      setTimeout(() => navigate(nextPath), 2000);
+      navigate(nextPath, { replace: true });
+      return;
     }
+
+    // 실패 시에만 가격 화면에 결과 메시지 표시
+    setLoading(null);
+    setResult({ ok: false, msg: res.message });
   };
 
   return (
