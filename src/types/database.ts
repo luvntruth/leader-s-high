@@ -52,6 +52,8 @@ export interface Profile {
   role: 'owner' | 'admin' | 'member';
   plan: PlanType;
   plan_expires_at: string | null;
+  /** 현재 유료 플랜 구독이 시작(결제)된 시각. 무료/미결제는 NULL. 구독 주기별 사용 횟수 집계용. */
+  plan_started_at: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   onboarding_completed: boolean;

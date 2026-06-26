@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/authService';
 import { dbService } from '../services/dbService';
 import { paymentService } from '../services/paymentService';
-import { LEADERSHIP_TYPE_INFO, CommunicationPattern, LeadershipType, SimulationRecord } from '../src/types/database';
+import { LEADERSHIP_TYPE_INFO, CommunicationPattern, LeadershipType, SimulationRecord, PLAN_LIMITS, type PlanType } from '../src/types/database';
 
 interface RankDetail {
   lv: string;
@@ -151,6 +151,7 @@ const Profile: React.FC = () => {
   const [selectedRankName, setSelectedRankName] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'status' | 'leadership' | 'skills' | 'badges' | 'account'>('status');
   const [simCount, setSimCount] = useState(0);
+  const [periodSimCount, setPeriodSimCount] = useState<number | null>(null);
   const [purchasedPlaybooks, setPurchasedPlaybooks] = useState<Array<{ id: string; simulation_id: string; created_at: string; scenario_title?: string }>>([]);
   const [leadershipData, setLeadershipData] = useState<{type: string; pattern: any} | null>(null);
 
@@ -163,6 +164,12 @@ const Profile: React.FC = () => {
   useEffect(() => {
     if (user && profile) {
       dbService.getSimulationCount(user.id).then(setSimCount).catch(() => {});
+      // 구독 주기 사용 횟수 — 유료 플랜이면서 결제 시작일(plan_started_at)이 기록된 경우만
+      if (profile.plan !== 'free' && profile.plan_started_at) {
+        dbService.getSimulationCountSince(user.id, profile.plan_started_at).then(setPeriodSimCount).catch(() => {});
+      } else {
+        setPeriodSimCount(null);
+      }
       // 완주한 시뮬레이션만 가져오기 (리더 프로필 집계용)
       dbService.getHistory(user.id, 20).then(records => {
         const completed = records.filter(r => r.completed);
@@ -318,6 +325,18 @@ const Profile: React.FC = () => {
   const theme = rank ? getRankTheme(rank.title) : getRankTheme('루키 리더');
   const rankStars = rank ? getRankStars(rank.title) : 1;
   const rankIcon = rank ? getRankIcon(rank.title) : 'military_tech';
+
+  // ── 계정 탭: 시뮬레이션 이용 한도 / 남은 기간 ──
+  const planType = (profile?.plan || 'free') as PlanType;
+  const planScenarioLimit = PLAN_LIMITS[planType].scenarios;
+  // 유료 + 구독 시작일이 있으면 구독 주기 사용량, 아니면 전체 누적(무료/과도기 폴백)
+  const subscriptionUsedCount = (planType !== 'free' && profile?.plan_started_at && periodSimCount !== null)
+    ? periodSimCount
+    : simCount;
+  const remainingSims = Math.max(0, planScenarioLimit - subscriptionUsedCount);
+  const planRemainingDays = paymentService.getRemainingDays(profile?.plan_expires_at || null);
+  const planExpiry = profile?.plan_expires_at ? new Date(profile.plan_expires_at) : null;
+  const planExpiryLabel = planExpiry ? `${planExpiry.getMonth() + 1}/${planExpiry.getDate()}일` : '';
 
   return (
     <div className="min-h-screen bg-[#060B18] text-white font-display flex flex-col relative">
@@ -1137,7 +1156,6 @@ const Profile: React.FC = () => {
         <div className="space-y-4 px-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="bg-slate-800/40 rounded-2xl p-5 border border-white/5 space-y-4">
             <h3 className="text-white font-bold text-sm flex items-center gap-2">
-              <span className="material-icons text-amber-500 text-lg">manage_accounts</span>
               계정 정보
             </h3>
             <div className="space-y-3 text-sm">
@@ -1161,8 +1179,20 @@ const Profile: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">시뮬레이션 이용 횟수</span>
-                <span className="text-white">{simCount}회</span>
+                <span className="text-white">
+                  총 {planScenarioLimit}회 중 {subscriptionUsedCount}회 사용
+                  <span className="text-slate-500"> (남은 {remainingSims}회)</span>
+                </span>
               </div>
+              {planType !== 'free' && planExpiry && (
+                <div className="flex justify-between">
+                  <span className="text-slate-400">남은 기간</span>
+                  <span className="text-white">
+                    {planRemainingDays}일
+                    <span className="text-slate-500"> ({planExpiryLabel}까지)</span>
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-slate-400">가입일</span>
                 <span className="text-white">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString('ko-KR') : '-'}</span>
