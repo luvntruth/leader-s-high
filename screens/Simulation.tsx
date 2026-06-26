@@ -151,6 +151,8 @@ const Simulation: React.FC = () => {
   const [instantCoaching, setInstantCoaching] = useState<InstantCoachingResult | null>(null);
   const [isCoachingLoading, setIsCoachingLoading] = useState(false);
   const [showCoaching, setShowCoaching] = useState(false);
+  const [coachingCollapsed, setCoachingCollapsed] = useState(false);
+  const [stickToBottom, setStickToBottom] = useState(true);
   const coachingCacheRef = useRef<Map<string, InstantCoachingResult>>(new Map());
   const [mobileComposerOffset, setMobileComposerOffset] = useState(0);
   const [mobileComposerHeight, setMobileComposerHeight] = useState(140);
@@ -735,13 +737,23 @@ ${recentMsgs}
     }
   }, [inputText]);
 
+  // 사용자가 위로 스크롤해 지난 대화를 보는 중이면 자동 하단 스크롤을 멈춘다
+  const handleMessageScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const offset = window.innerWidth >= 640 ? 180 : 0;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setStickToBottom(distanceFromBottom <= offset + 120);
+  };
+
   useEffect(() => {
+    if (!stickToBottom) return; // 사용자가 지난 대화를 보는 중이면 강제 스크롤 안 함
     if (scrollRef.current) {
       const isDesktop = window.innerWidth >= 640;
       const offset = isDesktop ? 180 : 0;
       scrollRef.current.scrollTop = Math.max(0, scrollRef.current.scrollHeight - scrollRef.current.clientHeight + offset);
     }
-  }, [messages, mobileComposerHeight, mobileComposerOffset, inputText]);
+  }, [messages, mobileComposerHeight, mobileComposerOffset, inputText, stickToBottom]);
 
   useEffect(() => {
     const updateMobileLayout = () => {
@@ -1125,6 +1137,7 @@ ${recentMsgs}
           {/* Message HUD Area */}
           <div
             ref={scrollRef}
+            onScroll={handleMessageScroll}
             className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 lg:px-5 pt-4 sm:pt-[4.5rem] lg:pt-[4rem] sm:pb-24 lg:pb-32 space-y-3 sm:space-y-5 lg:space-y-4 scroll-smooth hide-scrollbar"
             style={{ paddingBottom: window.innerWidth < 640 ? `${mobileComposerHeight + mobileComposerOffset + 20}px` : undefined }}
           >
@@ -1173,17 +1186,18 @@ ${recentMsgs}
             {showCoaching && (
               <div className="mx-2 animate-in slide-in-from-bottom-4">
                 <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
+                  <div className={`flex items-center justify-between ${coachingCollapsed ? '' : 'mb-3'}`}>
+                    <button onClick={() => setCoachingCollapsed(v => !v)} className="flex items-center gap-2 min-w-0 group/coach" title={coachingCollapsed ? '펼치기' : '접기'}>
                       <span className="material-symbols-outlined text-amber-400 text-sm">tips_and_updates</span>
                       <span className="text-sm font-black text-amber-400 uppercase tracking-widest">Instant Coaching</span>
-                    </div>
-                    <button onClick={() => setShowCoaching(false)} className="text-slate-500 hover:text-white transition-colors">
+                      <span className="material-symbols-outlined text-amber-400/70 text-sm transition-transform group-hover/coach:text-amber-300">{coachingCollapsed ? 'expand_more' : 'expand_less'}</span>
+                    </button>
+                    <button onClick={() => setShowCoaching(false)} className="text-slate-500 hover:text-white transition-colors shrink-0">
                       <span className="material-symbols-outlined text-sm">close</span>
                     </button>
                   </div>
 
-                  {isCoachingLoading ? (
+                  {!coachingCollapsed && (isCoachingLoading ? (
                     <div className="flex items-center justify-center py-4 gap-3">
                       <div className="size-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
                       <span className="text-[11px] font-bold text-amber-400/70 uppercase tracking-widest animate-pulse">Analyzing your response...</span>
@@ -1216,7 +1230,7 @@ ${recentMsgs}
                         <p className="text-[14px] font-bold text-cyan-300">{instantCoaching.tip}</p>
                       </div>
                     </div>
-                  ) : null}
+                  ) : null)}
                 </div>
               </div>
             )}
