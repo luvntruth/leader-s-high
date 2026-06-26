@@ -76,6 +76,9 @@ export default function PlansSection({ source = 'pricing', loginRedirect = '/pri
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const currentPlan = profile?.plan || 'free';
+  // 플랜 위계 — 현재 플랜과 같거나 낮은 등급의 결제 버튼은 비활성화 (중복/다운그레이드 방지)
+  const PLAN_RANK: Record<string, number> = { free: 0, pro: 1, ultra: 2 };
+  const currentRank = PLAN_RANK[currentPlan] ?? 0;
   const [loading, setLoading] = useState<string | null>(null);
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
@@ -236,22 +239,31 @@ export default function PlansSection({ source = 'pricing', loginRedirect = '/pri
           </div>
 
           <div className="space-y-3 mb-6">
-            {proOptions.map(option => (
+            {proOptions.map(option => {
+              const owned = currentRank >= PLAN_RANK.pro;
+              return (
               <button
                 key={option.id}
                 onClick={() => handlePurchase(option.id)}
-                disabled={loading === option.id}
-                className="w-full flex items-center justify-between p-4 rounded-2xl border border-amber-500/20 hover:border-amber-500/45 bg-slate-950/40 hover:bg-amber-500/10 transition-all group"
+                disabled={loading === option.id || owned}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all group ${
+                  owned
+                    ? 'border-white/5 bg-slate-900/40 opacity-50 cursor-not-allowed'
+                    : 'border-amber-500/20 hover:border-amber-500/45 bg-slate-950/40 hover:bg-amber-500/10'
+                }`}
               >
                 <div className="text-left">
                   <span className="text-white text-base font-bold">₩{option.amount.toLocaleString()}</span>
                   <span className="text-slate-400 text-sm ml-2">/ {option.days}일</span>
                 </div>
-                <span className="text-amber-300 text-xs font-semibold group-hover:translate-x-0.5 transition-transform">
-                  {loading === option.id ? '처리 중...' : `${option.days}일 시작하기 →`}
+                <span className={`text-xs font-semibold transition-transform ${owned ? 'text-slate-500' : 'text-amber-300 group-hover:translate-x-0.5'}`}>
+                  {owned
+                    ? (currentRank > PLAN_RANK.pro ? '상위 플랜 이용 중' : '현재 이용 중')
+                    : (loading === option.id ? '처리 중...' : `${option.days}일 시작하기 →`)}
                 </span>
               </button>
-            ))}
+              );
+            })}
           </div>
 
           <ul className="space-y-3">
@@ -284,22 +296,29 @@ export default function PlansSection({ source = 'pricing', loginRedirect = '/pri
           </div>
 
           <div className="space-y-3 mb-6">
-            {ultraOption && (
+            {ultraOption && (() => {
+              const owned = currentRank >= PLAN_RANK.ultra;
+              return (
               <button
                 key={ultraOption.id}
                 onClick={() => handlePurchase(ultraOption.id)}
-                disabled={loading === ultraOption.id}
-                className="w-full flex items-center justify-between p-4 rounded-2xl border border-cyan-500/20 hover:border-cyan-500/45 bg-slate-950/40 hover:bg-cyan-500/10 transition-all group"
+                disabled={loading === ultraOption.id || owned}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all group ${
+                  owned
+                    ? 'border-white/5 bg-slate-900/40 opacity-50 cursor-not-allowed'
+                    : 'border-cyan-500/20 hover:border-cyan-500/45 bg-slate-950/40 hover:bg-cyan-500/10'
+                }`}
               >
                 <div className="text-left">
                   <span className="text-white text-base font-bold">₩{ultraOption.amount.toLocaleString()}</span>
                   <span className="text-slate-400 text-sm ml-2">/ {ultraOption.days}일</span>
                 </div>
-                <span className="text-cyan-300 text-xs font-semibold group-hover:translate-x-0.5 transition-transform">
-                  {loading === ultraOption.id ? '처리 중...' : '울트라 시작하기 →'}
+                <span className={`text-xs font-semibold transition-transform ${owned ? 'text-slate-500' : 'text-cyan-300 group-hover:translate-x-0.5'}`}>
+                  {owned ? '현재 이용 중' : (loading === ultraOption.id ? '처리 중...' : '울트라 시작하기 →')}
                 </span>
               </button>
-            )}
+              );
+            })()}
           </div>
 
           <ul className="space-y-3 mb-4">
