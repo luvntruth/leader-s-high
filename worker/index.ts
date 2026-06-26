@@ -860,6 +860,7 @@ async function handleVerifyPayment(
             body: JSON.stringify({
               plan,
               plan_expires_at: expiresAt.toISOString(),
+              plan_started_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             }),
           }
@@ -885,6 +886,7 @@ async function handleVerifyPayment(
                   id: auth.userId,
                   plan,
                   plan_expires_at: expiresAt.toISOString(),
+                  plan_started_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
                 }),
               }

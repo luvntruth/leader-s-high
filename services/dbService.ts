@@ -81,6 +81,17 @@ export const dbService = {
     return count || 0;
   },
 
+  /** 특정 시각 이후의 시뮬레이션 횟수 — 구독 주기(plan_started_at)별 사용량 집계용 */
+  async getSimulationCountSince(userId: string, sinceISO: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('simulation_history')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', sinceISO);
+    if (error) return 0;
+    return count || 0;
+  },
+
   async getScenarioTryCount(userId: string, scenarioId: string): Promise<number> {
     const { count, error } = await supabase
       .from('simulation_history')
