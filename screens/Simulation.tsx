@@ -796,6 +796,9 @@ ${recentMsgs}
     );
   }
 
+  // 대화 시작 직후(사용자 첫 발화 전) — 목표/턴 수 안내를 강조
+  const isIntro = messages.filter(m => m.role === 'user').length === 0;
+
   return (
     <>
       {/* Dramatic UI Overlays */}
@@ -935,8 +938,14 @@ ${recentMsgs}
             </section>
 
             {/* 핵심 수행 과제 — 단계별 클리어 */}
-            <section className="bg-white/5 border border-white/10 rounded-2xl p-3">
+            <section className={`rounded-2xl p-3 transition-all ${isIntro ? 'bg-amber-500/5 border border-amber-400/50 shadow-[0_0_16px_rgba(251,191,36,0.25)]' : 'bg-white/5 border border-white/10'}`}>
               <h3 className="text-[11px] lg:text-xs font-black text-slate-400 uppercase tracking-widest mb-2">이번 대화에서 볼 포인트</h3>
+              {isIntro && (
+                <p className="text-[10px] font-bold text-amber-300 mb-2 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs">flag</span>
+                  총 {turnThreshold}번 안에 목표를 달성하세요
+                </p>
+              )}
               <div className="space-y-1.5">
                 {missionBriefing.tasks?.map((task: string, i: number) => {
                   const isCleared = goalAchievements[i] || false;
@@ -1030,7 +1039,9 @@ ${recentMsgs}
           </div>
 
           <footer className="p-4 lg:p-5 border-t border-white/5 flex items-center gap-3">
-            <TacticalCircularTimer value={messages.filter(m => m.role === 'user').length * (100 / turnThreshold)} label={`${messages.filter(m => m.role === 'user').length}/${turnThreshold}`} subLabel="대화 수" />
+            <div className={isIntro ? 'rounded-full ring-2 ring-amber-400/60 shadow-[0_0_14px_rgba(251,191,36,0.5)] animate-pulse' : ''}>
+              <TacticalCircularTimer value={messages.filter(m => m.role === 'user').length * (100 / turnThreshold)} label={`${messages.filter(m => m.role === 'user').length}/${turnThreshold}`} subLabel="대화 수" />
+            </div>
             <div className="flex-1">
               <button
                 onClick={handleViewReport}
@@ -1068,7 +1079,11 @@ ${recentMsgs}
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => setShowMobileBriefing(true)}
-                    className="px-2.5 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center gap-1 text-[10px] font-bold text-slate-200"
+                    className={`px-2.5 h-9 rounded-xl flex items-center justify-center gap-1 text-[10px] font-bold transition-all ${
+                      isIntro
+                        ? 'bg-amber-500/20 border border-amber-400/60 text-amber-300 animate-pulse ring-1 ring-amber-400/50 shadow-[0_0_14px_rgba(251,191,36,0.55)]'
+                        : 'bg-white/5 border border-white/10 text-slate-200'
+                    }`}
                   >
                     <span className="material-symbols-outlined text-sm">list_alt</span>
                     목표
@@ -1086,8 +1101,16 @@ ${recentMsgs}
               </div>
               <div className="mt-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500">
                 <span>{emotionLabel}</span>
-                <span>{messages.filter(m => m.role === 'user').length}/{turnThreshold}</span>
+                <span className={isIntro ? 'text-amber-300 font-black' : ''}>{messages.filter(m => m.role === 'user').length}/{turnThreshold}</span>
               </div>
+              {isIntro && (
+                <div className="mt-2.5 flex items-center gap-1.5 rounded-lg bg-amber-500/10 border border-amber-400/30 px-2.5 py-1.5">
+                  <span className="material-symbols-outlined text-amber-400 text-sm">flag</span>
+                  <p className="text-[10px] font-bold text-amber-200 leading-tight">
+                    우측 <span className="text-amber-400">목표</span>를 확인하고, 총 <span className="text-amber-400 font-black">{turnThreshold}</span>번 안에 달성하세요!
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
