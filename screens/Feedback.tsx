@@ -538,7 +538,8 @@ const Feedback: React.FC = () => {
       if (user) {
         const targetSimId = (location.state as any)?.simId as string | undefined;
         const feedbackFields = {
-          feedback: evalResult as unknown as Record<string, unknown>,
+          // sosTipHistory 를 feedback 에 포함해 저장 — 기록(HistoryDetail) SOS 탭이 이 값을 읽음
+          feedback: { ...evalResult, sosTipHistory: sosTipHistory || [] } as unknown as Record<string, unknown>,
           coaching_skills: evalResult.coachingSkills as unknown as Record<string, number>,
           radar_chart: evalResult.radarChart as unknown as Record<string, number>,
           leadership_type: (evalResult as any).leadershipType || null,
