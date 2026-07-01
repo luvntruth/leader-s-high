@@ -4,6 +4,8 @@
  * DiceBear notionists-neutral 스타일 사용.
  */
 
+import type { EmotionState } from './emotionStateMachine';
+
 export interface CharacterInfo {
   name: string;
   nameEn: string;
@@ -117,6 +119,12 @@ function generateDynamicCharacter(name: string, scenarioId?: string): CharacterI
 export function getCharacterAvatar(name: string, scenarioId?: string, emotion?: 'neutral' | 'happy' | 'sad' | 'angry' | 'concerned'): string {
   const info = getCharacterInfo(scenarioId, name);
 
+  // 몰입 모드(v2): 세미리얼 감정 이미지 세트가 있는 캐릭터는 그 얼굴로 통일.
+  // 작은 사이드 아바타와 상단 반신 배너의 얼굴이 어긋나지 않도록 중립 표정을 사용한다.
+  if (info.gender === 'female') {
+    return `${IMMERSIVE_EMOTION_IMAGES.NEUTRAL}`;
+  }
+
   // 실사 AI 이미지가 존재하면 사용 (public 폴더 내 파일 확인 로직은 클라이언트 사이드에서 처리 권장)
   // 현재는 경로가 설정되어 있으면 해당 경로를 반환
   if (info.realityImageUrl && !info.realityImageUrl.startsWith('/assets/avatars/')) {
@@ -127,6 +135,45 @@ export function getCharacterAvatar(name: string, scenarioId?: string, emotion?: 
   const base = `https://api.dicebear.com/7.x/adventurer/svg?seed=${info.seed}`;
 
   return base;
+}
+
+// ─── 몰입 모드(v2): 감정 상태 → 세미리얼 캐릭터 이미지 매핑 ───
+// 현재 에셋: 20대 후반 여성 오피스 캐릭터 1종(5감정). docs/v2-immersive-character-mode.md 참고.
+// EmotionStateMachine의 7단계를 5장에 매핑(문서 확정):
+//   HOSTILE→적대 / DEFENSIVE·GUARDED→방어 / NEUTRAL→중립 / OPENING·COOPERATIVE→개방 / CONVINCED→확신
+const IMMERSIVE_EMOTION_IMAGES: Record<EmotionState, string> = {
+  HOSTILE: '/characters/female-office/hostile.png',
+  DEFENSIVE: '/characters/female-office/defensive.png',
+  GUARDED: '/characters/female-office/defensive.png',
+  NEUTRAL: '/characters/female-office/neutral.png',
+  OPENING: '/characters/female-office/opening.png',
+  COOPERATIVE: '/characters/female-office/opening.png',
+  CONVINCED: '/characters/female-office/convinced.png',
+};
+
+/**
+ * 몰입 모드 캐릭터 이미지 반환.
+ * 세미리얼 이미지 세트를 가진 캐릭터(현재: 여성)에 한해 감정 상태별 이미지를 반환하고,
+ * 그 외(남성 등 이미지 미보유)는 null → 기존 텍스트 UI로 폴백한다.
+ */
+export function getImmersiveCharacterImage(
+  name: string,
+  scenarioId: string | undefined,
+  emotionState: EmotionState
+): string | null {
+  const info = getCharacterInfo(scenarioId, name);
+  if (info.gender !== 'female') return null;
+  return IMMERSIVE_EMOTION_IMAGES[emotionState] ?? IMMERSIVE_EMOTION_IMAGES.NEUTRAL;
+}
+
+/**
+ * 프리로드/크로스페이드용 — 해당 캐릭터가 사용할 감정 이미지의 유니크 목록.
+ * 몰입 모드 미지원 캐릭터는 null.
+ */
+export function getImmersiveEmotionSet(name: string, scenarioId?: string): string[] | null {
+  const info = getCharacterInfo(scenarioId, name);
+  if (info.gender !== 'female') return null;
+  return Array.from(new Set(Object.values(IMMERSIVE_EMOTION_IMAGES)));
 }
 
 
