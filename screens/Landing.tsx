@@ -191,7 +191,9 @@ export default function Landing() {
   const { user } = useAuth();
 
   const attribution = useMemo(() => analyticsService.getAttribution(), []);
-  const variantKey: LandingVariantKey = (attribution.lp && attribution.lp in LANDING_VARIANTS ? attribution.lp : 'practice') as LandingVariantKey;
+  // 랜딩 기본 버전: '진단'(diagnosis) — 광고 테스트에서 클릭률 최고로 확정.
+  // 다른 버전은 ?lp=practice / new-manager / urgent-meeting 로 여전히 접근 가능(A/B 재개용).
+  const variantKey: LandingVariantKey = (attribution.lp && attribution.lp in LANDING_VARIANTS ? attribution.lp : 'diagnosis') as LandingVariantKey;
   const variant = LANDING_VARIANTS[variantKey];
 
   useEffect(() => {
