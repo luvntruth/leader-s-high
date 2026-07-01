@@ -580,6 +580,10 @@ const Simulation: React.FC = () => {
 
     if (!lastUser || !lastModel) return;
 
+    // SOS 와 즉시 코칭은 동시에 표시하지 않음 + 새로 열 때는 펼친 상태로
+    setShowSOS(false);
+    setCoachingCollapsed(false);
+
     // 캐시 키: 사용자 메시지 + AI 응답의 앞 50자
     const cacheKey = `${lastUser.text.slice(0, 80)}|${lastModel.text.slice(0, 50)}`;
     const cached = coachingCacheRef.current.get(cacheKey);
@@ -641,6 +645,7 @@ const Simulation: React.FC = () => {
   const handleSOS = async () => {
     if (isGeneratingSOS) return;
 
+    setShowCoaching(false); // SOS 와 즉시 코칭은 동시에 표시하지 않음
     setShowSOS(true);
 
     if (messages.length === 0) {

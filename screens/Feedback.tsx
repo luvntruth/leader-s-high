@@ -1541,11 +1541,11 @@ const Feedback: React.FC = () => {
             </div>
           ) : (
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/missions')}
               className="w-full bg-primary text-navy-deep py-6 rounded-[2rem] font-black shadow-neon-cyan active:scale-[0.98] transition-all text-sm uppercase tracking-[0.3em] flex items-center justify-center gap-2"
             >
-              <span className="material-symbols-outlined text-lg">home</span>
-              기지 복귀
+              <span className="material-symbols-outlined text-lg">swords</span>
+              퀘스트로 돌아가기
             </button>
           )}
         </div>
