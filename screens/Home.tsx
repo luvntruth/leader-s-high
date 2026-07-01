@@ -688,8 +688,11 @@ const Home: React.FC = () => {
               <Settings2 className="size-7 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-black text-base text-white tracking-tight">맞춤 시나리오 설계</p>
-              <p className="text-[12px] text-slate-500 mt-1 font-medium leading-normal">상황과 성향을 조정해 고난도 훈련 미션을 생성합니다.</p>
+              <div className="flex items-center gap-2">
+                <p className="font-black text-base text-white tracking-tight">커스텀랩 · 맞춤 캐릭터 생성</p>
+                <span className="shrink-0 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">Ultra</span>
+              </div>
+              <p className="text-[12px] text-slate-500 mt-1 font-medium leading-normal">캐릭터 이름·세대·성향을 직접 설정해 나만의 훈련 미션을 만듭니다.</p>
             </div>
             <ChevronRight className="size-5 text-slate-600 group-hover:text-primary group-hover:translate-x-1 transition-all" />
           </motion.button>
