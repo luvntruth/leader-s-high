@@ -1,515 +1,242 @@
-
-import { GoogleGenAI } from "@google/genai";
-import { DataService, RadarStats } from '../services/dataService';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 // @ts-ignore
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
+import type { SimulationRecord } from '../src/types/database';
 
-const COMPETENCY_DETAILS = [
-  {
-    key: 'trust',
-    name: '신뢰 구축',
-    definition: '팀원과의 심리적 안전감을 형성하고 정서적 유대감을 구축하는 능력입니다.',
-    basis: '사용자의 발언 중 "공감적 경청", "취약성 노출", "일관성 있는 지지" 키워드 출현 빈도 및 팀원의 심리적 방어 기제 해제율을 분석합니다.',
-    model: 'Gemini 2.5 Multi-Modal Context Engine을 사용하여 텍스트와 음성의 톤(Tone)에서 진정성 지수를 추출합니다.'
-  },
-  {
-    key: 'motivation',
-    name: '동기 부여',
-    definition: '팀원 개개인의 내적 동기를 자극하고 조직의 비전과 개인의 성장을 연결하는 능력입니다.',
-    basis: '피드백 상황에서 "의미 부여", "성장 가능성 제시", "보상 체계의 논리적 설명" 등의 대화 패턴을 측정합니다.',
-    model: 'Self-Determination Theory(자기결정성 이론)를 기반으로 한 독자적 AI 채점 알고리즘이 적용되었습니다.'
-  },
-  {
-    key: 'conflict',
-    name: '갈등 관리',
-    definition: '서로 다른 이해관계를 조정하고 팀 내 부정적 에너지를 건설적으로 전환하는 능력입니다.',
-    basis: '갈등 상황에서 "중립성 유지", "핵심 쟁점 파악", "타협안 도출" 과정에서의 논리적 완결성을 평가합니다.',
-    model: 'Game Theory 기반의 협상 전략 모델을 통해 대화의 수렴 속도와 만족도를 시뮬레이션합니다.'
-  },
-  {
-    key: 'strategy',
-    name: '전략 사고',
-    definition: '비즈니스 목표를 명확히 이해하고 우선순위에 따른 자원 배분과 실행 전략을 수립하는 능력입니다.',
-    basis: '업무 지시 시 "목표의 구체성(SMART)", "리스크 인지", "자원 최적화" 제안 여부를 분석합니다.',
-    model: 'McKinsey 7S Framework 및 시스템 사고(Systems Thinking) 로직을 데이터 추출 프레임워크로 활용합니다.'
-  },
-  {
-    key: 'decision',
-    name: '의사 결정',
-    decision: '불확실한 상황에서 데이터를 기반으로 결단을 내리고 책임감 있게 실행을 주도하는 능력입니다.',
-    basis: '결론을 내리는 시점의 "단호함", "근거 제시의 명확성", "사후 관리 대책" 등을 종합 판단합니다.',
-    model: 'Bayesian Inference(베이즈 추론) 모델을 사용하여 결정의 합리성과 시의성을 평가합니다.'
-  }
-];
+// recharts(~367KB) 초기 번들 제외
+const CompetencyRadar = lazy(() => import('../components/CompetencyRadar'));
 
-interface GrowthDataPoint {
-  session: number;
-  label: string;
-  trustLevel: number;
-  empathy: number;
-  question: number;
-  emotion: number;
-  listening: number;
-  action: number;
-}
+// 5개 역량 축 (Supabase radar_chart 키와 매핑)
+const RADAR_KEYS = [
+  { key: 'trust', label: '신뢰 구축' },
+  { key: 'motivation', label: '동기 부여' },
+  { key: 'conflict', label: '갈등 관리' },
+  { key: 'strategy', label: '전략 사고' },
+  { key: 'decision', label: '의사 결정' },
+] as const;
+
+// 역량별 "오늘부터 실천" 정형화 팁 (약점 기반 추천에 사용)
+const IMPROVEMENT_TIPS: Record<string, string> = {
+  trust: '대화 초반 30초를 지적 대신 공감 표현("요즘 어떠세요?")으로 시작해보세요.',
+  motivation: '지시보다 "이 일이 당신 성장에 어떻게 도움이 될지"를 먼저 짚어보세요.',
+  conflict: '반박하기 전에 상대의 입장을 한 문장으로 요약해 되돌려주세요.',
+  strategy: '업무를 맡길 때 목표·우선순위·마감을 한 번에 명확히 전달하세요.',
+  decision: '결정을 내릴 땐 근거를 한 문장으로 정리해 함께 전달하세요.',
+};
+
+// 데이터가 충분히 쌓이기 전까지 분석을 열지 않는 최소 완주 횟수
+const MIN_COMPLETED = 3;
 
 const Insights: React.FC = () => {
   const navigate = useNavigate();
-  const [showCommunity, setShowCommunity] = useState(false);
-  const [showProfileDetail, setShowProfileDetail] = useState(false);
-  const [isAnalysing, setIsAnalysing] = useState(false);
-  const [report, setReport] = useState<string>("");
-  const [animate, setAnimate] = useState(false);
-  const [orgStats, setOrgStats] = useState({ avgLQ: 715, top10Threshold: 910 });
-
-  const [radarData, setRadarData] = useState<RadarStats>({ trust: 0, motivation: 0, conflict: 0, decision: 0, strategy: 0 });
-  const [orgRadarData, setOrgRadarData] = useState<RadarStats>({ trust: 0, motivation: 0, conflict: 0, decision: 0, strategy: 0 });
-  const [growthData, setGrowthData] = useState<GrowthDataPoint[]>([]);
-  const [selectedMetric, setSelectedMetric] = useState<'trustLevel' | 'empathy' | 'question' | 'emotion' | 'listening' | 'action'>('trustLevel');
-
-  const orgTrend = useMemo(() => DataService.getOrgTrend(), []);
-  const userTrend = useMemo(() => DataService.getUserTrend(), []);
+  const { user } = useAuth();
+  const [history, setHistory] = useState<SimulationRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    DataService.initOrgData();
-    const stats = DataService.getOrgStats();
-    setOrgStats({
-      avgLQ: stats.avgLQ,
-      top10Threshold: Math.floor(stats.avgLQ * 1.2)
-    });
+    let cancelled = false;
+    if (!user) { setLoading(false); return; }
+    dbService.getHistory(user.id, 50)
+      .then(recs => {
+        if (cancelled) return;
+        setHistory(recs.filter(r => r.completed));
+        setLoading(false);
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [user]);
 
-    setRadarData(DataService.getAverageRadarStats());
-    setOrgRadarData(DataService.getOrgAverageRadarStats());
+  // ── 실데이터 기반 정형화 집계 ──
+  const stats = useMemo(() => {
+    const completed = history;
+    const count = completed.length;
+    if (count < MIN_COMPLETED) return null;
 
-    // 회차별 성장 추이 데이터 구축
-    const history = DataService.getUserHistory();
-    if (history.length > 0) {
-      const points: GrowthDataPoint[] = history
-        .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
-        .slice(-10) // 최근 10회차
-        .map((h: any, idx: number) => ({
-          session: idx + 1,
-          label: `${idx + 1}회`,
-          trustLevel: h.evaluation?.metrics?.trustLevel ?? h.evaluation?.metrics?.overallScore ?? 50,
-          empathy: h.evaluation?.coachingSkills?.empathyExpression ?? Math.floor(50 + Math.random() * 30),
-          question: h.evaluation?.coachingSkills?.questionSkill ?? Math.floor(45 + Math.random() * 30),
-          emotion: h.evaluation?.coachingSkills?.emotionControl ?? Math.floor(50 + Math.random() * 25),
-          listening: h.evaluation?.coachingSkills?.activeListening ?? Math.floor(48 + Math.random() * 30),
-          action: h.evaluation?.coachingSkills?.actionGuidance ?? Math.floor(42 + Math.random() * 30),
-        }));
-      setGrowthData(points);
+    // 역량 레이더 평균 (radar_chart 실데이터)
+    const radarAvg: Record<string, number> = {};
+    for (const { key } of RADAR_KEYS) {
+      const vals = completed
+        .map(r => (r.radar_chart as Record<string, number> | null)?.[key])
+        .filter((v): v is number => typeof v === 'number');
+      radarAvg[key] = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
     }
 
-    setTimeout(() => setAnimate(true), 100);
-  }, []);
+    // 평균 신뢰도
+    const trustVals = completed
+      .map(r => r.final_trust)
+      .filter((v): v is number => typeof v === 'number');
+    const avgTrust = trustVals.length ? Math.round(trustVals.reduce((a, b) => a + b, 0) / trustVals.length) : null;
 
-  const userScore = 842;
+    // 성장 추이 — 오래된 → 최신 순, 세션별 신뢰도
+    const trend = [...completed]
+      .reverse()
+      .map((r, i) => ({ session: i + 1, trust: typeof r.final_trust === 'number' ? r.final_trust : 0, title: r.scenario_title }));
 
-  const getRadarPath = (data: RadarStats, radius: number) => {
-    const angleStep = (Math.PI * 2) / 5;
-    const points = [
-      { x: 50 + (data.trust * radius / 100) * Math.cos(-Math.PI/2), y: 50 + (data.trust * radius / 100) * Math.sin(-Math.PI/2) },
-      { x: 50 + (data.motivation * radius / 100) * Math.cos(-Math.PI/2 + angleStep), y: 50 + (data.motivation * radius / 100) * Math.sin(-Math.PI/2 + angleStep) },
-      { x: 50 + (data.conflict * radius / 100) * Math.cos(-Math.PI/2 + angleStep * 2), y: 50 + (data.conflict * radius / 100) * Math.sin(-Math.PI/2 + angleStep * 2) },
-      { x: 50 + (data.strategy * radius / 100) * Math.cos(-Math.PI/2 + angleStep * 3), y: 50 + (data.strategy * radius / 100) * Math.sin(-Math.PI/2 + angleStep * 3) },
-      { x: 50 + (data.decision * radius / 100) * Math.cos(-Math.PI/2 + angleStep * 4), y: 50 + (data.decision * radius / 100) * Math.sin(-Math.PI/2 + angleStep * 4) },
-    ];
-    return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y} L ${points[2].x},${points[2].y} L ${points[3].x},${points[3].y} L ${points[4].x},${points[4].y} Z`;
-  };
+    // 신뢰도 개선폭 (첫 절반 평균 vs 나중 절반 평균)
+    let growth: number | null = null;
+    if (trend.length >= 4) {
+      const half = Math.floor(trend.length / 2);
+      const early = trend.slice(0, half);
+      const late = trend.slice(half);
+      const avg = (arr: typeof trend) => arr.reduce((a, b) => a + b.trust, 0) / arr.length;
+      growth = Math.round(avg(late) - avg(early));
+    }
+
+    // 강점/약점 (레이더 최고/최저)
+    const ranked = RADAR_KEYS.map(k => ({ key: k.key, label: k.label, value: radarAvg[k.key] })).sort((a, b) => b.value - a.value);
+    const strength = ranked[0];
+    const weakness = ranked[ranked.length - 1];
+
+    const radarData = RADAR_KEYS.map(k => ({ subject: k.label, A: radarAvg[k.key], fullMark: 100 }));
+
+    return { count, radarAvg, avgTrust, trend, growth, strength, weakness, radarData };
+  }, [history]);
+
+  // ── 로딩 ──
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#060B18] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const remaining = Math.max(0, MIN_COMPLETED - history.length);
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-[#0A0F1D] text-white font-manrope lg:px-12">
-      <header className="p-5 bg-[#0A0F1D]/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between sticky top-0 z-30 lg:px-0">
-        <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-neon-cyan">
-            <span className="material-symbols-outlined font-bold">query_stats</span>
-          </div>
-          <div>
-            <h2 className="text-lg font-black tracking-tight leading-none italic uppercase">나의 성장 분석</h2>
-            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">Org-wide Benchmark</p>
-          </div>
+    <div className="min-h-screen bg-[#060B18] text-white pb-24">
+      {/* 헤더 */}
+      <header className="sticky top-0 z-10 bg-[#060B18]/90 backdrop-blur-xl border-b border-white/5 px-4 py-3 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+          <span className="material-symbols-outlined text-slate-400">arrow_back</span>
+        </button>
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-400">Performance</p>
+          <h1 className="text-sm font-bold">성과 분석</h1>
         </div>
       </header>
 
-      <main className="flex-1 p-6 space-y-8 pb-32 hide-scrollbar lg:px-0 lg:py-12">
-        <div className="lg:grid lg:grid-cols-12 lg:gap-8 space-y-8 lg:space-y-0">
-          
-          <div className="lg:col-span-5 space-y-8">
-            <div className="bg-gradient-to-br from-primary/20 to-navy-card border border-primary/30 p-8 rounded-[3rem] shadow-2xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                  <span className="material-symbols-outlined text-7xl text-primary">emoji_events</span>
-               </div>
-               <p className="text-[10px] font-black text-primary uppercase mb-1 tracking-[0.3em]">개인 성과 지수</p>
-               <div className="flex items-end gap-3 mb-4">
-                  <h1 className="text-4xl sm:text-5xl font-black text-white italic tracking-tighter">{userScore}</h1>
-                  <span className="text-[10px] sm:text-xs font-bold text-primary mb-2">상위 12% 리더</span>
-               </div>
-               <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">
-                 리더님은 우리 회사 평균(<span className="text-white font-bold">{orgStats.avgLQ}점</span>)보다 <span className="text-primary font-bold">{userScore - orgStats.avgLQ}점</span> 높게 달리고 있어요!
-               </p>
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* 데이터 부족 안내 */}
+        {stats === null ? (
+          <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+            <div className="size-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-5">
+              <span className="material-symbols-outlined text-amber-400 text-3xl">query_stats</span>
             </div>
-
-            <div className="bg-navy-card rounded-[3rem] p-6 sm:p-8 border border-white/5 shadow-2xl">
-              <div className="flex justify-between items-center mb-8 px-2">
-                 <h3 className="text-[10px] font-bold uppercase text-slate-500 tracking-[0.2em]">나의 5대 역량 그래프</h3>
-                 <button 
-                  onClick={() => setShowProfileDetail(true)}
-                  className="flex items-center gap-1.5 bg-primary/10 px-3 py-1.5 rounded-full border border-primary/30 hover:bg-primary/20 transition-all group"
-                 >
-                    <span className="text-[9px] font-black text-primary uppercase tracking-tighter">Leader Profile</span>
-                    <span className="material-symbols-outlined text-primary text-[14px]">info</span>
-                 </button>
-              </div>
-              
-              <div className="flex justify-center mb-10 relative">
-                <svg className="w-full max-w-[280px] sm:max-w-[320px] aspect-square overflow-visible" viewBox="-15 -15 130 130">
-                  {[25, 50, 75, 100].map((r) => (
-                    <circle key={r} cx="50" cy="50" r={r/2} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
-                  ))}
-                  {[0, 1, 2, 3, 4].map(i => {
-                    const angle = -Math.PI/2 + (i * Math.PI * 2 / 5);
-                    return <line key={i} x1="50" y1="50" x2={50 + 50 * Math.cos(angle)} y2={50 + 50 * Math.sin(angle)} stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
-                  })}
-                  <path
-                    d={getRadarPath(orgRadarData, 50)}
-                    fill="rgba(255, 255, 255, 0.05)"
-                    stroke="rgba(255, 255, 255, 0.2)"
-                    strokeWidth="1"
-                    strokeDasharray="2,2"
-                  />
-                  <path
-                    d={getRadarPath(radarData, 50)}
-                    fill="url(#radarGradient)"
-                    stroke="#00F2FF"
-                    strokeWidth="2.5"
-                    className={`transition-all duration-[1500ms] ease-out ${animate ? 'opacity-100' : 'opacity-0'}`}
-                  />
-                  <defs>
-                    <radialGradient id="radarGradient">
-                      <stop offset="0%" stopColor="rgba(0, 242, 255, 0.1)" />
-                      <stop offset="100%" stopColor="rgba(0, 242, 255, 0.5)" />
-                    </radialGradient>
-                  </defs>
-                  {[
-                    { key: 'trust', name: '신뢰', x: 50, y: -10, anchor: 'middle' },
-                    { key: 'motivation', name: '동기', x: 105, y: 40, anchor: 'start' },
-                    { key: 'conflict', name: '갈등', x: 85, y: 105, anchor: 'middle' },
-                    { key: 'strategy', name: '전략', x: 15, y: 105, anchor: 'middle' },
-                    { key: 'decision', name: '의사', x: -5, y: 40, anchor: 'end' }
-                  ].map((label, idx) => {
-                    const value = (radarData as any)[label.key];
-                    return (
-                      <g key={idx}>
-                        <text x={label.x} y={label.y} textAnchor={label.anchor as any} className="text-[7px] font-black fill-white uppercase tracking-tighter">{label.name}</text>
-                        <text x={label.x} y={label.y + 7} textAnchor={label.anchor as any} className="text-[8px] font-black fill-primary">{value}</text>
-                      </g>
-                    );
-                  })}
-                </svg>
-                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <div className="size-2 rounded-full bg-primary shadow-neon-cyan"></div>
-                    <span className="text-[9px] font-bold text-slate-300">리더님</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="size-2 rounded-full bg-white/20 border border-white/40 border-dashed"></div>
-                    <span className="text-[9px] font-bold text-slate-500">평균</span>
-                  </div>
-                </div>
-              </div>
+            <h2 className="text-white font-black text-xl mb-2">성과 분석 준비 중</h2>
+            <p className="text-slate-400 text-sm leading-relaxed max-w-xs mb-6">
+              시뮬레이션을 <span className="text-amber-400 font-bold">{MIN_COMPLETED}회 이상 완주</span>하면,
+              누적 대화 데이터를 기반으로 역량 분석과 성장 추이가 자동 생성됩니다.
+            </p>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6">
+              <span className="text-slate-500 text-xs">분석까지</span>
+              <span className="text-amber-400 font-black text-sm">{history.length}/{MIN_COMPLETED}회</span>
             </div>
+            <button onClick={() => navigate('/missions')} className="px-6 py-3 rounded-xl bg-amber-500 text-slate-900 font-bold text-sm active:scale-95 transition-all">
+              시뮬레이션 시작하기 →
+            </button>
           </div>
-
-          <div className="lg:col-span-7 space-y-8">
-            <div className="bg-navy-card rounded-[3rem] p-6 sm:p-8 border border-white/5 shadow-2xl relative overflow-hidden">
-               <div className="flex justify-between items-start mb-8">
-                  <div>
-                    <h3 className="text-sm font-bold tracking-tight flex items-center gap-2 mb-1">
-                      <span className="material-symbols-outlined text-primary text-sm">bar_chart</span>
-                      훈련 참여 흐름
-                    </h3>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">나의 기록 vs 회사 평균</p>
-                  </div>
-               </div>
-               <div className="flex items-end justify-between h-40 sm:h-48 px-2 gap-1.5">
-                  {orgTrend.map((data, idx) => {
-                    const userCount = userTrend[idx]?.count || 0;
-                    const orgHeight = (data.count / 150) * 160;
-                    const userHeight = (userCount / 20) * 160;
-                    return (
-                      <div key={idx} className="flex flex-col items-center gap-4 group flex-1">
-                         <div className="relative w-full flex items-end justify-center gap-1">
-                            <div className="w-2.5 sm:w-5 bg-white/10 rounded-t-sm" style={{ height: animate ? `${orgHeight}px` : '0px', transition: 'height 1s ease-out' }}></div>
-                            <div className="w-2.5 sm:w-5 bg-primary rounded-t-sm shadow-neon-cyan" style={{ height: animate ? `${userHeight}px` : '0px', transition: 'height 1s ease-out' }}></div>
-                         </div>
-                         <span className="text-[9px] font-bold text-slate-500">{data.month}</span>
-                      </div>
-                    );
-                  })}
-               </div>
-            </div>
-            {/* 회차별 성장 추이 그래프 */}
-            <div className="bg-navy-card rounded-[3rem] p-6 sm:p-8 border border-white/5 shadow-2xl">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h3 className="text-sm font-bold tracking-tight flex items-center gap-2 mb-1">
-                    <span className="material-symbols-outlined text-primary text-sm">trending_up</span>
-                    회차별 성장 추이
-                  </h3>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Session Growth Trend</p>
-                </div>
+        ) : (
+          <>
+            {/* 핵심 지표 */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-[#111A2E]/60 rounded-2xl p-4 border border-white/5 text-center">
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">완주</p>
+                <p className="text-2xl font-black text-amber-400">{stats.count}<span className="text-xs text-slate-500 ml-0.5">회</span></p>
               </div>
+              <div className="bg-[#111A2E]/60 rounded-2xl p-4 border border-white/5 text-center">
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">평균 신뢰도</p>
+                <p className="text-2xl font-black text-emerald-400">{stats.avgTrust ?? '-'}<span className="text-xs text-slate-500 ml-0.5">점</span></p>
+              </div>
+              <div className="bg-[#111A2E]/60 rounded-2xl p-4 border border-white/5 text-center">
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">성장</p>
+                <p className={`text-2xl font-black ${stats.growth == null ? 'text-slate-500' : stats.growth >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {stats.growth == null ? '-' : `${stats.growth >= 0 ? '+' : ''}${stats.growth}`}
+                </p>
+              </div>
+            </div>
 
-              {/* 메트릭 선택 칩 */}
-              <div className="flex flex-wrap gap-2 mb-6">
-                {([
-                  { key: 'trustLevel' as const, label: '신뢰도', color: '#00F2FF' },
-                  { key: 'empathy' as const, label: '공감 표현', color: '#FF6B8A' },
-                  { key: 'question' as const, label: '질문 기술', color: '#FFD93D' },
-                  { key: 'emotion' as const, label: '감정 조절', color: '#6BCB77' },
-                  { key: 'listening' as const, label: '경청', color: '#A78BFA' },
-                  { key: 'action' as const, label: '실행 유도', color: '#FB923C' },
-                ]).map(m => (
-                  <button
-                    key={m.key}
-                    onClick={() => setSelectedMetric(m.key)}
-                    className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all ${
-                      selectedMetric === m.key
-                        ? 'border-white/30 bg-white/10 text-white'
-                        : 'border-white/5 bg-white/[0.02] text-slate-500 hover:bg-white/5'
-                    }`}
-                  >
-                    <span className="inline-block size-1.5 rounded-full mr-1.5" style={{ backgroundColor: m.color }}></span>
-                    {m.label}
-                  </button>
+            {/* 역량 레이더 */}
+            <section className="bg-[#111A2E]/50 rounded-[2rem] p-6 border border-white/5">
+              <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-amber-400 text-base">radar</span>
+                역량 레이더 · 최근 {stats.count}회 평균
+              </h2>
+              <Suspense fallback={<div className="min-h-[280px] w-full animate-pulse bg-white/[0.02] rounded-xl" />}>
+                <CompetencyRadar data={stats.radarData} />
+              </Suspense>
+            </section>
+
+            {/* 성장 추이 */}
+            <section className="bg-[#111A2E]/50 rounded-[2rem] p-6 border border-white/5">
+              <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-cyan-400 text-base">trending_up</span>
+                신뢰도 성장 추이
+              </h2>
+              <div className="flex items-end justify-between gap-1.5 h-32">
+                {stats.trend.map((t, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+                    <div className="w-full bg-white/5 rounded-t-md relative flex-1 flex items-end overflow-hidden">
+                      <div
+                        className="w-full rounded-t-md bg-gradient-to-t from-cyan-500/70 to-primary transition-all duration-700"
+                        style={{ height: `${Math.max(4, t.trust)}%` }}
+                      />
+                    </div>
+                    <span className="text-[8px] text-slate-600 font-bold">{t.session}</span>
+                  </div>
                 ))}
               </div>
+              <p className="text-[10px] text-slate-600 mt-2 text-center">세션별 최종 신뢰도 (오래된 → 최신)</p>
+            </section>
 
-              {growthData.length >= 2 ? (
-                <div className="relative h-48 sm:h-56">
-                  {/* Y축 그리드 */}
-                  {[0, 25, 50, 75, 100].map(v => (
-                    <div key={v} className="absolute w-full flex items-center" style={{ bottom: `${v}%` }}>
-                      <span className="text-[8px] text-slate-600 w-7 text-right mr-2">{v}</span>
-                      <div className="flex-1 border-t border-white/5"></div>
-                    </div>
-                  ))}
+            {/* 정형화 인사이트 */}
+            <section className="space-y-3">
+              <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                <span className="material-symbols-outlined text-amber-400 text-base">lightbulb</span>
+                맞춤 인사이트
+              </h2>
 
-                  {/* SVG 라인 차트 */}
-                  <svg className="absolute left-9 top-0 right-0 bottom-0" style={{ width: 'calc(100% - 36px)', height: '100%' }} viewBox={`0 0 ${(growthData.length - 1) * 100} 100`} preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="growthFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={
-                          selectedMetric === 'trustLevel' ? '#00F2FF' :
-                          selectedMetric === 'empathy' ? '#FF6B8A' :
-                          selectedMetric === 'question' ? '#FFD93D' :
-                          selectedMetric === 'emotion' ? '#6BCB77' :
-                          selectedMetric === 'listening' ? '#A78BFA' : '#FB923C'
-                        } stopOpacity="0.3" />
-                        <stop offset="100%" stopColor={
-                          selectedMetric === 'trustLevel' ? '#00F2FF' :
-                          selectedMetric === 'empathy' ? '#FF6B8A' :
-                          selectedMetric === 'question' ? '#FFD93D' :
-                          selectedMetric === 'emotion' ? '#6BCB77' :
-                          selectedMetric === 'listening' ? '#A78BFA' : '#FB923C'
-                        } stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-
-                    {/* 영역 채우기 */}
-                    <path
-                      d={
-                        growthData.map((d, i) => {
-                          const x = i * 100;
-                          const y = 100 - d[selectedMetric];
-                          return `${i === 0 ? 'M' : 'L'} ${x},${y}`;
-                        }).join(' ') + ` L ${(growthData.length - 1) * 100},100 L 0,100 Z`
-                      }
-                      fill="url(#growthFill)"
-                      className={`transition-all duration-700 ${animate ? 'opacity-100' : 'opacity-0'}`}
-                    />
-
-                    {/* 라인 */}
-                    <path
-                      d={
-                        growthData.map((d, i) => {
-                          const x = i * 100;
-                          const y = 100 - d[selectedMetric];
-                          return `${i === 0 ? 'M' : 'L'} ${x},${y}`;
-                        }).join(' ')
-                      }
-                      fill="none"
-                      stroke={
-                        selectedMetric === 'trustLevel' ? '#00F2FF' :
-                        selectedMetric === 'empathy' ? '#FF6B8A' :
-                        selectedMetric === 'question' ? '#FFD93D' :
-                        selectedMetric === 'emotion' ? '#6BCB77' :
-                        selectedMetric === 'listening' ? '#A78BFA' : '#FB923C'
-                      }
-                      strokeWidth="2"
-                      vectorEffect="non-scaling-stroke"
-                      className={`transition-all duration-700 ${animate ? 'opacity-100' : 'opacity-0'}`}
-                    />
-
-                    {/* 데이터 포인트 */}
-                    {growthData.map((d, i) => (
-                      <circle
-                        key={i}
-                        cx={i * 100}
-                        cy={100 - d[selectedMetric]}
-                        r="4"
-                        fill="#0A0F1D"
-                        stroke={
-                          selectedMetric === 'trustLevel' ? '#00F2FF' :
-                          selectedMetric === 'empathy' ? '#FF6B8A' :
-                          selectedMetric === 'question' ? '#FFD93D' :
-                          selectedMetric === 'emotion' ? '#6BCB77' :
-                          selectedMetric === 'listening' ? '#A78BFA' : '#FB923C'
-                        }
-                        strokeWidth="2"
-                        vectorEffect="non-scaling-stroke"
-                        className={`transition-all duration-700 ${animate ? 'opacity-100' : 'opacity-0'}`}
-                      />
-                    ))}
-                  </svg>
-
-                  {/* X축 라벨 */}
-                  <div className="absolute bottom-[-20px] left-9 right-0 flex justify-between">
-                    {growthData.map((d, i) => (
-                      <span key={i} className="text-[8px] text-slate-500 font-bold">{d.label}</span>
-                    ))}
-                  </div>
+              {/* 강점 */}
+              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="material-symbols-outlined text-emerald-400 text-sm">verified</span>
+                  <p className="text-xs font-black text-emerald-400">가장 강한 역량 · {stats.strength.label} ({stats.strength.value}점)</p>
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 gap-3">
-                  <span className="material-symbols-outlined text-3xl text-slate-600">show_chart</span>
-                  <p className="text-xs text-slate-500 font-medium">2회 이상 코칭을 완료하면 성장 추이가 표시됩니다</p>
-                </div>
-              )}
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  누적 대화에서 <span className="text-white font-bold">{stats.strength.label}</span> 역량이 가장 안정적으로 나타났습니다. 이 강점을 팀과의 신뢰 자산으로 계속 활용하세요.
+                </p>
+              </div>
 
-              {/* 성장 요약 */}
-              {growthData.length >= 2 && (
-                <div className="mt-10 grid grid-cols-3 gap-3">
-                  {(() => {
-                    const first = growthData[0][selectedMetric];
-                    const last = growthData[growthData.length - 1][selectedMetric];
-                    const diff = last - first;
-                    const max = Math.max(...growthData.map(d => d[selectedMetric]));
-                    const avg = Math.round(growthData.reduce((s, d) => s + d[selectedMetric], 0) / growthData.length);
-                    return (
-                      <>
-                        <div className="bg-white/[0.03] rounded-2xl p-4 text-center border border-white/5">
-                          <p className="text-[9px] text-slate-500 font-bold mb-1">변화량</p>
-                          <p className={`text-lg font-black ${diff >= 0 ? 'text-primary' : 'text-red-400'}`}>
-                            {diff >= 0 ? '+' : ''}{diff}
-                          </p>
-                        </div>
-                        <div className="bg-white/[0.03] rounded-2xl p-4 text-center border border-white/5">
-                          <p className="text-[9px] text-slate-500 font-bold mb-1">최고 점수</p>
-                          <p className="text-lg font-black text-white">{max}</p>
-                        </div>
-                        <div className="bg-white/[0.03] rounded-2xl p-4 text-center border border-white/5">
-                          <p className="text-[9px] text-slate-500 font-bold mb-1">평균</p>
-                          <p className="text-lg font-black text-white">{avg}</p>
-                        </div>
-                      </>
-                    );
-                  })()}
+              {/* 개선점 + 추천 실천 */}
+              <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="material-symbols-outlined text-amber-400 text-sm">trending_up</span>
+                  <p className="text-xs font-black text-amber-400">우선 강화 역량 · {stats.weakness.label} ({stats.weakness.value}점)</p>
                 </div>
-              )}
-            </div>
+                <p className="text-xs text-slate-300 leading-relaxed mb-3">
+                  <span className="text-white font-bold">{stats.weakness.label}</span> 역량이 상대적으로 낮습니다. 아래 한 가지를 다음 대화에서 바로 적용해보세요.
+                </p>
+                <div className="bg-black/30 rounded-xl p-3 flex items-start gap-2">
+                  <span className="text-amber-300 text-base mt-0.5">💬</span>
+                  <p className="text-[13px] text-amber-200/90 leading-relaxed">{IMPROVEMENT_TIPS[stats.weakness.key] || '다음 대화에서 상대의 입장을 먼저 확인해보세요.'}</p>
+                </div>
+              </div>
 
-            <button
-              onClick={() => {
-                setIsAnalysing(true);
-                setShowCommunity(true);
-                setTimeout(() => setIsAnalysing(false), 1500);
-                setReport("리더님은 조직 내 상위 12%에 해당하는 탁월한 성과를 보여주고 계십니다. 특히 신뢰 구축 역량이 평균 대비 20% 높게 측정되어 팀원들이 심리적으로 매우 안전하다고 느끼고 있어요.");
-              }}
-              className="w-full bg-primary text-navy-deep py-6 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-neon-cyan active:scale-95 flex items-center justify-center gap-3 transition-all lg:py-8"
-            >
-              <span className="material-symbols-outlined text-xl">psychology</span>
-              AI 정밀 성장 진단 받기
-            </button>
-          </div>
-        </div>
+              {/* 추천 다음 행동 */}
+              <div className="bg-[#111A2E]/60 border border-white/5 rounded-2xl p-4 flex items-center justify-between gap-3">
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  {stats.weakness.label} 강화에 좋은 시나리오로 다음 훈련을 이어가세요.
+                </p>
+                <button onClick={() => navigate('/missions')} className="shrink-0 px-4 py-2 rounded-xl bg-amber-500 text-slate-900 text-xs font-black active:scale-95 transition-all">
+                  퀘스트로 →
+                </button>
+              </div>
+            </section>
+          </>
+        )}
       </main>
-
-      {/* Profile Detail Modal */}
-      {showProfileDetail && (
-        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-lg flex items-center justify-center p-4 overflow-y-auto" onClick={() => setShowProfileDetail(false)}>
-          <div 
-            className="w-full max-w-2xl bg-navy-card rounded-[2.5rem] sm:rounded-[3rem] border border-white/10 p-6 sm:p-8 shadow-2xl my-auto animate-in zoom-in-95 duration-200"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-10">
-              <div className="flex items-center gap-4">
-                <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                  <span className="material-symbols-outlined text-2xl font-black">shield_person</span>
-                </div>
-                <div>
-                  <h3 className="text-xl font-black text-white italic tracking-tighter leading-none">Intelligence Profile</h3>
-                  <p className="text-[9px] text-primary font-black uppercase tracking-[0.2em] mt-1">리더십 역량 산출 체계</p>
-                </div>
-              </div>
-              <button onClick={() => setShowProfileDetail(false)} className="size-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-white/10">
-                <span className="material-symbols-outlined text-xl">close</span>
-              </button>
-            </div>
-
-            <div className="space-y-8">
-              {COMPETENCY_DETAILS.map((comp) => (
-                <section key={comp.key} className="relative group border-l border-white/5 pl-4">
-                  <span className="text-primary font-black text-[10px] uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded border border-primary/20 mb-3 inline-block">
-                    {comp.name}
-                  </span>
-                  <div className="space-y-4">
-                    <p className="text-[13px] text-slate-200 leading-relaxed font-bold">{comp.definition}</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1.5">도출 근거</p>
-                        <p className="text-[11px] text-slate-400 leading-relaxed font-medium">{comp.basis}</p>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              ))}
-            </div>
-            
-            <button 
-              onClick={() => setShowProfileDetail(false)}
-              className="w-full mt-10 py-5 bg-primary text-navy-deep font-black text-xs uppercase tracking-widest rounded-2xl shadow-neon-cyan active:scale-95"
-            >
-              확인했습니다
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showCommunity && (
-        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-end justify-center px-4" onClick={() => setShowCommunity(false)}>
-          <div className="w-full max-w-md bg-navy-card rounded-t-[3rem] p-8 shadow-2xl border-t border-white/10 animate-in slide-in-from-bottom-20 duration-500 overflow-y-auto max-h-[90dvh]" onClick={e => e.stopPropagation()}>
-            <div className="w-12 h-1 bg-white/10 rounded-full mx-auto mb-8"></div>
-            {isAnalysing ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-6">
-                <div className="size-12 border-3 border-primary/10 border-t-primary rounded-full animate-spin"></div>
-                <p className="text-sm font-bold text-slate-400">데이터를 분석 중입니다...</p>
-              </div>
-            ) : (
-              <div className="space-y-8 pb-8">
-                <div className="bg-primary/5 p-6 rounded-3xl border border-primary/20">
-                  <p className="text-[9px] font-black text-primary uppercase mb-3 tracking-widest">AI 맞춤형 진단</p>
-                  <p className="text-sm text-slate-200 leading-relaxed font-medium italic">"{report}"</p>
-                </div>
-                <button onClick={() => setShowCommunity(false)} className="w-full py-5 bg-primary text-navy-deep font-black text-xs uppercase tracking-widest rounded-2xl">확인 완료</button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
