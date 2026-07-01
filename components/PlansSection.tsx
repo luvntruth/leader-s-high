@@ -37,8 +37,9 @@ export const PLAN_SUMMARY = {
       '풀 리포트 무제한',
       '이전 기록 보관 및 비교',
       '실시간 즉시 코칭',
+      '커스텀랩 (본인 캐릭터 생성)',
     ],
-    comingSoon: ['타인 비교 리더십 분석', '커스텀랩 (본인 캐릭터 생성)'],
+    comingSoon: ['타인 비교 리더십 분석'],
   },
 } as const;
 
@@ -51,7 +52,7 @@ export const FEATURE_ROWS = [
   ['이전 기록 비교', '—', '✓', '✓'],
   ['즉시 코칭', '—', '✓', '✓'],
   ['타인 비교 분석', '—', '—', '🔜 Soon'],
-  ['커스텀랩', '—', '—', '🔜 Soon'],
+  ['커스텀랩', '—', '—', '✓'],
 ] as const;
 
 interface PlansSectionProps {
