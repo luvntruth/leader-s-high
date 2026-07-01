@@ -25,6 +25,15 @@ const Navigation: React.FC = () => {
     { label: '프로필', labelEn: 'PROFILE', icon: 'shield_person', path: '/profile' },
   ];
 
+  // 데스크톱 사이드바에는 커스텀랩(울트라 전용 맞춤 캐릭터 생성)도 노출 (프로필 앞)
+  const desktopNavItems = user
+    ? [
+        ...navItems.slice(0, -1),
+        { label: '커스텀랩', labelEn: 'LAB', icon: 'science', path: '/custom-lab' },
+        navItems[navItems.length - 1],
+      ]
+    : navItems;
+
   return (
     <>
       {/* ── 데스크톱: 사이드바 ── */}
@@ -49,7 +58,7 @@ const Navigation: React.FC = () => {
 
         {/* 네비게이션 아이템 */}
         <nav className="flex-1 px-4 space-y-1.5">
-          {navItems.map((item) => (
+          {desktopNavItems.map((item) => (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
