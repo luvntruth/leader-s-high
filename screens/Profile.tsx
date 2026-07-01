@@ -100,7 +100,6 @@ const Profile: React.FC = () => {
   const { user, profile, signOut } = useAuth();
   const [completedHistory, setCompletedHistory] = useState<SimulationRecord[]>([]);
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
-  const [rank, setRank] = useState<UserRank | null>(null);
   const [showRankInfo, setShowRankInfo] = useState(false);
   const [selectedRankName, setSelectedRankName] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'status' | 'leadership' | 'badges' | 'account'>('status');
@@ -140,10 +139,6 @@ const Profile: React.FC = () => {
     }
   }, [user, profile]);
 
-
-  useEffect(() => {
-    setRank(DataService.getUserRank());
-  }, []);
 
   // ── 실데이터 기반 리더 프로필 집계 ──
   const leaderProfileData = React.useMemo(() => {
@@ -197,49 +192,62 @@ const Profile: React.FC = () => {
     };
   }, [completedHistory]);
 
+  // ── 리더 레벨/랭크 — Supabase 완주 기록(실데이터) 기반 ──
+  const rank = React.useMemo<UserRank>(() => {
+    const count = completedHistory.length;
+    const radar = (leaderProfileData?.radarAvg || {}) as Record<string, number>;
+    const level = Math.floor(count / 2) + 1;
+    let title = '루키 리더';
+    let subTitle = '리더십의 기초를 다지는 중';
+    if (level > 15) {
+      title = '마스터 디렉터';
+      subTitle = '조직 문화를 리딩하는 존재';
+    } else if (level > 10) {
+      if ((radar.strategy ?? 0) > 80) title = '엘리트 전략가';
+      else if ((radar.trust ?? 0) > 80) title = '엘리트 하모니어';
+      else title = '엘리트 리더';
+      subTitle = '조직의 핵심 리더십 발휘 중';
+    } else if (level > 5) {
+      title = '프로페셔널 매니저';
+      subTitle = '안정적인 팀 운영 능력 보유';
+    }
+    const nextLevelXp = 1000;
+    const currentXp = (count % 2) * 500; // 2회 완주마다 레벨업 → 실제 진행도
+    return { level, title, subTitle, currentXp, nextLevelXp, progress: (currentXp / nextLevelXp) * 100 };
+  }, [completedHistory.length, leaderProfileData]);
 
-  // ── 실데이터 기반 배지 계산 (Supabase 완주 기록만 사용) ──
+  // ── 실데이터 기반 배지 계산 (Supabase 완주 기록 + 실제 지표만 사용) ──
+  // 플랜 상한(프로 20회 / 울트라 40회)에 맞춰 배지 컬렉션을 차별화한다.
   const computedBadges: Badge[] = React.useMemo(() => {
-    const completedCount = completedHistory.length;
-    return [
-      {
-        id: 'beginner',
-        name: '첫 완주',
-        icon: 'rocket_launch',
-        description: '리더십 여정의 첫 걸음을 내딛었습니다.',
-        condition: '시뮬레이션 1회 완주',
-        color: 'text-primary',
-        isUnlocked: completedCount >= 1,
-      },
-      {
-        id: 'five_complete',
-        name: '5회 완주',
-        icon: 'workspace_premium',
-        description: '꾸준한 훈련으로 리더십 기반을 다졌습니다.',
-        condition: '시뮬레이션 5회 완주',
-        color: 'text-accent-amber',
-        isUnlocked: completedCount >= 5,
-      },
-      {
-        id: 'ten_complete',
-        name: '10회 완주',
-        icon: 'military_tech',
-        description: '반복 훈련을 통해 실전 감각을 키웠습니다.',
-        condition: '시뮬레이션 10회 완주',
-        color: 'text-yellow-400',
-        isUnlocked: completedCount >= 10,
-      },
-      {
-        id: 'twenty_complete',
-        name: '20회 완주',
-        icon: 'diamond',
-        description: '지속적인 성장으로 탁월한 리더십을 증명했습니다.',
-        condition: '시뮬레이션 20회 완주',
-        color: 'text-purple-400',
-        isUnlocked: completedCount >= 20,
-      },
+    const count = completedHistory.length;
+    const isUltra = (profile?.plan ?? 'free') === 'ultra';
+    const avgTrust = leaderProfileData?.avgTrust ?? null;
+    const dominantType = leaderProfileData?.dominantType ?? null;
+
+    const badges: Badge[] = [
+      { id: 'beginner', name: '첫 걸음', icon: 'rocket_launch', description: '리더십 여정의 첫 걸음을 내딛었습니다.', condition: '시뮬레이션 1회 완주', color: 'text-primary', isUnlocked: count >= 1 },
+      { id: 'five', name: '꾸준함', icon: 'workspace_premium', description: '꾸준한 훈련으로 리더십 기반을 다졌습니다.', condition: '시뮬레이션 5회 완주', color: 'text-accent-amber', isUnlocked: count >= 5 },
+      { id: 'ten', name: '숙련', icon: 'military_tech', description: '반복 훈련으로 실전 감각을 키웠습니다.', condition: '시뮬레이션 10회 완주', color: 'text-yellow-400', isUnlocked: count >= 10 },
+      { id: 'fifteen', name: '베테랑', icon: 'stars', description: '풍부한 경험으로 노련함을 갖췄습니다.', condition: '시뮬레이션 15회 완주', color: 'text-orange-400', isUnlocked: count >= 15 },
+      { id: 'pro_master', name: '프로 마스터', icon: 'diamond', description: '프로 플랜의 20개 시나리오를 모두 완주했습니다.', condition: '시뮬레이션 20회 완주', color: 'text-purple-400', isUnlocked: count >= 20 },
     ];
-  }, [completedHistory]);
+
+    // 울트라 전용 (40회 상한)
+    if (isUltra) {
+      badges.push(
+        { id: 'thirty', name: '디렉터', icon: 'shield_person', description: '30회 완주로 조직을 이끄는 리더가 되었습니다.', condition: '시뮬레이션 30회 완주', color: 'text-cyan-400', isUnlocked: count >= 30 },
+        { id: 'ultra_master', name: '울트라 마스터', icon: 'diamond', description: '울트라 플랜의 40개 시나리오를 모두 완주한 최고의 리더입니다.', condition: '시뮬레이션 40회 완주', color: 'text-cyan-300', isUnlocked: count >= 40 },
+      );
+    }
+
+    // 역량 배지 (실데이터 기반 — 3회 이상 완주 후 집계)
+    badges.push(
+      { id: 'trust_master', name: '신뢰의 달인', icon: 'favorite', description: '평균 신뢰도 80점 이상을 달성했습니다.', condition: '평균 신뢰도 80+ (3회 완주 후)', color: 'text-pink-400', isUnlocked: (avgTrust ?? 0) >= 80 },
+      { id: 'type_found', name: '유형 발견', icon: 'psychology', description: '누적 대화로 나만의 리더십 유형이 확정되었습니다.', condition: '리더십 유형 분석 완료 (3회 완주)', color: 'text-emerald-400', isUnlocked: !!dominantType },
+    );
+
+    return badges;
+  }, [completedHistory, profile?.plan, leaderProfileData]);
 
 
   const unlockedCount = computedBadges.filter(b => b.isUnlocked).length;
@@ -303,8 +311,8 @@ const Profile: React.FC = () => {
             <p className="text-sm font-bold">리더 프로필</p>
           </div>
         </div>
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-          <span className="material-symbols-outlined text-slate-400">close</span>
+        <button onClick={() => activeTab === 'status' ? navigate(-1) : setActiveTab('status')} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+          <span className="material-symbols-outlined text-slate-400">{activeTab === 'status' ? 'close' : 'arrow_back'}</span>
         </button>
       </header>
 
@@ -664,6 +672,18 @@ const Profile: React.FC = () => {
                   <button onClick={() => navigate('/pricing')} className="px-4 py-1.5 rounded-lg bg-amber-500 text-slate-900 text-xs font-bold">업그레이드</button>
                 </div>
               </div>
+            ) : completedHistory.length < 5 ? (
+              <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl p-5 mb-4 text-center">
+                <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-3 text-left">대화 패턴 분석</h3>
+                <div className="py-4">
+                  <span className="material-symbols-outlined text-amber-400 text-3xl mb-2 block">insights</span>
+                  <p className="text-slate-300 text-sm mb-3">최소 <span className="text-amber-400 font-bold">5회</span> 이상 대화를 완료하셔야 분석이 가능합니다.</p>
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
+                    <span className="text-slate-500 text-xs">분석까지</span>
+                    <span className="text-amber-400 font-black text-sm">{completedHistory.length}/5회</span>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl p-5 mb-4">
                 <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-3">대화 패턴 분석</h3>
@@ -688,50 +708,6 @@ const Profile: React.FC = () => {
               </div>
             )}
 
-            {/* Section 3: 성장 추이 (PRO) */}
-            {profile?.plan === 'free' ? (
-              <div className="relative rounded-2xl border border-amber-500/20 overflow-hidden">
-                <div className="p-5 filter blur-sm select-none pointer-events-none">
-                  <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-3">성장 추이</h3>
-                  <div className="flex items-center gap-6">
-                    <div className="text-center">
-                      <p className="text-2xl font-black text-white">12</p>
-                      <p className="text-[10px] text-slate-500 mt-1">총 시뮬레이션</p>
-                    </div>
-                    <div className="w-px h-10 bg-slate-700" />
-                    <div className="text-center">
-                      <p className="text-2xl font-black text-emerald-400">78</p>
-                      <p className="text-[10px] text-slate-500 mt-1">평균 신뢰 점수</p>
-                    </div>
-                    <div className="w-px h-10 bg-slate-700" />
-                    <div className="text-center">
-                      <p className="text-2xl font-black text-amber-400">+12%</p>
-                      <p className="text-[10px] text-slate-500 mt-1">성장률</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60">
-                  <span className="text-2xl mb-2">🔒</span>
-                  <p className="text-white font-bold text-sm mb-1">프로 플랜에서 확인</p>
-                  <button onClick={() => navigate('/pricing')} className="px-4 py-1.5 rounded-lg bg-amber-500 text-slate-900 text-xs font-bold">업그레이드</button>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl p-5 mb-4">
-                <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-3">성장 추이</h3>
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <p className="text-2xl font-black text-white">{simCount}</p>
-                    <p className="text-[10px] text-slate-500 mt-1">총 시뮬레이션</p>
-                  </div>
-                  <div className="w-px h-10 bg-slate-700" />
-                  <div className="text-center">
-                    <p className="text-2xl font-black text-emerald-400">{leadershipData?.pattern ? Math.round((leadershipData.pattern.questionRatio + leadershipData.pattern.empathyRatio + leadershipData.pattern.listeningRatio) / 3) : '-'}</p>
-                    <p className="text-[10px] text-slate-500 mt-1">평균 신뢰 점수</p>
-                  </div>
-                </div>
-              </div>
-            )}
 
 
           </div>
@@ -987,30 +963,12 @@ const Profile: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => navigate('/pricing')}
-              className="py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs font-semibold"
-            >
-              플랜 관리
-            </button>
-            <button
-              onClick={async () => {
-                if (!user) return;
-                const json = await authService.exportData(user.id);
-                const blob = new Blob([json], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `letmefree-data-${new Date().toISOString().slice(0, 10)}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-              className="py-3 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-300 text-xs font-semibold"
-            >
-              데이터 내보내기
-            </button>
-          </div>
+          <button
+            onClick={() => navigate('/pricing')}
+            className="w-full py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs font-semibold"
+          >
+            플랜 관리
+          </button>
 
           {/* ── 구매한 플레이북 목록 ── */}
           <div className="bg-slate-800/40 rounded-2xl p-5 border border-white/5 space-y-3">
