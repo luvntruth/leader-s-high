@@ -390,6 +390,7 @@ const Simulation: React.FC = () => {
                   transcript: failMessages,
                   scenario,
                   sosTipHistory,
+                  trustDimensions: trustState.dimensions,
                   // 게스트 플래그 포함 — AuthGuard 가 비로그인 상태를 통과시키도록
                   ...(isGuest && { guest: true }),
                 },
@@ -564,9 +565,9 @@ const Simulation: React.FC = () => {
     }), user?.id);
 
     if (isGuest) {
-      navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory, guest: true } });
+      navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory, guest: true, trustDimensions: trustState.dimensions } });
     } else {
-      navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory } });
+      navigate('/feedback', { state: { transcript: messages, scenario, sosTipHistory, trustDimensions: trustState.dimensions } });
     }
   };
 

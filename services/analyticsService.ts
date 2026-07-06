@@ -20,6 +20,7 @@ export type EventName =
   | 'simulation_first_turn'
   | 'sim_complete'
   | 'sim_abandon'
+  | 'diagnosis_type_shown'
   | 'signup_start'
   | 'signup_complete'
   | 'pricing_view'
