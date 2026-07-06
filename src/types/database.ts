@@ -96,7 +96,7 @@ export interface SimulationRecord {
   communication_pattern: CommunicationPattern | null;
   memo: string;
   tags: string[];
-  /** Spec v3 §3·§7.2: 12턴 완주(true) vs 중단(false). 중단 카운팅에 사용. */
+  /** Spec v3 §3·§7.2: 완주(true) vs 중단(false) — 무료 5턴 / 유료 10턴 기준. 중단 카운팅에 사용. */
   completed: boolean;
   created_at: string;
 }

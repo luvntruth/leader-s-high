@@ -9,6 +9,7 @@ export const BUSINESS_INFO = {
   businessAddress: '서울특별시 양천구 목동동로12길 60, 103동 1202호 (신정동, 목동현대아파트)',
   customerSupportEmail: SUPPORT_EMAIL,
   customerSupportPhone: '010-4488-9517',
+  customerSupportKakao: 'https://pf.kakao.com/_axaiPX',  // 카카오톡 채널 — 1:1 문의
   privacyEmail: PRIVACY_EMAIL,
   customerSupportChannel: SUPPORT_EMAIL,
   privacyOfficer: '이석진',
