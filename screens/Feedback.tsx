@@ -281,6 +281,10 @@ const Feedback: React.FC = () => {
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
+          // thinking 비활성 + (풀 리포트 시) 전용 필드 required 강제 조합:
+          // 프로덕션 실측 57.6s → 31.6s, 필드 누락 없음. thinking만 끄면 optional
+          // 필드(goldenScripts 등)를 통째로 생략하므로 required 강제가 반드시 동반돼야 함.
+          thinkingConfig: { thinkingBudget: 0 },
           responseMimeType: 'application/json',
           responseSchema: {
             type: Type.OBJECT,
@@ -516,7 +520,11 @@ const Feedback: React.FC = () => {
                 },
               },
             },
-            required: ['summary', 'strengths', 'improvements', 'modelAnswers', 'theoryInsight', 'actionItems', 'coachingSkills', 'metrics', 'radarChart', 'leadershipType', 'communicationPattern']
+            required: [
+              'summary', 'strengths', 'improvements', 'modelAnswers', 'theoryInsight', 'actionItems', 'coachingSkills', 'metrics', 'radarChart', 'leadershipType', 'communicationPattern',
+              // 풀 리포트는 전용 필드도 필수로 — thinking 비활성 시 optional 필드가 생략되는 것 방지
+              ...(isFullReport ? ['phaseStrategy', 'goldenScripts', 'psychTriggers', 'coachOverview', 'weekActionPlan', 'retryGuide', 'recommendedNextScenario', 'theoryDeepDive'] : []),
+            ]
           }
         }
       }));
@@ -650,7 +658,7 @@ const Feedback: React.FC = () => {
           </div>
           <div className="absolute inset-0 rounded-full animate-hologram-scan opacity-50" />
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary/20 border border-primary/30 px-3 py-1 rounded-full">
-            <span className="text-primary text-[9px] font-black uppercase tracking-widest">Analyzing</span>
+            <span className="text-primary text-[11px] font-black uppercase tracking-widest">Analyzing</span>
           </div>
         </div>
 
@@ -709,7 +717,7 @@ const Feedback: React.FC = () => {
       {!isFullReport && diagnosis && (
         <section className="px-5 pt-6 pb-2 border-b border-white/5">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-amber-400 text-[10px] font-black uppercase tracking-[0.2em]">AI 대화 진단 결과</p>
+            <p className="text-amber-400 text-[12px] font-black uppercase tracking-[0.2em]">AI 대화 진단 결과</p>
             <span className="text-slate-500 text-[10px] border border-white/10 rounded-full px-2.5 py-0.5">무료 진단</span>
           </div>
 
@@ -746,12 +754,12 @@ const Feedback: React.FC = () => {
           {/* 강점 / 급소 */}
           <div className="mt-3 space-y-3">
             <div className="rounded-2xl border border-teal-400/20 bg-teal-400/5 p-4">
-              <p className="text-teal-300 text-[10px] font-black uppercase tracking-widest mb-1">✓ 당신의 강점</p>
+              <p className="text-teal-300 text-[12px] font-black uppercase tracking-widest mb-1">✓ 당신의 강점</p>
               <p className="text-white text-[15px] font-bold">{diagnosis.strength.title}</p>
               <p className="text-slate-400 text-[13px] leading-relaxed mt-1">{diagnosis.strength.desc}</p>
             </div>
             <div className="rounded-2xl border border-amber-400/25 bg-amber-400/5 p-4">
-              <p className="text-amber-400 text-[10px] font-black uppercase tracking-widest mb-1">⚑ 당신의 급소</p>
+              <p className="text-amber-400 text-[12px] font-black uppercase tracking-widest mb-1">⚑ 당신의 급소</p>
               <p className="text-white text-[15px] font-bold">{diagnosis.gap.title}</p>
               <p className="text-slate-400 text-[13px] leading-relaxed mt-1">{diagnosis.gap.desc}</p>
             </div>
@@ -812,7 +820,7 @@ const Feedback: React.FC = () => {
               <p className="text-amber-400 text-xs font-semibold">간략 리포트입니다</p>
               <p className="text-white text-sm font-black mt-1">이 대화에서 놓친 3가지를 풀 리포트로 확인하세요</p>
             </div>
-            <button onClick={() => handleReportProBridgeClick('pricing')} className="shrink-0 px-3 py-2 rounded-xl bg-amber-500 text-slate-950 text-[10px] font-black hover:bg-amber-400 transition-colors">
+            <button onClick={() => handleReportProBridgeClick('pricing')} className="shrink-0 px-3 py-2 rounded-xl bg-amber-500 text-slate-950 text-[12px] font-black hover:bg-amber-400 transition-colors">
               Pro로 보기
             </button>
           </div>
@@ -840,7 +848,7 @@ const Feedback: React.FC = () => {
 
         {/* 상단 작은 태그 */}
         <div className="relative z-10 flex items-center justify-center gap-2 mb-6">
-          <span className="bg-primary/10 border border-primary/30 text-primary px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.3em]">
+          <span className="bg-primary/10 border border-primary/30 text-primary px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-[0.3em]">
             {scenario?.category || '리더십 훈련'}
           </span>
         </div>
@@ -870,7 +878,7 @@ const Feedback: React.FC = () => {
 
         {/* 종합 랭크 */}
         <div className="relative z-10 mt-8 inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-6 py-3">
-          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">종합 등급</span>
+          <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">종합 등급</span>
           <span className={`text-4xl font-black italic ${overallRank.cls}`}>{overallRank.rank}</span>
           <span className="text-sm font-bold text-slate-400">{avgScore}점</span>
         </div>
@@ -878,13 +886,13 @@ const Feedback: React.FC = () => {
         {/* 리더십 유형 */}
         {(evaluation as any)?.leadershipType && (
           <div className="relative z-10 mt-4 inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-6 py-3">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">리더십 유형</span>
+            <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">리더십 유형</span>
             <span className="text-2xl">
               {(evaluation as any).leadershipType === 'coaching' ? '🎯' :
                (evaluation as any).leadershipType === 'directing' ? '📋' :
                (evaluation as any).leadershipType === 'delegating' ? '🤝' : '💬'}
             </span>
-            <span className="text-sm font-bold text-white">
+            <span className="text-base font-bold text-white">
               {(evaluation as any).leadershipType === 'coaching' ? '코칭형' :
                (evaluation as any).leadershipType === 'directing' ? '지시형' :
                (evaluation as any).leadershipType === 'delegating' ? '위임형' : '참여형'}
@@ -900,7 +908,7 @@ const Feedback: React.FC = () => {
           <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
             <span className="material-symbols-outlined text-8xl text-primary">verified_user</span>
           </div>
-          <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-5 flex items-center gap-2">
+          <h3 className="text-[12px] font-black text-primary uppercase tracking-[0.3em] mb-5 flex items-center gap-2">
             <span className="material-symbols-outlined text-xs">description</span>
             대화 요약
           </h3>
@@ -917,13 +925,13 @@ const Feedback: React.FC = () => {
               return (
                 <div key={i} className="text-center">
                   <span className="material-symbols-outlined text-lg text-slate-500 mb-1 block">{m.icon}</span>
-                  <p className="text-[9px] font-black text-slate-500 uppercase mb-2">{m.label}</p>
+                  <p className="text-[11px] font-black text-slate-500 uppercase mb-2">{m.label}</p>
                   <div className="text-2xl font-black italic mb-2">{m.value}<span className="text-sm text-slate-600">%</span></div>
                   <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                     <div className={`h-full ${m.color} rounded-full`}
                       style={{ width: `${m.value}%`, boxShadow: `0 0 8px ${m.glow}`, animation: 'count-up-bar 1.5s ease-out' }} />
                   </div>
-                  <span className={`text-[10px] font-black italic mt-1 block ${r.cls}`}>{r.rank}</span>
+                  <span className={`text-[12px] font-black italic mt-1 block ${r.cls}`}>{r.rank}</span>
                 </div>
               );
             })}
@@ -943,12 +951,12 @@ const Feedback: React.FC = () => {
             <div className="space-y-5">
               {evaluation.strengths.map((s, i) => (
                 <div key={i} className="flex gap-3">
-                  <div className="size-7 shrink-0 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-[10px] font-black border border-emerald-500/20">
+                  <div className="size-7 shrink-0 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-[12px] font-black border border-emerald-500/20">
                     {i + 1}
                   </div>
                   <div>
-                    <h4 className="text-sm font-black text-white mb-1">{s.title}</h4>
-                    <p className="text-xs text-slate-400 leading-relaxed font-medium">{s.desc}</p>
+                    <h4 className="text-base font-black text-white mb-1">{s.title}</h4>
+                    <p className="text-[15px] text-slate-400 leading-relaxed font-medium">{s.desc}</p>
                   </div>
                 </div>
               ))}
@@ -966,12 +974,12 @@ const Feedback: React.FC = () => {
             <div className="space-y-5">
               {evaluation.improvements.map((s, i) => (
                 <div key={i} className="flex gap-3">
-                  <div className="size-7 shrink-0 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 text-[10px] font-black border border-red-500/20">
+                  <div className="size-7 shrink-0 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 text-[12px] font-black border border-red-500/20">
                     {i + 1}
                   </div>
                   <div>
-                    <h4 className="text-sm font-black text-white mb-1">{s.title}</h4>
-                    <p className="text-xs text-slate-400 leading-relaxed font-medium">{s.desc}</p>
+                    <h4 className="text-base font-black text-white mb-1">{s.title}</h4>
+                    <p className="text-[15px] text-slate-400 leading-relaxed font-medium">{s.desc}</p>
                   </div>
                 </div>
               ))}
@@ -1010,7 +1018,7 @@ const Feedback: React.FC = () => {
                           style={{ width: `${value}%`, boxShadow: `0 0 6px ${skill.glow}`, animation: 'count-up-bar 1.5s ease-out' }} />
                       </div>
                       <div className="flex items-center gap-2 w-16 justify-end">
-                        <span className="text-sm font-black text-white">{value}</span>
+                        <span className="text-base font-black text-white">{value}</span>
                         <span className={`text-xs font-black italic ${r.cls}`}>{r.rank}</span>
                       </div>
                     </div>
@@ -1034,11 +1042,11 @@ const Feedback: React.FC = () => {
               <div key={idx} className="bg-[#1C1F26] border border-amber-500/15 p-6 rounded-[2rem] relative overflow-hidden battle-card-glow transition-all duration-300">
                 {/* 상황 */}
                 <div className="mb-5">
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1">
+                  <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1">
                     <span className="material-symbols-outlined text-[10px]">replay</span>
                     상황 리플레이
                   </p>
-                  <p className="text-xs text-slate-300 italic font-medium leading-relaxed">"{item.situation}"</p>
+                  <p className="text-[15px] text-slate-300 italic font-medium leading-relaxed">"{item.situation}"</p>
                 </div>
 
                 {/* 비교 */}
@@ -1047,25 +1055,25 @@ const Feedback: React.FC = () => {
                   <div className="bg-red-500/5 border border-red-500/15 p-4 rounded-xl">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="material-symbols-outlined text-red-400 text-xs">person</span>
-                      <p className="text-[9px] font-black text-red-400 uppercase tracking-widest">나의 발화</p>
+                      <p className="text-[11px] font-black text-red-400 uppercase tracking-widest">나의 발화</p>
                     </div>
-                    <p className="text-xs text-slate-300 leading-relaxed">"{item.situation}"</p>
+                    <p className="text-[15px] text-slate-300 leading-relaxed">"{item.situation}"</p>
                   </div>
 
                   {/* 추천 답변 */}
                   <div className="bg-amber-500/5 border border-amber-500/15 p-4 rounded-xl">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="material-symbols-outlined text-amber-400 text-xs">auto_awesome</span>
-                      <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest">추천 답변</p>
+                      <p className="text-[11px] font-black text-amber-400 uppercase tracking-widest">추천 답변</p>
                     </div>
-                    <p className="text-xs text-white font-bold leading-relaxed">"{item.bestResponse}"</p>
+                    <p className="text-[15px] text-white font-bold leading-relaxed">"{item.bestResponse}"</p>
                   </div>
                 </div>
 
                 {/* 코치 코멘트 */}
                 <div className="bg-white/5 p-3 rounded-xl flex gap-3 items-start">
                   <span className="material-symbols-outlined text-primary text-sm mt-0.5 shrink-0">lightbulb</span>
-                  <p className="text-[11px] text-slate-400 leading-relaxed font-medium">{item.why}</p>
+                  <p className="text-[13px] text-slate-400 leading-relaxed font-medium">{item.why}</p>
                 </div>
               </div>
             ))}
@@ -1097,20 +1105,20 @@ const Feedback: React.FC = () => {
                     </div>
                     {phase.userQuote && (
                       <div className="mb-3 bg-white/5 rounded-xl p-3">
-                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">당신이 한 말</p>
-                        <p className="text-xs text-white italic leading-relaxed">"{phase.userQuote}"</p>
+                        <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">당신이 한 말</p>
+                        <p className="text-[15px] text-white italic leading-relaxed">"{phase.userQuote}"</p>
                       </div>
                     )}
                     {phase.analysis && (
                       <div className="mb-2">
-                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">AI 분석</p>
-                        <p className="text-xs text-slate-300 leading-relaxed">{phase.analysis}</p>
+                        <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">AI 분석</p>
+                        <p className="text-[15px] text-slate-300 leading-relaxed">{phase.analysis}</p>
                       </div>
                     )}
                     {phase.improvement && (
                       <div>
-                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">개선 여지</p>
-                        <p className="text-xs text-slate-400 leading-relaxed">{phase.improvement}</p>
+                        <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">개선 여지</p>
+                        <p className="text-[15px] text-slate-400 leading-relaxed">{phase.improvement}</p>
                       </div>
                     )}
                   </div>
@@ -1134,20 +1142,20 @@ const Feedback: React.FC = () => {
                 <div key={i} className="rounded-2xl border border-amber-500/15 bg-[#1C1F26] p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="size-7 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-400 text-xs font-black">{i + 1}</span>
-                    <p className="text-xs font-bold text-amber-300">{g.situation}</p>
+                    <p className="text-sm font-bold text-amber-300">{g.situation}</p>
                   </div>
                   <div className="space-y-3">
                     <div className="bg-white/5 rounded-xl p-3">
-                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">당신이 한 말</p>
-                      <p className="text-xs text-slate-300 italic leading-relaxed">"{g.userSaid}"</p>
+                      <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">당신이 한 말</p>
+                      <p className="text-[15px] text-slate-300 italic leading-relaxed">"{g.userSaid}"</p>
                     </div>
                     <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
-                      <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest mb-1">더 강력한 대안</p>
-                      <p className="text-xs text-white font-bold leading-relaxed">"{g.betterAlternative}"</p>
+                      <p className="text-[11px] font-black text-amber-400 uppercase tracking-widest mb-1">더 강력한 대안</p>
+                      <p className="text-[15px] text-white font-bold leading-relaxed">"{g.betterAlternative}"</p>
                     </div>
                     <div className="flex gap-2 items-start">
                       <span className="material-symbols-outlined text-amber-400 text-sm mt-0.5 shrink-0">lightbulb</span>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">{g.whyStronger}</p>
+                      <p className="text-[13px] text-slate-400 leading-relaxed">{g.whyStronger}</p>
                     </div>
                   </div>
                 </div>
@@ -1167,14 +1175,14 @@ const Feedback: React.FC = () => {
             </h3>
             {evaluation.psychTriggers.reactionTurnpoints && evaluation.psychTriggers.reactionTurnpoints.length > 0 && (
               <div className="mb-6">
-                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-3">반응 전환점 · 신뢰도 급상승</p>
+                <p className="text-[12px] font-black text-emerald-400 uppercase tracking-widest mb-3">반응 전환점 · 신뢰도 급상승</p>
                 <div className="space-y-2">
                   {evaluation.psychTriggers.reactionTurnpoints.map((t, i) => (
                     <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
-                      <span className="text-[10px] font-black text-emerald-400 mt-0.5 shrink-0">턴 {t.turn}</span>
+                      <span className="text-[12px] font-black text-emerald-400 mt-0.5 shrink-0">턴 {t.turn}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-slate-200 italic mb-1 truncate">"{t.userSaid}"</p>
-                        <p className="text-[10px] text-slate-500">트리거: <span className="text-emerald-400 font-bold">{t.trigger}</span> · {t.trustChange}</p>
+                        <p className="text-[15px] text-slate-200 italic mb-1 truncate">"{t.userSaid}"</p>
+                        <p className="text-[12px] text-slate-500">트리거: <span className="text-emerald-400 font-bold">{t.trigger}</span> · {t.trustChange}</p>
                       </div>
                     </div>
                   ))}
@@ -1183,15 +1191,15 @@ const Feedback: React.FC = () => {
             )}
             {evaluation.psychTriggers.lostOpportunities && evaluation.psychTriggers.lostOpportunities.length > 0 && (
               <div>
-                <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-3">놓친 기회 · 더 잘할 수 있었던 순간</p>
+                <p className="text-[12px] font-black text-amber-400 uppercase tracking-widest mb-3">놓친 기회 · 더 잘할 수 있었던 순간</p>
                 <div className="space-y-3">
                   {evaluation.psychTriggers.lostOpportunities.map((l, i) => (
                     <div key={i} className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/15">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[10px] font-black text-amber-400">턴 {l.turn}</span>
-                        <span className="text-[10px] text-slate-400">{l.situation}</span>
+                        <span className="text-[12px] font-black text-amber-400">턴 {l.turn}</span>
+                        <span className="text-[12px] text-slate-400">{l.situation}</span>
                       </div>
-                      <p className="text-xs text-slate-300 leading-relaxed">
+                      <p className="text-[15px] text-slate-300 leading-relaxed">
                         <span className="text-amber-400 font-bold">이상적 대응: </span>"{l.idealResponse}"
                       </p>
                     </div>
@@ -1213,15 +1221,15 @@ const Feedback: React.FC = () => {
             </h3>
             {evaluation.coachOverview.strengthProfile && evaluation.coachOverview.strengthProfile.length > 0 && (
               <div className="mb-6">
-                <p className="text-[10px] font-black text-purple-300 uppercase tracking-widest mb-3">강점 프로파일</p>
+                <p className="text-[12px] font-black text-purple-300 uppercase tracking-widest mb-3">강점 프로파일</p>
                 <div className="space-y-2">
                   {evaluation.coachOverview.strengthProfile.map((s, i) => (
                     <div key={i} className="p-3 rounded-xl bg-white/5 border border-white/10">
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-sm font-black text-white">{s.skill}</p>
+                        <p className="text-base font-black text-white">{s.skill}</p>
                         <span className="text-sm font-black text-purple-400">{s.score}</span>
                       </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">{s.evidence}</p>
+                      <p className="text-[13px] text-slate-400 leading-relaxed">{s.evidence}</p>
                     </div>
                   ))}
                 </div>
@@ -1229,18 +1237,18 @@ const Feedback: React.FC = () => {
             )}
             {evaluation.coachOverview.nextPracticeTop3 && evaluation.coachOverview.nextPracticeTop3.length > 0 && (
               <div>
-                <p className="text-[10px] font-black text-purple-300 uppercase tracking-widest mb-3">다음에 반드시 연습해야 할 3가지</p>
+                <p className="text-[12px] font-black text-purple-300 uppercase tracking-widest mb-3">다음에 반드시 연습해야 할 3가지</p>
                 <div className="space-y-3">
                   {evaluation.coachOverview.nextPracticeTop3.map((n, i) => (
                     <div key={i} className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/15">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="size-6 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-300 text-[10px] font-black">{i + 1}</span>
-                        <p className="text-sm font-bold text-white">{n.focus}</p>
+                        <span className="size-6 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-300 text-[12px] font-black">{i + 1}</span>
+                        <p className="text-base font-bold text-white">{n.focus}</p>
                       </div>
-                      <p className="text-[11px] text-slate-400 mb-1">현재: <span className="text-slate-300">{n.current}</span></p>
-                      <p className="text-[11px] text-slate-400 mb-2">목표: <span className="text-purple-300">{n.goal}</span></p>
+                      <p className="text-[13px] text-slate-400 mb-1">현재: <span className="text-slate-300">{n.current}</span></p>
+                      <p className="text-[13px] text-slate-400 mb-2">목표: <span className="text-purple-300">{n.goal}</span></p>
                       {n.recommendedScenario && (
-                        <p className="text-[10px] text-slate-500">추천 시나리오: <span className="text-amber-400 font-bold">{n.recommendedScenario}</span></p>
+                        <p className="text-[12px] text-slate-500">추천 시나리오: <span className="text-amber-400 font-bold">{n.recommendedScenario}</span></p>
                       )}
                     </div>
                   ))}
@@ -1259,7 +1267,7 @@ const Feedback: React.FC = () => {
               </span>
               7일 행동 플랜 · 다음 주 매일 실천
             </h3>
-            <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+            <p className="text-[13px] text-slate-400 mb-4 leading-relaxed">
               한 번에 다 바꾸려 하지 마세요. 매일 하나씩, 작은 행동을 반복해야 습관이 됩니다.
             </p>
             <div className="space-y-2">
@@ -1277,14 +1285,14 @@ const Feedback: React.FC = () => {
                 return (
                   <div key={key} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5">
                     <div className="shrink-0 w-12 text-center">
-                      <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: dim }}>{label}</p>
+                      <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: dim }}>{label}</p>
                     </div>
                     <div className="flex-1 min-w-0">
                       {day.focus && (
-                        <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">{day.focus}</p>
+                        <p className="text-[12px] font-black text-indigo-300 uppercase tracking-widest mb-1">{day.focus}</p>
                       )}
                       {day.action && (
-                        <p className="text-xs text-slate-200 leading-relaxed">{day.action}</p>
+                        <p className="text-[15px] text-slate-200 leading-relaxed">{day.action}</p>
                       )}
                     </div>
                   </div>
@@ -1303,28 +1311,28 @@ const Feedback: React.FC = () => {
               </span>
               같은 시나리오 재도전 가이드
             </h3>
-            <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+            <p className="text-[13px] text-slate-400 mb-4 leading-relaxed">
               이번 대화에서 단 1가지만 바꾼다면 — 가장 임팩트가 큰 1개를 추렸습니다.
             </p>
             <div className="space-y-4">
               {evaluation.retryGuide.oneThingToChange && (
                 <div className="p-4 rounded-2xl bg-orange-500/5 border border-orange-500/15">
-                  <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-2">바꿀 단 1가지</p>
-                  <p className="text-sm text-white font-bold leading-relaxed">{evaluation.retryGuide.oneThingToChange}</p>
+                  <p className="text-[12px] font-black text-orange-400 uppercase tracking-widest mb-2">바꿀 단 1가지</p>
+                  <p className="text-base text-white font-bold leading-relaxed">{evaluation.retryGuide.oneThingToChange}</p>
                 </div>
               )}
               {evaluation.retryGuide.expectedOutcome && (
                 <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/15">
-                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">예상되는 변화</p>
-                  <p className="text-xs text-slate-200 leading-relaxed">{evaluation.retryGuide.expectedOutcome}</p>
+                  <p className="text-[12px] font-black text-emerald-400 uppercase tracking-widest mb-2">예상되는 변화</p>
+                  <p className="text-[15px] text-slate-200 leading-relaxed">{evaluation.retryGuide.expectedOutcome}</p>
                 </div>
               )}
               {evaluation.retryGuide.watchOutFor && (
                 <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/15 flex gap-3 items-start">
                   <span className="material-symbols-outlined text-amber-400 text-base mt-0.5 shrink-0">warning</span>
                   <div>
-                    <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">주의할 함정</p>
-                    <p className="text-xs text-slate-300 leading-relaxed">{evaluation.retryGuide.watchOutFor}</p>
+                    <p className="text-[12px] font-black text-amber-400 uppercase tracking-widest mb-1">주의할 함정</p>
+                    <p className="text-[15px] text-slate-300 leading-relaxed">{evaluation.retryGuide.watchOutFor}</p>
                   </div>
                 </div>
               )}
@@ -1345,13 +1353,13 @@ const Feedback: React.FC = () => {
               <div className="flex items-center justify-between mb-3">
                 <p className="text-base font-black text-white">{evaluation.recommendedNextScenario.scenarioTitle}</p>
                 {evaluation.recommendedNextScenario.difficulty && (
-                  <span className="text-[10px] font-black px-2 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                  <span className="text-[12px] font-black px-2 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
                     {evaluation.recommendedNextScenario.difficulty}
                   </span>
                 )}
               </div>
               {evaluation.recommendedNextScenario.whyThisOne && (
-                <p className="text-xs text-slate-300 leading-relaxed">{evaluation.recommendedNextScenario.whyThisOne}</p>
+                <p className="text-[15px] text-slate-300 leading-relaxed">{evaluation.recommendedNextScenario.whyThisOne}</p>
               )}
             </div>
           </section>
@@ -1366,7 +1374,7 @@ const Feedback: React.FC = () => {
               </span>
               이론 깊이 적용 · 다층 관점
             </h3>
-            <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+            <p className="text-[13px] text-slate-400 mb-4 leading-relaxed">
               하나의 이론만으로는 부족합니다. 같은 대화를 여러 렌즈로 본 분석입니다.
             </p>
             <div className="space-y-4">
@@ -1374,18 +1382,18 @@ const Feedback: React.FC = () => {
                 <div key={i} className="rounded-2xl border border-emerald-500/15 bg-[#0E1820] p-5">
                   <div className="flex items-center gap-2 mb-4">
                     <span className="size-7 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-400 text-xs font-black">{i + 1}</span>
-                    <p className="text-sm font-black text-emerald-300">{t.name}</p>
+                    <p className="text-base font-black text-emerald-300">{t.name}</p>
                   </div>
                   {t.applied && (
                     <div className="mb-3 bg-white/[0.03] rounded-xl p-3">
-                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">이번 대화에 적용 시</p>
-                      <p className="text-xs text-slate-200 leading-relaxed">{t.applied}</p>
+                      <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">이번 대화에 적용 시</p>
+                      <p className="text-[15px] text-slate-200 leading-relaxed">{t.applied}</p>
                     </div>
                   )}
                   {t.nextTime && (
                     <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-3">
-                      <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-1">다음에 의도적으로 쓰는 법</p>
-                      <p className="text-xs text-white font-bold leading-relaxed">{t.nextTime}</p>
+                      <p className="text-[11px] font-black text-emerald-400 uppercase tracking-widest mb-1">다음에 의도적으로 쓰는 법</p>
+                      <p className="text-[15px] text-white font-bold leading-relaxed">{t.nextTime}</p>
                     </div>
                   )}
                 </div>
@@ -1406,7 +1414,7 @@ const Feedback: React.FC = () => {
               <span className="material-symbols-outlined text-primary text-xl">school</span>
             </div>
             <div>
-              <p className="text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-0.5">New Skill Unlocked</p>
+              <p className="text-[11px] font-black text-primary uppercase tracking-[0.3em] mb-0.5">New Skill Unlocked</p>
               <p className="text-lg font-black text-white">{evaluation.theoryInsight.theoryName}</p>
             </div>
           </div>
@@ -1421,7 +1429,7 @@ const Feedback: React.FC = () => {
               <div className="size-7 rounded-lg bg-accent-neon/20 flex items-center justify-center text-accent-neon border border-accent-neon/20">
                 <span className="material-symbols-outlined text-sm">bolt</span>
               </div>
-              <p className="text-[10px] font-black text-accent-neon uppercase tracking-[0.2em]">현업 적용 가이드</p>
+              <p className="text-[12px] font-black text-accent-neon uppercase tracking-[0.2em]">현업 적용 가이드</p>
             </div>
             <p className="text-sm text-white font-bold leading-relaxed italic">
               "{evaluation.theoryInsight.practicalApply}"
@@ -1441,7 +1449,7 @@ const Feedback: React.FC = () => {
             <div className="space-y-3">
               {evaluation.actionItems.map((item, i) => (
                 <div key={i} className="flex items-start gap-3 py-2 border-b border-white/5 last:border-0">
-                  <div className="size-5 shrink-0 rounded bg-primary/10 flex items-center justify-center text-primary text-[9px] font-black mt-0.5">
+                  <div className="size-5 shrink-0 rounded bg-primary/10 flex items-center justify-center text-primary text-[11px] font-black mt-0.5">
                     {i + 1}
                   </div>
                   <p className="text-xs text-slate-300 leading-relaxed font-medium">{item}</p>
@@ -1458,7 +1466,7 @@ const Feedback: React.FC = () => {
             <div className="relative z-10">
               <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 mb-4">
                 <span className="material-symbols-outlined text-amber-400 text-sm">lock_open</span>
-                <span className="text-[10px] font-black text-amber-300 uppercase tracking-[0.18em]">Full Report Bridge</span>
+                <span className="text-[12px] font-black text-amber-300 uppercase tracking-[0.18em]">Full Report Bridge</span>
               </div>
               <h2 className="text-xl font-black text-white leading-tight mb-3 break-keep">
                 {evaluation.improvements?.[0]?.title ? (
@@ -1479,8 +1487,8 @@ const Feedback: React.FC = () => {
                   <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 flex items-start gap-3">
                     <span className="material-symbols-outlined text-amber-400 text-base mt-0.5 shrink-0">check_circle</span>
                     <div>
-                      <p className="text-sm font-black text-white mb-1">{title}</p>
-                      <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
+                      <p className="text-base font-black text-white mb-1">{title}</p>
+                      <p className="text-[15px] text-slate-400 leading-relaxed">{desc}</p>
                     </div>
                   </div>
                 ))}
@@ -1492,7 +1500,7 @@ const Feedback: React.FC = () => {
                 <span className="material-symbols-outlined text-base">{user ? 'workspace_premium' : 'auto_awesome'}</span>
                 {user ? '내 약점 풀 리포트 열기 · Pro/Ultra →' : '이번 대화 풀 리포트 받기 (₩3,900) →'}
               </button>
-              <p className="text-center text-[10px] text-slate-500 mt-3">
+              <p className="text-center text-[12px] text-slate-500 mt-3">
                 {user ? '프로 10일 ₩8,900부터 · 결제 전 가격표에서 기간·플랜을 다시 확인할 수 있습니다.' : '회원가입 후 이번 결과를 보존하고 바로 결제를 이어갑니다.'}
               </p>
             </div>

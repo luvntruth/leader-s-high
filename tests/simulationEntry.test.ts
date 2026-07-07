@@ -4,7 +4,7 @@ import { buildSimulationRouteState, getInitialTrustForIntensity } from '../src/l
 
 describe('simulationEntry', () => {
   it('maps intensity levels to initial trust values', () => {
-    expect(getInitialTrustForIntensity('high')).toBe(25);
+    expect(getInitialTrustForIntensity('high')).toBe(32);
     expect(getInitialTrustForIntensity('medium')).toBe(45);
     expect(getInitialTrustForIntensity('low')).toBe(65);
     expect(getInitialTrustForIntensity(undefined)).toBe(45);
@@ -15,7 +15,7 @@ describe('simulationEntry', () => {
 
     expect(buildSimulationRouteState(scenario, true)).toEqual({
       scenario,
-      initialTrust: 25,
+      initialTrust: 32,
       guest: true,
     });
   });

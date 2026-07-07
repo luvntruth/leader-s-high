@@ -64,11 +64,13 @@ const TRUST_LEVEL_SYSTEM_PROMPT = `당신은 "Trust Level(대화 품질) 스코�
 [전술 목표 달성 판정 — goalAchievements]
 - input에 tacticalGoals 배열(3개)이 주어지면 각 목표의 달성 여부를 판정합니다.
 - tacticalGoals가 없으면 goalAchievements를 출력하지 마세요.
-- 각 목표는 [도입], [전환], [합의] 단계로 구성되며 순서대로 달성해야 합니다.
-- 판정 기준: user의 발화 내용이 해당 목표가 요구하는 행동(질문, 경청, 인정, 제안 등)과 의미적으로 일치하는지 판단합니다.
-- 단순히 턴 수가 아닌, user가 실제로 해당 행동을 수행했는지가 핵심입니다.
-- 이전 단계가 미달성이면 다음 단계는 false로 출력합니다.
-- 한 번 true가 된 목표는 이후에도 true를 유지합니다(비가역적).
+- state.prev_goal_achievements[i]가 true인 목표는 재판단 없이 무조건 true로 유지합니다(비가역적).
+- 판정 기준 — 관대하게(사용자 효능감 우선):
+  - user가 목표가 요구하는 행동(질문, 경청, 인정, 제안 등)을 '시도'한 흔적이 transcript에 있으면 달성으로 인정합니다.
+  - 완벽한 모범 수행을 요구하지 마세요. 표현이 어설프거나 짧아도 목표의 의도에 부합하는 시도면 충분합니다.
+  - 예: "어떻게 생각하세요?" 같은 한 마디 질문도 '상대 관점 묻기' 계열 목표의 달성입니다.
+- 각 목표는 독립적으로 판정합니다. 앞 단계([도입])가 미달성이어도 뒤 단계([전환]/[합의]) 행동이 나타났다면 그 목표는 달성으로 인정합니다.
+- 판단이 애매하면 달성(true) 쪽으로 판정합니다.
 
 [정합성 원칙]
 1) 행동 증거 기반: transcript에서 확인되는 단서가 있을 때만 점수 변화.
@@ -122,7 +124,7 @@ Stage 강등:
 - mid: 턴 수 6~14
 - late: 턴 수 ≥ 15
 
-Phase별 변동 상한: early(+4/-10, 치명시 -15), mid(+6/-12, 치명시 -15), late(+8/-15).
+Phase별 변동 상한: early(+6/-10, 치명시 -15), mid(+6/-12, 치명시 -15), late(+8/-15).
 
 스무딩: THREAT 없으면 delta=round(raw_delta×0.85). THREAT 있으면 delta=raw_delta.
 조합 보너스(+2)는 스무딩 후 가산(phase 상한 이내).
@@ -166,6 +168,8 @@ export interface TrustLevelInput {
     prev_stage?: 'S1' | 'S2' | 'S3' | 'S4';
     recent_events?: string[];
     optional_context?: string;
+    /** 이미 달성된 전술 목표 — transcript 슬라이스에서 과거 발화가 잘려도 true 유지 보장 */
+    prev_goal_achievements?: boolean[];
   };
   tacticalGoals?: string[];
 }

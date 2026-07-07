@@ -31,7 +31,9 @@ interface SOSTip {
 
 // 턴 수는 컴포넌트 내부에서 무료/유료에 따라 결정(turnThreshold): 무료 체험 5턴 / 유료 10턴.
 // 너무 긴 대화로 늘어지는 문제 대응.
-const TRUST_SCORING_INTERVAL = 4; // user turns between scoring
+// 4→2 (2026-07): 무료 5턴 기준 목표 판정 기회가 1회뿐이라 "아무리 말해도 클리어가 안 된다"는
+// 체감 난이도 문제의 주 원인이었음. 2턴마다 판정해 무료 2회/유료 5회 기회 확보.
+const TRUST_SCORING_INTERVAL = 2; // user turns between scoring
 
 // 감정 상태를 Trust Level에 따라 결정하는 함수
 function getEmotionState(trust: number): { state: string; description: string } {
@@ -187,6 +189,8 @@ const Simulation: React.FC = () => {
 
   // 전술 목표 달성 상태 (AI 판정 기반)
   const [goalAchievements, setGoalAchievements] = useState<boolean[]>([false, false, false]);
+  const goalAchievementsRef = useRef(goalAchievements);
+  goalAchievementsRef.current = goalAchievements;
 
   // Dramatic UI State
   const [screenEffect, setScreenEffect] = useState<'none' | 'damage' | 'heal'>('none');
@@ -344,7 +348,8 @@ const Simulation: React.FC = () => {
         prev_stage: currentTrust.stage,
         recent_events: currentTrust.recentEvents,
         is_new_session: false,
-        optional_context: `상황: ${scenario?.title}, 팀원: ${config.name}(${config.generation})`
+        optional_context: `상황: ${scenario?.title}, 팀원: ${config.name}(${config.generation})`,
+        prev_goal_achievements: goalAchievementsRef.current
       },
       tacticalGoals: missionBriefing.tasks
     }).then(score => {
