@@ -291,6 +291,19 @@ export default function PurchasePlaybook() {
         >
           지금은 건너뛰고 시나리오 더 체험하기 →
         </button>
+
+        <p className="text-center text-[11px] text-slate-600 mt-1">
+          결제 문의·오류는{' '}
+          <a
+            href="https://pf.kakao.com/_axaiPX"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-amber-500/70 hover:text-amber-400 underline underline-offset-2 transition-colors"
+          >
+            카카오톡 채널
+          </a>
+          로 문의해 주세요
+        </p>
       </div>
     </div>
   );

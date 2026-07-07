@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 // @ts-ignore
 import { useNavigate, useLocation } from 'react-router-dom';
 import { GoogleGenAI, Type } from "@google/genai";
@@ -8,6 +8,9 @@ import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor } from '../ser
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 import { analyticsService } from '../services/analyticsService';
+import { diagnose, DIM_LABEL, type DimensionKey } from '../services/diagnosisService';
+import { REPORT_PAYMENT_OPTION } from '../services/paymentService';
+import DiagnosisRadar from '../components/DiagnosisRadar';
 import ShareCard from '../components/ShareCard';
 import { SCENARIOS } from '../constants';
 
@@ -116,7 +119,10 @@ const Feedback: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, profile } = useAuth();
-  const { transcript, scenario, sosTipHistory } = location.state || {};
+  const { transcript, scenario, sosTipHistory, trustDimensions } = location.state || {};
+  // ── 대화 유형 진단 — 시뮬레이션 실측 5차원(trustLevelService)에서 결정적 판정.
+  //    새로고침 등으로 trustDimensions 가 없으면 null → 기존 간략 배너로 폴백.
+  const diagnosis = useMemo(() => diagnose(trustDimensions), [trustDimensions]);
   // Spec v3 §5.4/§5.5: 게스트(profile=null) 는 반드시 간략 리포트.
   // 과거 `profile?.plan !== 'free'` 는 게스트에게 true 를 반환해 풀 리포트가 노출되던 버그.
   const isPaidPlan = !!profile && profile.plan !== 'free';
@@ -166,6 +172,10 @@ const Feedback: React.FC = () => {
       const briefPromptSuffix = !isFullReport ? `
         [간략 리포트 모드 — 무료 체험]
         무료 체험 사용자입니다. "맛보기지만 확실한 가치"를 주되, 깊은 전략 분석은 풀 리포트로 남겨두세요.
+        ${diagnosis ? `[대화 유형 진단 — 이미 판정됨, 변경 금지]
+        이 사용자의 대화 유형은 시스템이 "${diagnosis.typeName}" (급소 차원: ${diagnosis.gap.label}, 강점 차원: ${diagnosis.strength.label})으로 이미 판정했습니다.
+        - summary 와 improvements 를 이 유형의 프레임으로 서술하고, "${diagnosis.typeName}"이라는 유형명을 summary 에서 정확히 1회 언급하세요.
+        - 다른 유형명을 만들거나 판정을 뒤집지 마세요.` : ''}
         아래를 반드시 지키세요:
         - summary: 이 리더만의 고유한 대화 패턴을 짚는 3문장. "전반적으로 잘했다" 같은 일반론 절대 금지. 사용자의 실제 발화 1개를 인용하여 구체적으로.
         - strengths: 가장 강한 강점 정확히 1개. 실제 발화("...")를 인용해 근거 제시.
@@ -520,6 +530,16 @@ const Feedback: React.FC = () => {
       const evalResult: EvaluationData = JSON.parse(cleanJson);
       setEvaluation(evalResult);
       analyticsService.track('report_view', { scenario_id: scenario?.id, is_full: isFullReport }, user?.id);
+      // 진단 유형 노출 이벤트 — 유형별 결제 전환 비교용 (growth 대시보드)
+      if (!isFullReport && diagnosis) {
+        analyticsService.track('diagnosis_type_shown', analyticsService.withAttribution({
+          diagnosis_type: diagnosis.typeName,
+          gap_dimension: diagnosis.gap.key,
+          gap_score: diagnosis.gap.score,
+          scenario_id: scenario?.id,
+          is_guest: !user,
+        }), user?.id);
+      }
 
       const historyItem = {
         id: Date.now().toString(),
@@ -598,10 +618,17 @@ const Feedback: React.FC = () => {
       scenario_id: scenario?.id,
       target,
       is_guest: !user,
+      diagnosis_type: diagnosis?.typeName ?? null,
     }), user?.id);
 
     if (target === 'pricing') {
       navigate('/pricing', { state: { from: '/feedback', bridge: 'report_pro' } });
+      return;
+    }
+
+    // 로그인 사용자 — 가입 우회, ₩3,900 단건 결제로 직행 (첫 결제 마찰 최소화)
+    if (user) {
+      navigate('/purchase/playbook', { state: { transcript, scenario, sosTipHistory, evaluation } });
       return;
     }
 
@@ -678,8 +705,107 @@ const Feedback: React.FC = () => {
   return (
     <div className="min-h-[100dvh] overflow-y-auto bg-[#060B18] command-center-bg text-white font-manrope pb-[calc(128px+env(safe-area-inset-bottom))] hide-scrollbar">
 
-      {/* ── 무료 플랜 간략 리포트 안내 ── */}
-      {!isFullReport && user && (
+      {/* ── 대화 유형 진단 (무료·간략 리포트) — 광고 '진단' 앵글과 제품 경험 일치 ── */}
+      {!isFullReport && diagnosis && (
+        <section className="px-5 pt-6 pb-2 border-b border-white/5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-amber-400 text-[10px] font-black uppercase tracking-[0.2em]">AI 대화 진단 결과</p>
+            <span className="text-slate-500 text-[10px] border border-white/10 rounded-full px-2.5 py-0.5">무료 진단</span>
+          </div>
+
+          <p className="text-slate-400 text-sm">당신의 리더십 대화 유형은</p>
+          <h2 className="text-3xl font-black tracking-tight mt-1">
+            <span className="text-amber-400">{diagnosis.typeName}</span> 리더
+          </h2>
+          <p className="text-slate-300 text-sm leading-relaxed mt-2">“{diagnosis.identity}”</p>
+
+          {/* 레이더 + 점수 범례 */}
+          <div className="mt-4 rounded-2xl bg-slate-900/60 border border-white/5 p-4">
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">5가지 신뢰 차원</p>
+            <div className="flex justify-center">
+              <DiagnosisRadar dims={diagnosis.dims} gapKey={diagnosis.gap.key} strengthKey={diagnosis.strength.key} size={232} />
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2">
+              {(Object.keys(DIM_LABEL) as DimensionKey[]).map((k) => {
+                const isGap = k === diagnosis.gap.key;
+                const isStr = k === diagnosis.strength.key;
+                return (
+                  <div key={k} className="flex items-center justify-between text-xs">
+                    <span className={isGap ? 'text-amber-300 font-bold' : 'text-slate-400'}>
+                      {DIM_LABEL[k]}{isGap ? ' ⚑' : ''}
+                    </span>
+                    <span className={`font-black tabular-nums ${isGap ? 'text-amber-300' : isStr ? 'text-teal-300' : 'text-slate-200'}`}>
+                      {diagnosis.dims[k]}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 강점 / 급소 */}
+          <div className="mt-3 space-y-3">
+            <div className="rounded-2xl border border-teal-400/20 bg-teal-400/5 p-4">
+              <p className="text-teal-300 text-[10px] font-black uppercase tracking-widest mb-1">✓ 당신의 강점</p>
+              <p className="text-white text-[15px] font-bold">{diagnosis.strength.title}</p>
+              <p className="text-slate-400 text-[13px] leading-relaxed mt-1">{diagnosis.strength.desc}</p>
+            </div>
+            <div className="rounded-2xl border border-amber-400/25 bg-amber-400/5 p-4">
+              <p className="text-amber-400 text-[10px] font-black uppercase tracking-widest mb-1">⚑ 당신의 급소</p>
+              <p className="text-white text-[15px] font-bold">{diagnosis.gap.title}</p>
+              <p className="text-slate-400 text-[13px] leading-relaxed mt-1">{diagnosis.gap.desc}</p>
+            </div>
+          </div>
+
+          {/* 처방 잠금 — 호기심 갭 */}
+          <div className="mt-4 rounded-2xl border border-dashed border-amber-400/35 bg-gradient-to-b from-amber-400/5 to-transparent p-4">
+            <p className="text-amber-400 text-[13px] font-black mb-3">🔒 이 진단의 처방은 풀 리포트에서</p>
+            <ul className="space-y-2.5">
+              <li className="flex gap-2.5 text-[13px] text-slate-200">
+                <span className="text-slate-600 shrink-0">🔒</span>
+                <span><b className="font-bold">「{diagnosis.typeName}」이 놓치는 3가지</b> — <span className="text-slate-500 blur-[3px] select-none">방향 전환의 타이밍, 합의 없는 종료…</span></span>
+              </li>
+              <li className="flex gap-2.5 text-[13px] text-slate-200">
+                <span className="text-slate-600 shrink-0">🔒</span>
+                <span><b className="font-bold">다시 말할 문장 (골든 스크립트)</b> — <span className="text-slate-500 blur-[3px] select-none">“충분히 들었어요. 그럼 이렇게…”</span></span>
+              </li>
+              <li className="flex gap-2.5 text-[13px] text-slate-200">
+                <span className="text-slate-600 shrink-0">🔒</span>
+                <span><b className="font-bold">7일 교정 플랜</b> — <span className="text-slate-500 blur-[3px] select-none">매일 한 문장씩 바꾸는 훈련…</span></span>
+              </li>
+            </ul>
+          </div>
+
+          {/* CTA — 1차: ₩3,900 단건 / 2차: Pro */}
+          <div className="mt-4">
+            <button
+              onClick={() => handleReportProBridgeClick('playbook')}
+              className="w-full rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[15px] py-4 transition-colors"
+            >
+              「{diagnosis.typeName}」의 처방전 받기 · ₩{REPORT_PAYMENT_OPTION.amount.toLocaleString()}
+              <span className="block text-[10px] font-bold text-amber-900 mt-0.5">지금 이 대화 1건에 대한 상세 처방</span>
+            </button>
+            <button
+              onClick={() => handleReportProBridgeClick('pricing')}
+              className="w-full text-slate-400 text-[13px] font-bold py-3"
+            >
+              또는 <span className="text-amber-300">Pro로 모든 진단 무제한 →</span>
+            </button>
+            <button
+              onClick={() => navigate(user ? '/missions' : '/onboarding')}
+              className="w-full text-slate-500 text-[11px] py-1"
+            >
+              이 유형이 아니라고 생각되면? <span className="underline underline-offset-2">다른 시나리오로 증명해보세요</span>
+            </button>
+            <p className="text-center text-[10px] text-slate-600 mt-2 leading-relaxed">
+              현직 HR·조직개발(OD) 전문가가 설계한 진단 · 안전 결제 · 7일 내 100% 환불
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* ── 폴백: 진단 불가(새로고침 등으로 5차원 유실) 시 기존 안내 배너 ── */}
+      {!isFullReport && !diagnosis && user && (
         <div className="bg-gradient-to-r from-amber-500/10 to-primary/10 border-b border-amber-500/20 px-6 py-4 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -696,8 +822,8 @@ const Feedback: React.FC = () => {
         </div>
       )}
 
-      {/* ── 게스트: 체험 리포트 안내 배너 ── */}
-      {!user && (
+      {/* ── 게스트: 체험 리포트 안내 배너 (진단 불가 시에만) ── */}
+      {!user && !diagnosis && (
         <div className="bg-gradient-to-r from-amber-500/10 to-primary/10 border-b border-amber-500/20 px-6 py-3 flex items-center justify-between">
           <p className="text-amber-400 text-xs font-semibold">체험 리포트 · 간략 버전</p>
           <span className="text-slate-500 text-[10px]">풀 리포트는 회원 전용</span>

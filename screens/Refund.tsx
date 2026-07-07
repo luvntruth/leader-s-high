@@ -77,6 +77,21 @@ export default function Refund() {
           </p>
         </section>
 
+        {/* 카카오 채널 환불 문의 CTA */}
+        <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-center">
+          <p className="text-slate-300 text-sm font-semibold mb-1">환불 문의는 카카오톡 채널이 가장 빠릅니다</p>
+          <p className="text-slate-500 text-xs mb-4">가입 이메일·결제 상품명·결제 일시·환불 사유를 함께 남겨주세요</p>
+          <a
+            href={BUSINESS_INFO.customerSupportKakao}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block rounded-xl bg-[#FEE500] text-slate-900 font-black text-sm px-6 py-3 hover:brightness-95 transition-all"
+          >
+            카카오톡으로 문의하기
+          </a>
+          <p className="mt-3 text-slate-600 text-xs">이메일 문의: {BUSINESS_INFO.refundRequestEmail}</p>
+        </section>
+
         <p className="mt-8 text-xs text-slate-500">최종 업데이트: {BUSINESS_INFO.policyUpdatedAt}</p>
         <button onClick={() => navigate(-1)} className="mt-8 text-sm text-slate-500 transition-colors hover:text-slate-300">← 돌아가기</button>
       </main>
