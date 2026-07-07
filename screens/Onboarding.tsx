@@ -85,12 +85,23 @@ const Onboarding: React.FC = () => {
       <motion.div variants={itemVariants} className="px-6 pt-6 lg:pt-10 pb-10 lg:pb-12 text-center max-w-6xl mx-auto w-full">
         <div className="flex items-center justify-end gap-2 mb-8 lg:mb-10">
           {user ? (
-            <button
-              onClick={() => navigate('/profile')}
-              className="px-3 py-2 rounded-xl border border-white/10 bg-white/[0.04] text-xs font-bold text-slate-200 hover:bg-white/[0.08] transition-colors"
-            >
-              마이페이지
-            </button>
+            <>
+              {/* 로그인 사용자 전용 홈 바로가기 — '/'가 온보딩으로 리다이렉트되므로
+                  기존 사용자가 대시보드(/missions)로 가는 1홉 동선 제공.
+                  게스트에겐 미노출: 홈은 AuthGuard 뒤이고 광고 퍼널 이탈 요소만 됨. */}
+              <button
+                onClick={() => navigate('/missions')}
+                className="px-3 py-2 rounded-xl border border-white/10 bg-white/[0.04] text-xs font-bold text-slate-200 hover:bg-white/[0.08] transition-colors"
+              >
+                홈
+              </button>
+              <button
+                onClick={() => navigate('/profile')}
+                className="px-3 py-2 rounded-xl border border-white/10 bg-white/[0.04] text-xs font-bold text-slate-200 hover:bg-white/[0.08] transition-colors"
+              >
+                마이페이지
+              </button>
+            </>
           ) : (
             <>
               <button
