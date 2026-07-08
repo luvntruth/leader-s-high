@@ -784,14 +784,28 @@ const Feedback: React.FC = () => {
             </ul>
           </div>
 
-          {/* CTA — 1차: ₩3,900 단건 / 2차: Pro */}
+          {/* CTA — 1차: ₩3,900 단건 / 2차: Pro
+              게스트는 버튼에서 가격을 빼고 마이크로카피로 이동 (2026-07-08 실험):
+              첫 결과 화면에서 가격이 버튼에 있으면 "지금 결제하라"로 읽혀
+              리포트→가입클릭 12.5% 누수의 유력 원인. 가격은 아래 줄에 유지(정직성). */}
           <div className="mt-4">
             <button
               onClick={() => handleReportProBridgeClick('playbook')}
               className="w-full rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[15px] py-4 transition-colors"
             >
-              「{diagnosis.typeName}」의 처방전 받기 · ₩{REPORT_PAYMENT_OPTION.amount.toLocaleString()}
-              <span className="block text-[10px] font-bold text-amber-900 mt-0.5">지금 이 대화 1건에 대한 상세 처방</span>
+              {user ? (
+                <>
+                  「{diagnosis.typeName}」의 처방전 받기 · ₩{REPORT_PAYMENT_OPTION.amount.toLocaleString()}
+                  <span className="block text-[10px] font-bold text-amber-900 mt-0.5">지금 이 대화 1건에 대한 상세 처방</span>
+                </>
+              ) : (
+                <>
+                  「{diagnosis.typeName}」 처방전 확인하기 →
+                  <span className="block text-[10px] font-bold text-amber-900 mt-0.5">
+                    30초 무료 가입 후 열람 · 처방전 ₩{REPORT_PAYMENT_OPTION.amount.toLocaleString()} · 7일 환불
+                  </span>
+                </>
+              )}
             </button>
             <button
               onClick={() => handleReportProBridgeClick('pricing')}
