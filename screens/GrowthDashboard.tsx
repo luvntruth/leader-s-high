@@ -105,7 +105,7 @@ export default function GrowthDashboard() {
   const [range, setRange] = useState<RangeKey>('campaign');
   // A: 광고비/객단가 입력 (브라우저에 보존) → CPA·ROAS 자동 계산.
   // 광고비는 기간에 종속되므로 range 별로 분리 저장한다(7일치/30일치를 섞지 않기 위함).
-  const [adSpend, setAdSpend] = useState<number>(() => Number(localStorage.getItem('growth_ad_spend_7d')) || 0);
+  const [adSpend, setAdSpend] = useState<number>(() => Number(localStorage.getItem('growth_ad_spend_campaign')) || 0);
   const [aov, setAov] = useState<number>(() => Number(localStorage.getItem('growth_aov')) || 8900);
 
   // 기간 전환 시 해당 기간에 저장된 광고비를 다시 불러온다.
