@@ -24,6 +24,26 @@ const VARIANT_LABEL: Record<string, string> = {
   '(none)': '미지정',
 };
 
+// 소재별(utm_content) 퍼널 — 같은 lp 로 들어오는 광고 3종을 분리해 보기 위함
+type CreativeRow = {
+  creative: string;
+  onboarding: number;
+  sim_start: number;
+  report_views: number;
+  diagnosis_shown: number;
+  signup_starts: number;
+  signups: number;
+  purchases: number;
+};
+
+// utm_content → 한글 라벨 (launch2607 캠페인 광고 이름과 일치)
+const CREATIVE_LABEL: Record<string, string> = {
+  diagnosis_v1: '① 컨트롤 (검증 소재)',
+  diagnosis_v2: '② 되감기 훅',
+  diagnosis_v3: '③ 유형 리포트',
+  '(직접 유입)': '광고 외 유입',
+};
+
 // 날짜 범위 프리셋 — Meta Ads Manager 기간과 맞춰 대조하기 위함.
 // from() 은 시작 시점(ISO) 또는 null(전체). 종료는 항상 현재까지.
 // 캠페인 시작 시각(KST 2026-07-07 17:00) — launch2607 심사 통과·게재 개시 기준.
@@ -100,6 +120,8 @@ function getLoopRecommendation(worst: FunnelStep | null, purchases: number) {
 export default function GrowthDashboard() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<FunnelRow[]>([]);
+  const [creativeRows, setCreativeRows] = useState<CreativeRow[]>([]);
+  const [creativeError, setCreativeError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [range, setRange] = useState<RangeKey>('campaign');
@@ -118,17 +140,32 @@ export default function GrowthDashboard() {
     (async () => {
       setLoading(true);
       const p_from = RANGES.find(r => r.key === range)?.from() ?? null;
-      const { data, error } = await supabase.rpc('get_ab_funnel', { p_from, p_to: null });
+      const [ab, creative] = await Promise.all([
+        supabase.rpc('get_ab_funnel', { p_from, p_to: null }),
+        supabase.rpc('get_creative_funnel', { p_from, p_to: null }),
+      ]);
       if (cancelled) return;
-      if (error) {
+      if (ab.error) {
         setError(
-          error.message.includes('forbidden')
+          ab.error.message.includes('forbidden')
             ? '이 대시보드는 owner 계정만 볼 수 있습니다.'
-            : `데이터를 불러오지 못했습니다: ${error.message}`,
+            : `데이터를 불러오지 못했습니다: ${ab.error.message}`,
         );
       } else {
         setError(null);
-        setRows((data as FunnelRow[]) || []);
+        setRows((ab.data as FunnelRow[]) || []);
+      }
+      // 소재별 RPC 는 마이그레이션(015) 미적용 시에도 나머지 대시보드가 동작하도록 분리 처리
+      if (creative.error) {
+        setCreativeError(
+          /function|schema cache/i.test(creative.error.message)
+            ? '소재별 집계 RPC가 아직 없습니다 — supabase/migrations/015_creative_funnel_rpc.sql 을 프로덕션 DB에 적용하세요.'
+            : creative.error.message,
+        );
+        setCreativeRows([]);
+      } else {
+        setCreativeError(null);
+        setCreativeRows((creative.data as CreativeRow[]) || []);
       }
       setLoading(false);
     })();
@@ -389,6 +426,69 @@ export default function GrowthDashboard() {
               </div>
             </div>
             <p className="text-[11px] text-slate-600 mt-4">버전: practice=연습 / diagnosis=진단 / new-manager=신임팀장 / urgent-meeting=긴급면담 (광고 URL의 lp 파라미터 기준)</p>
+
+            {/* 소재별 퍼널 — 같은 lp 로 들어오는 광고 3종(utm_content) 분리 비교 */}
+            <div className="mt-8">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">소재별 퍼널 (광고 크리에이티브 비교)</p>
+              {creativeError && (
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-xs text-amber-300">{creativeError}</div>
+              )}
+              {!creativeError && creativeRows.length === 0 && (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-xs text-slate-500">아직 소재별 유입이 없습니다.</div>
+              )}
+              {!creativeError && creativeRows.length > 0 && (
+                <>
+                  <div className="rounded-3xl border border-white/5 bg-[#0c0f14] overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm min-w-[760px]">
+                        <thead>
+                          <tr className="bg-white/5 border-b border-white/5 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                            <th className="px-5 py-4">소재</th>
+                            <th className="px-5 py-4 text-right">진입</th>
+                            <th className="px-5 py-4 text-right">시뮬 시작</th>
+                            <th className="px-5 py-4 text-right">리포트</th>
+                            <th className="px-5 py-4 text-right">진단 노출</th>
+                            <th className="px-5 py-4 text-right">가입클릭</th>
+                            <th className="px-5 py-4 text-right">가입</th>
+                            <th className="px-5 py-4 text-right">결제</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {creativeRows.map(r => (
+                            <tr key={r.creative} className="hover:bg-white/[0.02]">
+                              <td className="px-5 py-4 font-bold text-white">{CREATIVE_LABEL[r.creative] || r.creative}
+                                <span className="ml-2 text-[10px] text-slate-600">{r.creative}</span>
+                              </td>
+                              <td className="px-5 py-4 text-right text-slate-300">{r.onboarding?.toLocaleString()}</td>
+                              <td className="px-5 py-4 text-right text-slate-400">{r.sim_start?.toLocaleString()}</td>
+                              <td className="px-5 py-4 text-right text-slate-400">{r.report_views?.toLocaleString()}</td>
+                              <td className="px-5 py-4 text-right text-slate-400">{r.diagnosis_shown?.toLocaleString()}</td>
+                              <td className="px-5 py-4 text-right text-slate-400">{r.signup_starts?.toLocaleString()}</td>
+                              <td className="px-5 py-4 text-right text-slate-300">{r.signups?.toLocaleString()}</td>
+                              <td className="px-5 py-4 text-right text-emerald-400 font-bold">{r.purchases?.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  {(() => {
+                    // 진단 섹션 실노출 헬스체크 — 리포트를 본 세션 대비 진단이 뜬 세션.
+                    // 리포트 대비 크게 낮으면 trustDimensions 유실(폴백 배너) 비율이 높다는 뜻.
+                    const rv = creativeRows.reduce((a, r) => a + (r.report_views || 0), 0);
+                    const ds = creativeRows.reduce((a, r) => a + (r.diagnosis_shown || 0), 0);
+                    if (rv === 0) return null;
+                    const pct = Math.round((ds / rv) * 100);
+                    return (
+                      <p className={`text-[11px] mt-3 font-bold ${pct >= 80 ? 'text-slate-500' : 'text-amber-400'}`}>
+                        진단 섹션 노출률: 리포트 {rv}건 중 {ds}건 ({pct}%)
+                        {pct < 80 && ' — 80% 미만이면 리포트에서 진단 섹션 대신 폴백 배너가 뜨는 세션이 많다는 신호입니다 (trustDimensions 전달 점검 필요).'}
+                      </p>
+                    );
+                  })()}
+                </>
+              )}
+            </div>
             <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-[11px] leading-5 text-slate-400">
               <p className="font-bold text-slate-300 mb-1">Meta 광고 성과 대조법</p>
               여기 <span className="text-slate-200">가입·결제</span>는 DB 실측치(전체 기간 누적, 세션 기준)입니다. Meta Ads Manager의 보고 전환수와 비교해
