@@ -26,8 +26,12 @@ const VARIANT_LABEL: Record<string, string> = {
 
 // 날짜 범위 프리셋 — Meta Ads Manager 기간과 맞춰 대조하기 위함.
 // from() 은 시작 시점(ISO) 또는 null(전체). 종료는 항상 현재까지.
-type RangeKey = 'all' | '7d' | '30d' | 'month';
+// 캠페인 시작 시각(KST 2026-07-07 17:00) — launch2607 심사 통과·게재 개시 기준.
+// 다음 캠페인 시작 시 이 값만 갱신하면 '이번 캠페인' 프리셋이 새 라운드 기준으로 바뀐다.
+const CAMPAIGN_START_ISO = '2026-07-07T08:00:00.000Z';
+type RangeKey = 'campaign' | 'all' | '7d' | '30d' | 'month';
 const RANGES: { key: RangeKey; label: string; from: () => string | null }[] = [
+  { key: 'campaign', label: '이번 캠페인 (7/7 저녁~)', from: () => CAMPAIGN_START_ISO },
   { key: '7d', label: '최근 7일', from: () => new Date(Date.now() - 7 * 864e5).toISOString() },
   { key: '30d', label: '최근 30일', from: () => new Date(Date.now() - 30 * 864e5).toISOString() },
   { key: 'month', label: '이번 달', from: () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString(); } },
@@ -98,10 +102,10 @@ export default function GrowthDashboard() {
   const [rows, setRows] = useState<FunnelRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [range, setRange] = useState<RangeKey>('7d');
+  const [range, setRange] = useState<RangeKey>('campaign');
   // A: 광고비/객단가 입력 (브라우저에 보존) → CPA·ROAS 자동 계산.
   // 광고비는 기간에 종속되므로 range 별로 분리 저장한다(7일치/30일치를 섞지 않기 위함).
-  const [adSpend, setAdSpend] = useState<number>(() => Number(localStorage.getItem('growth_ad_spend_7d')) || 0);
+  const [adSpend, setAdSpend] = useState<number>(() => Number(localStorage.getItem('growth_ad_spend_campaign')) || 0);
   const [aov, setAov] = useState<number>(() => Number(localStorage.getItem('growth_aov')) || 8900);
 
   // 기간 전환 시 해당 기간에 저장된 광고비를 다시 불러온다.
