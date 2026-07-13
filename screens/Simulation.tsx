@@ -45,6 +45,22 @@ function getEmotionState(trust: number): { state: string; description: string } 
   return { state: '설득/합의', description: '팀장을 신뢰하며 적극적으로 협력합니다. 스스로 개선 방안을 제안하고 변화에 동의합니다.' };
 }
 
+// ── 몰입 모드 (v2 프로토타입, docs/v2-immersive-character-mode.md) ──
+// 감정 이미지 세트가 준비된 시나리오만 활성화. 확대 시 여기에 id 추가 +
+// scripts/gen-immersive-emotions.mjs 로 에셋 생성.
+const IMMERSIVE_SCENARIOS = new Set(['late-comer']);
+const IMMERSIVE_EMOTIONS = ['hostile', 'defensive', 'neutral', 'opening', 'convinced'] as const;
+// emotionStateMachine 7단계 → 이미지 5장 매핑 (기획 문서 매핑 테이블 준수)
+function immersiveEmotionKey(trust: number): (typeof IMMERSIVE_EMOTIONS)[number] {
+  if (trust <= 15) return 'hostile';      // HOSTILE
+  if (trust <= 45) return 'defensive';    // DEFENSIVE / GUARDED
+  if (trust <= 55) return 'neutral';      // NEUTRAL
+  if (trust <= 85) return 'opening';      // OPENING / COOPERATIVE
+  return 'convinced';                     // CONVINCED
+}
+const immersiveImageSrc = (scenarioId: string, trust: number) =>
+  `/assets/immersive/${scenarioId}/${immersiveEmotionKey(trust)}.webp`;
+
 // Trust Level과 감정 상태를 반영한 동적 시스템 프롬프트
 function buildSystemPrompt(config: any, scenario: any, trustState: any): string {
   const emotion = getEmotionState(trustState.trust);
@@ -159,6 +175,27 @@ const Simulation: React.FC = () => {
   const [mobileComposerOffset, setMobileComposerOffset] = useState(0);
   const [mobileComposerHeight, setMobileComposerHeight] = useState(140);
   const [showMobileBriefing, setShowMobileBriefing] = useState(false);
+
+  // 몰입 모드 (v2 프로토타입) — 감정 연동 캐릭터 장면. 에셋 있는 시나리오만 노출.
+  const immersiveAvailable = IMMERSIVE_SCENARIOS.has(scenario?.id);
+  const [immersiveMode, setImmersiveMode] = useState(() => localStorage.getItem('leadershigh_immersive_mode') !== 'false'); // 기본 ON (프로토타입 노출 극대화)
+  const [immersiveBroken, setImmersiveBroken] = useState(false); // 이미지 로드 실패 시 세션 내 비활성
+  const immersiveOn = immersiveAvailable && immersiveMode && !immersiveBroken;
+  const toggleImmersive = () => {
+    setImmersiveMode(prev => {
+      const next = !prev; // 함수형 업데이트 — 연타 시 stale closure 방지
+      localStorage.setItem('leadershigh_immersive_mode', String(next));
+      analyticsService.track('immersive_toggle', analyticsService.withAttribution({
+        enabled: next, scenario_id: scenario?.id,
+      }), user?.id);
+      return next;
+    });
+  };
+  // 감정 전환 시 끊김 없도록 5장 프리로드
+  useEffect(() => {
+    if (!immersiveAvailable) return;
+    IMMERSIVE_EMOTIONS.forEach(e => { const img = new Image(); img.src = `/assets/immersive/${scenario.id}/${e}.webp`; });
+  }, [immersiveAvailable, scenario?.id]);
 
   // Trust Level State Management
   const [trustState, setTrustState] = useState<{
@@ -870,6 +907,24 @@ ${recentMsgs}
           <div className="absolute inset-0 transition-opacity duration-1000" style={ambientStyle} />
         </div>
 
+        {/* ── 몰입 모드: 감정 연동 캐릭터 장면 (v2 프로토타입) ──
+            key 로 감정 전환 시 리마운트 + CSS 페이드인. 프리로드 돼 있어 깜빡임 없음.
+            이미지 유실 시 onError 로 즉시 표준 모드 폴백. */}
+        {immersiveOn && (
+          <div className="absolute inset-0 pointer-events-none">
+            <img
+              key={immersiveEmotionKey(trustState.trust)}
+              src={immersiveImageSrc(scenario.id, trustState.trust)}
+              alt=""
+              onError={() => setImmersiveBroken(true)}
+              className="absolute inset-0 size-full object-cover object-top"
+              style={{ animation: 'immersive-fade 0.35s ease' }}
+            />
+            {/* 가독성 스크림 — 상단 은은, 하단 진하게 (대화·컴포저 영역) */}
+            <div className="absolute inset-0 bg-gradient-to-b from-[#060B18]/60 via-[#060B18]/25 to-[#060B18]/90" />
+          </div>
+        )}
+
         {/* ── LEFT PANEL: TACTICAL STATUS (30%) ── */}
         <aside className="hidden sm:flex w-full lg:w-[22%] bg-black/40 backdrop-blur-3xl border-r border-white/5 z-20 flex-col shrink-0 min-h-0">
           <header className="p-4 border-b border-white/5 flex items-center justify-between">
@@ -1100,6 +1155,17 @@ ${recentMsgs}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  {immersiveAvailable && (
+                    <button
+                      onClick={toggleImmersive}
+                      aria-label="몰입 모드 전환"
+                      className={`size-9 rounded-xl border flex items-center justify-center transition-colors ${
+                        immersiveOn ? 'bg-amber-500/20 border-amber-400/50 text-amber-300' : 'bg-white/5 border-white/10 text-slate-400'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-base">theater_comedy</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => setShowMobileBriefing(true)}
                     className={`px-2.5 h-9 rounded-xl flex items-center justify-center gap-1 text-[10px] font-bold transition-all ${
@@ -1143,6 +1209,19 @@ ${recentMsgs}
               <span className="text-xs font-black text-slate-500 uppercase tracking-widest">현재 감정 지수</span>
               <span className="text-sm font-black" style={{ color: hpColor }}>{emotionLabel}</span>
             </div>
+            {immersiveAvailable && (
+              <button
+                onClick={toggleImmersive}
+                className={`pointer-events-auto rounded-xl px-3.5 py-2 flex items-center gap-2 text-xs font-bold border backdrop-blur-md transition-colors ${
+                  immersiveOn
+                    ? 'bg-amber-500/20 border-amber-400/50 text-amber-300'
+                    : 'bg-black/60 border-white/10 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="material-symbols-outlined text-base">theater_comedy</span>
+                몰입 모드 {immersiveOn ? 'ON' : 'OFF'}
+              </button>
+            )}
           </div>
 
           {/* Message HUD Area */}
