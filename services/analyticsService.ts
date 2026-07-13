@@ -21,6 +21,7 @@ export type EventName =
   | 'sim_complete'
   | 'sim_abandon'
   | 'diagnosis_type_shown'
+  | 'immersive_toggle'
   | 'signup_start'
   | 'signup_complete'
   | 'pricing_view'
