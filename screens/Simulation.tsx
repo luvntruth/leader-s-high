@@ -920,8 +920,9 @@ ${recentMsgs}
               className="absolute inset-0 size-full object-cover object-top"
               style={{ animation: 'immersive-fade 0.35s ease' }}
             />
-            {/* 가독성 스크림 — 상단 은은, 하단 진하게 (대화·컴포저 영역) */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#060B18]/60 via-[#060B18]/25 to-[#060B18]/90" />
+            {/* 가독성 스크림 — 캐릭터 구역(중상단)은 비우고 하단 대화창 구역만 어둡게.
+                VN 레이아웃: 대화창이 하단 고정 창이라 캐릭터가 항상 온전히 보임. */}
+            <div className="absolute inset-0 bg-gradient-to-b from-[#060B18]/40 via-transparent to-[#060B18]/95" />
           </div>
         )}
 
@@ -1140,7 +1141,7 @@ ${recentMsgs}
 
           {/* Mobile compact status */}
           <div className="sm:hidden sticky top-0 z-30 px-3 pt-3">
-            <div className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-xl px-4 py-3">
+            <div className={`rounded-2xl border border-white/10 backdrop-blur-xl px-4 py-3 ${immersiveOn ? 'bg-black/30' : 'bg-black/60'}`}>
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="size-11 rounded-xl overflow-hidden border border-white/10 shrink-0" style={{ boxShadow: avatarGlow.shadow }}>
@@ -1224,11 +1225,16 @@ ${recentMsgs}
             )}
           </div>
 
-          {/* Message HUD Area */}
+          {/* Message HUD Area
+              몰입 모드(VN 레이아웃): flex-1 전체 높이 대신 하단 고정 창(mt-auto + max-h)으로 축소해
+              캐릭터 장면(중상단)이 대화 중에도 항상 온전히 보이게 한다. 창 내부 스크롤은 동일. */}
           <div
             ref={scrollRef}
             onScroll={handleMessageScroll}
-            className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 lg:px-5 pt-4 sm:pt-[4.5rem] lg:pt-[4rem] sm:pb-24 lg:pb-32 space-y-3 sm:space-y-5 lg:space-y-4 scroll-smooth hide-scrollbar"
+            className={`${immersiveOn
+              ? 'mt-auto max-h-[48dvh] sm:max-h-[46dvh] pt-3 sm:pb-4 lg:pb-6'
+              : 'flex-1 pt-4 sm:pt-[4.5rem] lg:pt-[4rem] sm:pb-24 lg:pb-32'
+            } min-h-0 overflow-y-auto px-3 sm:px-4 lg:px-5 space-y-3 sm:space-y-5 lg:space-y-4 scroll-smooth hide-scrollbar`}
             style={{ paddingBottom: window.innerWidth < 640 ? `${mobileComposerHeight + mobileComposerOffset + 20}px` : undefined }}
           >
             {messages.map((msg, idx) => (
