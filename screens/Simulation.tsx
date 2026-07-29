@@ -8,7 +8,7 @@ import { getMissionBriefing, getOpeningLine, getOpeningSuggestions } from '../se
 import { EmotionStateMachine } from '../services/emotionStateMachine';
 import { createGeminiClient } from '../src/lib/geminiClient';
 import { getAiErrorMessage, getInitErrorMessage } from '../src/lib/geminiErrors';
-import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor, getEmotionEmoji, DEFAULT_CHARACTERS, getImmersiveCharacterImage, getImmersiveEmotionSet } from '../services/characterAvatars';
+import { getCharacterAvatar, getCharacterInfo, getAvatarGlowColor, getEmotionEmoji, DEFAULT_CHARACTERS } from '../services/characterAvatars';
 import { HPBar, TacticalCircularTimer, StatInline, TacticalTrendChart } from '../components/GameUIComponents';
 import { useAuth } from '../contexts/AuthContext';
 import { usageService } from '../services/usageService';
@@ -279,12 +279,6 @@ const Simulation: React.FC = () => {
   const emotionData = useMemo(() => getEmotionState(trustState.trust), [trustState.trust]);
   const emotionLabel = emotionData.state;
   const hpColor = trustState.trust > 70 ? '#4ade80' : trustState.trust > 30 ? '#00f2ff' : '#ef4444';
-
-  // 몰입 모드(v2): 신뢰도 → 감정 상태(7단계) → 세미리얼 캐릭터 이미지.
-  // 이미지 세트를 가진 캐릭터(현재 여성)만 배너를 표시하고, 그 외에는 null → 기존 UI 유지.
-  const immersiveEmotionState = useMemo(() => EmotionStateMachine.getProfileForTrust(trustState.trust).state, [trustState.trust]);
-  const immersiveImage = useMemo(() => getImmersiveCharacterImage(config.name, scenario?.id, immersiveEmotionState), [config.name, scenario, immersiveEmotionState]);
-  const immersiveSet = useMemo(() => getImmersiveEmotionSet(config.name, scenario?.id), [config.name, scenario]);
 
   // Derived State for Analysis Completion
   const isAnalysisComplete = useMemo(() => {
@@ -1083,67 +1077,8 @@ ${recentMsgs}
         {/* ── RIGHT AREA: MAIN BATTLE HUD ── */}
         <main className="flex-1 flex flex-col relative z-10 min-h-0">
 
-          {/* ── 몰입 캐릭터 반신 배너(v2) — 세미리얼 이미지 보유 캐릭터에서만 표시 ── */}
-          {immersiveImage && (
-            <div className="relative shrink-0 overflow-hidden border-b border-white/10 h-[34vh] sm:h-[36vh] lg:h-[40vh] bg-[#0B1020]">
-              {/* 감정별 크로스페이드 레이어(전 이미지 동시 로드 → 프리로드 + 부드러운 전환) */}
-              {immersiveSet?.map((src) => (
-                <div
-                  key={src}
-                  className={`absolute inset-0 transition-opacity duration-700 ${src === immersiveImage ? 'opacity-100' : 'opacity-0'}`}
-                >
-                  {/* 블러 배경 — 넓은 화면에서 캐릭터 좌우 빈 공간을 자연스럽게 채움 */}
-                  <img src={src} alt="" aria-hidden className="absolute inset-0 size-full object-cover object-top scale-110 blur-2xl opacity-40" />
-                  {/* 전경 캐릭터 — 모바일: 폭 맞춤(반신 강조) / 데스크톱: 세로 맞춤(얼굴 잘림 방지) */}
-                  <img src={src} alt={config.name} className="absolute inset-0 size-full object-cover object-top sm:object-contain sm:object-top" />
-                </div>
-              ))}
-              {/* 하단 페이드(채팅과 자연스러운 연결) */}
-              <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/30 via-transparent to-[#060B18]" />
-
-              {/* 상단 컨트롤: 뒤로가기 / 목표 */}
-              <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between p-3 sm:p-4">
-                <button onClick={() => navigate(-1)} className="size-9 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white active:scale-95 transition-transform">
-                  <span className="material-symbols-outlined text-base">west</span>
-                </button>
-                <button
-                  onClick={() => setShowMobileBriefing(true)}
-                  className={`px-3 h-9 rounded-xl flex items-center gap-1 text-[11px] font-bold backdrop-blur-md transition-all ${
-                    isIntro
-                      ? 'bg-amber-500/25 border border-amber-400/60 text-amber-200 animate-pulse'
-                      : 'bg-black/40 border border-white/10 text-slate-200'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-sm">list_alt</span>
-                  목표
-                </button>
-              </div>
-
-              {/* 하단 정보: 이름 · 감정 · 신뢰 게이지 */}
-              <div className="absolute inset-x-0 bottom-0 z-10 p-3 sm:p-4 space-y-2">
-                <div className="flex items-end justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg sm:text-xl font-black text-white drop-shadow-lg truncate">{config.name}</span>
-                      <span className="text-lg shrink-0">{emotionEmoji}</span>
-                    </div>
-                    <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest truncate">{characterInfo.role} · {config.generation}</p>
-                  </div>
-                  <span className="text-[11px] font-black uppercase tracking-widest shrink-0 drop-shadow" style={{ color: hpColor }}>{emotionLabel}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-2 bg-black/50 rounded-full overflow-hidden backdrop-blur">
-                    <div className={`h-full rounded-full transition-all duration-700 ${trustState.trust > 70 ? 'bg-green-400' : trustState.trust > 30 ? 'bg-primary' : 'bg-red-500'}`} style={{ width: `${trustState.trust}%` }} />
-                  </div>
-                  <span className="text-[11px] font-black text-white shrink-0">신뢰 {trustState.trust}</span>
-                  <span className={`text-[10px] font-bold shrink-0 ${isIntro ? 'text-amber-300' : 'text-slate-400'}`}>{messages.filter(m => m.role === 'user').length}/{turnThreshold}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Mobile compact status */}
-          <div className={`${immersiveImage ? 'hidden' : 'sm:hidden'} sticky top-0 z-30 px-3 pt-3`}>
+          <div className="sm:hidden sticky top-0 z-30 px-3 pt-3">
             <div className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-xl px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
@@ -1197,7 +1132,7 @@ ${recentMsgs}
           </div>
 
           {/* HUD Overlay Info */}
-          <div className={`absolute top-6 left-6 right-6 z-30 justify-between pointer-events-none ${immersiveImage ? 'hidden' : 'hidden sm:flex'}`}>
+          <div className="absolute top-6 left-6 right-6 z-30 justify-between pointer-events-none hidden sm:flex">
             <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 flex items-center gap-3">
               <span className="text-xs font-black text-slate-500 uppercase tracking-widest">현재 감정 지수</span>
               <span className="text-sm font-black" style={{ color: hpColor }}>{emotionLabel}</span>
